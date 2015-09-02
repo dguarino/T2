@@ -1,0 +1,147 @@
+{
+    #CorticalUniformSheet parameters
+    'component': 'mozaik.sheets.vision.VisualCorticalUniformSheet',
+    'params':{
+                'name':'V1_Inh_L4',
+                'sx': ref('l4_cortex_exc.params.sx'),
+                'sy': ref('l4_cortex_exc.params.sy'),
+                'density': ref('l4_cortex_exc.params.density')/4.0,
+                'mpi_safe' : False,
+                'magnification_factor': ref('l4_cortex_exc.params.magnification_factor'),
+                'cell': {
+                        'model': 'EIF_cond_exp_isfa_ista',
+                        'params': {
+                            'v_thresh':-53.0,
+                            'v_rest': -80.0,
+                            'v_reset': -53.0,
+                            'tau_refrac': 0.5,
+                            'tau_m': 10.0,
+                            'cm': 0.04,
+            	            'e_rev_E': 0.0,
+                            'e_rev_I': -80.0,
+                    	    'tau_syn_E': 7.8,
+                            'tau_syn_I': 15.0, 
+                            'a' : ref('l4_cortex_exc.params.cell.params.a'),
+                            'b' : ref('l4_cortex_exc.params.cell.params.b'),
+                            'delta_T' : ref('l4_cortex_exc.params.cell.params.delta_T'),
+                            'tau_w' : ref('l4_cortex_exc.params.cell.params.tau_w'),
+                        }, 
+                        'initial_values': {
+                                    'v': PyNNDistribution(name='uniform',params=(-70,-51)),
+                                },
+
+                    },
+                'artificial_stimulators' : ref('l4_cortex_exc.params.artificial_stimulators'),
+                'recording_interval'  :  ref('l4_cortex_exc.params.recording_interval'),                                            
+                'recorders' : url("param/l4_inh_rec"),    
+    },
+        
+    'L4InhL4ExcConnection': {
+        'target_synapses' : 'inhibitory',               
+        'short_term_plasticity': {
+				            'U': 0.1, 
+				            'tau_rec': 1.5, 
+	 		    	            'tau_psc': 0.0,
+				            'tau_fac': 300.0,
+                        },
+        'weight_functions' : {  
+                                'f1' : {
+                                         'component' : 'mozaik.connectors.vision.V1CorrelationBasedConnectivity',
+                                         'params' : {
+                                                        'sigma' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_functions.f1.params.sigma'),
+                                                        'target_synapses' : 'inhibitory',  
+                                                    }
+                                        },  
+                                'f2' : {
+                                         'component' : 'mozaik.connectors.modular_connector_functions.HyperbolicModularConnectorFunction',
+                                         'params' : {
+                                                                'theta': 237.54,                                                                                             
+                                                	            'alpha': 0.012614,
+                                                    }
+                                       },                                        
+                             },
+        
+        
+        'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
+        'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_expression'),
+        'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
+        'base_weight': 0.0007,
+        'num_samples' : ref('l4_cortex_exc.L4ExcL4ExcConnection.num_samples')/4,
+        'fan_in' : True,
+    },
+
+    'L4InhL4InhConnection':  {
+        'target_synapses' : 'inhibitory',               
+        'short_term_plasticity': None,        
+
+        'weight_functions' : {  
+                                'f1' : {
+                                         'component' : 'mozaik.connectors.vision.V1CorrelationBasedConnectivity',
+                                         'params' : {
+                                                        'sigma' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_functions.f1.params.sigma'),
+                                                        'target_synapses' : 'inhibitory',  
+                                                    }
+                                        },  
+                                'f2' : {
+                                         'component' : 'mozaik.connectors.modular_connector_functions.HyperbolicModularConnectorFunction',
+                                         'params' : {
+                                                                'theta': 256.43,                                                                                             
+                                                	            'alpha': 0.011907,
+                                                    }
+                                       },                                        
+                             },
+
+        'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
+        'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_expression'),
+        'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
+        'base_weight': 0.0001,
+        'num_samples' : ref('l4_cortex_inh.L4InhL4ExcConnection.num_samples'),
+        'fan_in' : True,
+    },
+
+    'L4InhL4ExcConnectionRand': {
+                'target_synapses' : 'inhibitory',             
+                'short_term_plasticity': ref('l4_cortex_inh.L4InhL4ExcConnection.short_term_plasticity'),
+                'weight_functions' : ref('l4_cortex_inh.L4InhL4ExcConnection.weight_functions'),
+                'delay_functions' : ref('l4_cortex_inh.L4InhL4ExcConnection.delay_functions'),
+                'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.weight_expression'),
+                'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.delay_expression'),
+                'base_weight': ref('l4_cortex_inh.L4InhL4ExcConnection.base_weight'),
+                'connection_probability' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.connection_probability'),  # probability of connection between two neurons from the two populations
+        'fan_in' : True,
+    },
+
+    'L4InhL4InhConnectionRand': {
+                'target_synapses' : 'inhibitory',             
+                'short_term_plasticity': None, 
+                'weight_functions' : ref('l4_cortex_inh.L4InhL4InhConnection.weight_functions'),
+                'delay_functions' : ref('l4_cortex_inh.L4InhL4InhConnection.delay_functions'),
+                'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.weight_expression'),
+                'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.delay_expression'),
+                'base_weight': ref('l4_cortex_inh.L4InhL4InhConnection.base_weight'),
+                'connection_probability' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.connection_probability'),  # probability of connection between two neurons from the two populations
+        'fan_in' : True,
+    },
+    
+    'ExcInhAfferentRatio' : 0.7, 
+    
+    'AfferentConnection': {
+            'aspect_ratio':            UniformDist(min=0.57, max=0.57),
+            'size':                    UniformDist(min=0.2501, max=0.2501),
+            'orientation_preference':  UniformDist(min=0.0, max=3.141592653589793),
+            'phase':                   UniformDist(min=0.0, max=6.283185307179586),
+            'frequency':               UniformDist(min=0.8, max=0.8),
+            'delay': 2.0,    
+            'topological' : True,
+	    
+            'or_map' : True,
+            'or_map_location' : './or_map_4x4',
+            'phase_map' : False,
+            'phase_map_location' : './phase_map',
+	    
+            'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh.ExcInhAfferentRatio'),
+            'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
+            'short_term_plasticity':  ref('l4_cortex_exc.AfferentConnection.short_term_plasticity'),
+        'fan_in' : True,
+    }
+}

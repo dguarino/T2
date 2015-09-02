@@ -1,0 +1,113 @@
+{
+    'component': 'mozaik.models.vision.spatiotemporalfilter.SpatioTemporalFilterRGCandLGN',
+    'params': {
+
+        ############################################
+        # RETINA
+        # --- Cross-Correlation Trick ---
+        #'density': 500, # neurons per degree squared 
+        #'size'  : (6.0,0.8), # deg; the effective size of the modelled section of retina/lgn
+        # --- one cell in the center ---
+        #'density': 10000.0, # high density
+        #'size'  : (0.01,0.01), # deg; but small size
+        # --- Biological ---
+        'density': 300.0, # neurons per degree squared 
+        'size'  : (1.0,1.0), # deg; the effective size of the modelled section of retina/lgn
+        # --- 
+        'linear_scaler': 1.0, # overall scaling
+        'mpi_reproducible_noise' : False,
+        'cached' : False,
+        'cache_path' : 'retinal_cache/',
+        'recorders' :  url("param/retina_rec"),
+        'recording_interval': 0.1, 
+
+        'receptive_field': {
+            'func': 'cai97.stRF_2d', # Changed for LGN only receiving from Retina
+            'func_params': {
+                # spatial filter
+                # CaiDeAngelisFreeman1997, AlonsoUsreyReid2001, SceniakChatterjeeCallaway2006 (see paragraph: "Geniculocortical afferent CRF spatial structure")
+                # balance has to be considered for the volumes under the gaussians: 2*pi * A*sigma_x*sigma_y
+                # ex of an almost balanced RF (center: 1.0*0.5*0.5=0.25; surround: 0.11*1.5*1.5=0.247):
+                'Ac': 1.0, # CaiDeAngelisFreeman1997 (fixed)
+                'As': 0.11, # CaiDeAngelisFreeman1997 (proportional)
+                'sigma_c': 0.5, # deg Hammond1974, BoninManteCarandini2005, SceniakChatterjeeCallaway2006 (0.5)
+                'sigma_s': 1.5, # deg BoninManteCarandini2005, SceniakChatterjeeCallaway2006 (1.4)
+                # Temporal filter
+                'K1': 1.05, # AllenFreeman2006
+                'c1': 0.14, # AllenFreeman2006
+                'n1': 7.0, # AllenFreeman2006
+                't1': -6.0, # ms # AllenFreeman2006
+                'K2': -0.3, # AllenFreeman2006
+                'c2': 0.12, # AllenFreeman2006
+                'n2': 8.0, # AllenFreeman2006
+                't2': -6.0, # ms # AllenFreeman2006
+                'td': 6.0, # time difference between ON-OFF # AllenFreeman2006
+                'subtract_mean': False,
+            },
+            'width': 9.0, # degrees
+            'height': 9.0, # degrees
+            'spatial_resolution': 0.2, # degrees
+            'temporal_resolution': 7.0, # ms
+            'duration': 100.0,
+        },
+
+        'gain_control' : {
+            'gain': 150,  # nA*cd/m²
+            'non_linear_gain' : {
+                'luminance_gain' : 10.0,
+                'luminance_scaler' : 0.01,
+                'contrast_scaler' : 0.02, #.001
+            }
+            #'non_linear_gain' : None,
+            #'gain': 15, # nA*cd/m²
+        },
+
+        'cell': {
+            'model': 'IF_cond_exp',
+            'params': {
+                'v_thresh': -50.0, # HuertasGroffSmith2005 # -40.0, WorgotterKoch1991 # -35, # Coombes2003
+                'v_rest': -63.0, # Kim Sanchez-Vivez McCormick 1997 # HuertasGroffSmith2005 # -70.0, # WorgotterKoch1991 # 
+                'v_reset': -55.0, # HuertasGroffSmith2005, Kremkow2014, LesicaWengJinYehAlonsoStanley2006
+                'tau_refrac': 4.0, # HuertasGroffSmith2005 # 2 Kremkow2014
+                'tau_m': 10.0, # WorgotterKoch1991
+                'cm': 1.0, # Kremkow2014
+                'e_rev_E': 0.0, # HuertasGroffSmith2005
+                'e_rev_I': -85.0, # HuertasGroffSmith2005
+                'tau_syn_E': 1.5, # Kremkow
+                'tau_syn_I': 10.0, # Kremkow
+            },
+            'initial_values': {
+                'v': -70.0,
+            },
+        },
+
+        'noise': {
+            'mean': 0.0,
+            'stdev': 15.0, # nA, spontaneous
+        },
+
+        ############################################
+        # LGN
+        'magnification_factor': 200.0, # μm/degree
+        'retino_thalamic_weight': 0.04, # µS 
+        'LGN_cell_params': {
+                'model' : 'IF_cond_exp',
+                'params' : {
+                    'v_thresh': -45.0, # WorgotterKoch1991
+                    'v_rest': -65.0, # McCormickHuguenard1992 # -70 WorgotterKoch1991
+                    'v_reset': -55.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
+                    'tau_refrac': 4.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
+                    'tau_m': 10.0, # WorgotterKoch1991
+                    'cm': 0.2, # nF see evernote
+                    'e_rev_E': 20.0, # WorgotterKoch1991 
+                    'e_rev_I': -85.0, # HuertasGroffSmith2005, no inh in WorgotterKoch1991
+                    'tau_syn_E': 1.5, # WorgotterKoch1991
+                    'tau_syn_I': 5.0, # Kremkow, no inh in WorgotterKoch1991
+                },
+                'initial_values' : {
+                    'v': -70.0,
+                }
+        },
+
+    }
+}

@@ -1,0 +1,26 @@
+{
+    'input_space_type' : 'mozaik.space.VisualSpace',
+    'input_space': {
+        'update_interval': 7.0, # ms
+        'background_luminance': 30.0, # cd/m²
+    },
+    'visual_field': {
+        'centre': (0.0, 0.0), # degrees (x,y)
+        'size': (20.0, 20.0), # degrees (width, height)
+    },
+
+    'l4_cortex_exc': url("param/l4_cortex_exc"),
+    'l4_cortex_inh': url("param/l4_cortex_inh"),
+    'lgn': url("param/RetinaLGN_defaults"),
+    'pgn': url("param/PGN_defaults"),
+
+    'only_afferent' : False,
+    'results_dir': '',
+    'name' : 'ThalamoCorticalModel',
+    'reset' : False,
+    'null_stimulus_period' : 150.0,
+    'store_stimuli' : False,    
+    'min_delay' : 0.1,
+    'max_delay' : 10,
+    'time_step' : 0.1
+}
