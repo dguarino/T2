@@ -11,8 +11,8 @@
         #'density': 10000.0, # high density
         #'size'  : (0.01,0.01), # deg; but small size
         # --- Biological ---
-        'density': 300.0, # neurons per degree squared 
-        'size'  : (1.0,1.0), # deg; the effective size of the modelled section of retina/lgn
+        'density': 100.0, # neurons per degree squared 
+        'size'  : (7.0,7.0), # deg; the effective size of the modelled section of retina/lgn
         # --- 
         'linear_scaler': 1.0, # overall scaling
         'mpi_reproducible_noise' : False,

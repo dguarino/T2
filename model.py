@@ -206,13 +206,14 @@ class ThalamoCorticalModel(Model):
                 self.parameters.l4_cortex_exc.EfferentConnection_LGN
             ).connect()
 
-            ModularSamplingProbabilisticConnector(
-                self,
-                'V1EffConnectionPGN',
-                cortex_exc_l4,
-                pgn,
-                self.parameters.l4_cortex_exc.EfferentConnection_PGN
-            ).connect()
+            if withPGN:
+                ModularSamplingProbabilisticConnector(
+                    self,
+                    'V1EffConnectionPGN',
+                    cortex_exc_l4,
+                    pgn,
+                    self.parameters.l4_cortex_exc.EfferentConnection_PGN
+                ).connect()
         
         
 

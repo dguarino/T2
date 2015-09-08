@@ -20,7 +20,7 @@ logger = mozaik.getMozaikLogger()
 
 
 
-def perform_analysis_and_visualization( data_store, withPGN=False, withV1=False ):
+def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=False, withV1=False ):
     # Gather indexes
     analog_Xon_ids = sorted( param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_vm_ids() )
     analog_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_vm_ids() )
@@ -36,6 +36,8 @@ def perform_analysis_and_visualization( data_store, withPGN=False, withV1=False 
     if withV1:
         analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
+        analog_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_esyn_ids()
+        spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
         print "analog_ids: ",analog_ids
         print "spike_ids: ",spike_ids
         if False:
@@ -58,11 +60,16 @@ def perform_analysis_and_visualization( data_store, withPGN=False, withV1=False 
 
     ##############
     # ANALYSES
-    # perform_analysis_luminance( data_store, withPGN, withV1 )
-    # perform_analysis_contrast_frequency( data_store, withPGN, withV1 )
-    perform_analysis_size( data_store, withPGN, withV1 )
-    # perform_analysis_and_visualization_subcortical_conn(data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids)
-    # perform_analysis_and_visualization_cortical_or_conn( data_store )
+    if atype == 'luminance':
+        perform_analysis_luminance( data_store, withPGN, withV1 )
+    if atype == 'contrast' or atype == 'spatial_frequency' or atype == 'temporal_frequency':
+        perform_analysis_contrast_frequency( data_store, withPGN, withV1 )
+    if atype == 'size':
+        perform_analysis_size( data_store, withPGN, withV1 )
+    if atype == 'subcortical_conn':
+        perform_analysis_and_visualization_subcortical_conn(data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids)
+    if atype == 'cortical_or_conn':
+        perform_analysis_and_visualization_cortical_or_conn( data_store )
 
     ##############
     # PLOTTING
@@ -73,11 +80,18 @@ def perform_analysis_and_visualization( data_store, withPGN=False, withV1=False 
            'resolution' : 0
     }
     plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
-    # plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
-    # plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
-    # plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
-    # plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
-    plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+
+    if atype == 'luminance':
+        plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
+    if atype == 'contrast':
+        plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
+    if atype == 'size':
+        plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+    if atype == 'spatial_frequency':
+        plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
+    if atype == 'temporal_frequency':
+        plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
+
 
 
 #########################################################################################
@@ -208,13 +222,45 @@ def perform_analysis_size( data_store, withPGN=False, withV1=False ):
     # TrialAveragedFiringRate( dsv12, ParameterSet({}) ).analyse()
     # dsv13 = param_filter_query( data_store, st_name='FlatDisk', sheet_name='X_OFF' )  
     # TrialAveragedFiringRate( dsv13, ParameterSet({}) ).analyse()
+
     if withPGN:
         dsv12 = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='PGN' )  
         TrialAveragedFiringRate( dsv12, ParameterSet({}) ).analyse()
-    if withV1:
-        dsv11 = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='V1_Exc_L4' )  
-        TrialAveragedFiringRate( dsv11, ParameterSet({}) ).analyse()
 
+    if withV1:
+        analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
+        spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
+        analog_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_esyn_ids()
+        spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
+
+        NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+        l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+
+        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+
+        idx4 = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
+
+        x = data_store.get_neuron_postions()['V1_Exc_L4'][0][idx4]
+        y = data_store.get_neuron_postions()['V1_Exc_L4'][1][idx4]
+        center4 = l4_exc_or_many[numpy.nonzero(numpy.sqrt(numpy.multiply(x,x)+numpy.multiply(y,y)) < 0.1)[0]]
+        
+        analog_center4 = set(center4).intersection(analog_ids)
+
+        TrialAveragedFiringRate(param_filter_query(data_store,sheet_name=['V1_Exc_L4','V1_Inh_L4'],st_name='DriftingSinusoidalGratingDisk'),ParameterSet({})).analyse()
+            
+        print len(l4_exc_or_many)
+
+        # dsv = param_filter_query(data_store,st_name='DriftingSinusoidalGratingDisk',analysis_algorithm=['TrialAveragedFiringRate'])    
+        # PlotTuningCurve(dsv,ParameterSet({'parameter_name' : 'radius', 'neurons': list(center4), 'sheet_name' : 'V1_Exc_L4','centered'  : False,'mean' : False, 'polar' : False, 'pool'  : False}),plot_file_name='SizeTuningExcL4.png',fig_param={'dpi' : 100,'figsize': (32,7)}).plot()
+        # PlotTuningCurve(dsv,ParameterSet({'parameter_name' : 'radius', 'neurons': list(center4), 'sheet_name' : 'V1_Exc_L4','centered'  : False,'mean' : True, 'polar' : False, 'pool'  : False}),plot_file_name='SizeTuningExcL4M.png',fig_param={'dpi' : 100,'figsize': (32,7)}).plot()
+        # data_store.save()
+        
+        # if True:
+        #     dsv = param_filter_query(data_store,st_name=['DriftingSinusoidalGratingDisk'])    
+        #     OverviewPlot(dsv,ParameterSet({'sheet_name' : 'V1_Exc_L4', 'neuron' : analog_center4[0], 'sheet_activity' : {}, 'spontaneous' : True}),fig_param={'dpi' : 100,'figsize': (28,12)},plot_file_name='Overview_ExcL4_1.png').plot()
+        #     OverviewPlot(dsv,ParameterSet({'sheet_name' : 'V1_Exc_L4', 'neuron' : analog_center4[1], 'sheet_activity' : {}, 'spontaneous' : True}),fig_param={'dpi' : 100,'figsize': (28,12)},plot_file_name='Overview_ExcL4_2.png').plot()
+        #     OverviewPlot(dsv,ParameterSet({'sheet_name' : 'V1_Exc_L4', 'neuron' : analog_center4[2], 'sheet_activity' : {}, 'spontaneous' : True}),fig_param={'dpi' : 100,'figsize': (28,12)},plot_file_name='Overview_ExcL4_3.png').plot()
+    
 
 
 #########################################################################################
@@ -581,6 +627,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             '*.x_scale':'log', '*.x_scale_base':2,
             '*.fontsize':17
         })
+
     # dsv = param_filter_query( data_store, st_name='FlatDisk', analysis_algorithm=['TrialAveragedFiringRate'] )
     # PlotTuningCurve(
     #    dsv,
@@ -852,12 +899,12 @@ def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=N
         })
 
     if analog_ids:
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[0], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_0.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[1], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_1.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[2], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_2.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[3], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_3.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[4], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_4.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[5], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_5.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[6], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_6.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[7], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_7.png").plot({'Vm_plot.*.y_lim':(-67,-56), 'Conductance_plot.y_lim':(0,35.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[0], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_0.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[1], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_1.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[2], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_2.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[3], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_3.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[4], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_4.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[5], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_5.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[6], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_6.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[7], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_7.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
 

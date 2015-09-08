@@ -44,6 +44,7 @@ withV1 = True
 # Model execution
 if True:
     data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
 
     if False: # save connections
         if withPGN: # PGN
@@ -79,4 +80,5 @@ else:
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
-    perform_analysis_and_visualization( data_store, withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )

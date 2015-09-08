@@ -179,7 +179,7 @@
         'weight_expression' : '0.0001',
         'delay_expression' : '3.0',
         'base_weight' : 0.0001, # µS, GolshaniLiuJones2001
-        'num_samples' : 200, # MurphyDuckettSillito2000
+        'num_samples' : 100, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 
@@ -205,8 +205,9 @@
         'delay_functions' : {},
         'weight_expression' : '0.0004',
         'delay_expression' : '3.0',
-        'base_weight' : 0.0004, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), mouse
-        'num_samples' : 20, # MurphyDuckettSillito2000
+        'base_weight' : 0.0004, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
+                                 # but fan_in means that each cell will receive 10 inputs, so we divide 0.0004/10
+        'num_samples' : 10, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 

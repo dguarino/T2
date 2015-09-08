@@ -4,24 +4,24 @@
     'component': 'mozaik.sheets.vision.VisualCorticalUniformSheet', # used as start
     'params':{
         'name':'PGN',
-        'sx': 200.0, # μm
-        'sy': 200.0, # 
-        'density': 150.0,
+        'sx': 1400.0, # μm
+        'sy': 1400.0, # 
+        'density': 1250.0, # 1/mm2
         'mpi_safe' : False,
         'magnification_factor': 200.0, # μm/degree
         'cell': {
             'model' : 'IF_cond_exp',
             'params' : {
                 'v_thresh': -50.0,  # HuertasGroffSmith2005 # -35, # Coombes2003
-                'v_rest': -62.0,    # HuertasGroffSmith2005
+                'v_rest': -70.0,    # HuertasGroffSmith2005
                 'v_reset': -55.0,   # HuertasGroffSmith2005
                 'tau_refrac': 5.0,  # HuertasGroffSmith2005
-                'tau_m': 20.0,      # ms # 17.3, Rall1995 # 23.0, DestexheContrerasSteriadeSejnowski1996
+                'tau_m': 20.0,      # ms # 17.3 (Rall1995) - 23.0 (DestexheContrerasSteriadeSejnowski1996)
                 'cm': 0.2,          # 
                 'e_rev_E': 0.0,     # HuertasGroffSmith2005
                 'e_rev_I': -85.0,   # HuertasGroffSmith2005
-                'tau_syn_E': 6.0,   # 
-                'tau_syn_I': 10.0,  # 
+                'tau_syn_E': 1.5,   # 6.0,
+                'tau_syn_I': 5.0,   # 10.0,
             },
             'initial_values' : {
                 'v': -70.0,
@@ -52,7 +52,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1', 
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.003, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
 
@@ -73,7 +73,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # ms # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.003, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
     
@@ -115,7 +115,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0002, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
     # to LGN
@@ -135,7 +135,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0002, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
 
