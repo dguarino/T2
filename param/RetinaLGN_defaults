@@ -29,9 +29,9 @@
                 # balance has to be considered for the volumes under the gaussians: 2*pi * A*sigma_x*sigma_y
                 # ex of an almost balanced RF (center: 1.0*0.5*0.5=0.25; surround: 0.11*1.5*1.5=0.247):
                 'Ac': 1.0, # CaiDeAngelisFreeman1997 (fixed)
-                'As': 0.11, # CaiDeAngelisFreeman1997 (proportional)
-                'sigma_c': 0.5, # deg Hammond1974, BoninManteCarandini2005, SceniakChatterjeeCallaway2006 (0.5)
-                'sigma_s': 1.5, # deg BoninManteCarandini2005, SceniakChatterjeeCallaway2006 (1.4)
+                'As': 0.05, # derived from TroyerKrukowskiPriebeMiller1998 (see evernote)
+                'sigma_c': 0.2, # LinsenmeierFrishmanJakielaEnroth1982
+                'sigma_s': 0.7, # derived from TroyerKrukowskiPriebeMiller1998
                 # Temporal filter
                 'K1': 1.05, # AllenFreeman2006
                 'c1': 0.14, # AllenFreeman2006
@@ -54,12 +54,10 @@
         'gain_control' : {
             'gain': 150,  # nA*cd/m²
             'non_linear_gain' : {
-                'luminance_gain' : 10.0,
+                'luminance_gain' : 20.0,
                 'luminance_scaler' : 0.01,
-                'contrast_scaler' : 0.02, #.001
+                'contrast_scaler' : 0.001
             }
-            #'non_linear_gain' : None,
-            #'gain': 15, # nA*cd/m²
         },
 
         'cell': {
@@ -83,7 +81,7 @@
 
         'noise': {
             'mean': 0.0,
-            'stdev': 15.0, # nA, spontaneous
+            'stdev': 10.5, # nA, for spontaneous
         },
 
         ############################################
@@ -96,7 +94,7 @@
                     'v_thresh': -45.0, # WorgotterKoch1991
                     'v_rest': -65.0, # McCormickHuguenard1992 # -70 WorgotterKoch1991
                     'v_reset': -55.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
-                    'tau_refrac': 4.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
+                    'tau_refrac': 4.0, # HuertasGroffSmith2005, not in WorgotterKoch1991
                     'tau_m': 10.0, # WorgotterKoch1991
                     'cm': 0.2, # nF see evernote
                     'e_rev_E': 20.0, # WorgotterKoch1991 

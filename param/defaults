@@ -12,6 +12,7 @@
     'l4_cortex_exc': url("param/l4_cortex_exc"),
     'l4_cortex_inh': url("param/l4_cortex_inh"),
     'lgn': url("param/RetinaLGN_defaults"),
+    #'lgn': url("param/Retina_defaults"),
     'pgn': url("param/PGN_defaults"),
 
     'only_afferent' : False,

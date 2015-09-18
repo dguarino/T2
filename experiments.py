@@ -1,4 +1,5 @@
 #!/usr/local/bin/ipython -i 
+import numpy as np
 from mozaik.experiments import *
 from mozaik.experiments.vision import *
 from mozaik.sheets.population_selector import RCRandomPercentage
@@ -18,15 +19,16 @@ def create_experiments_spontaneous(model):
 def create_experiments_luminance(model):
   return [
       #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # LUMINANCE SENSITIVITY
       # as in PapaioannouWhite1972
       MeasureFlatLuminanceSensitivity(
           model, 
-          luminances=[0.01, 20.0, 50.0, 100.0], #[0.01, 0.1, 1.0, 10.0, 20.0, 100.0],
+          # luminances=[0.01, 20.0, 50.0, 100.0],
+          luminances=[0.01, 0.1, 1.0, 10.0, 20.0, 50.0, 70.0, 100.0],
           step_duration=147*7,
-          num_trials= 14
+          num_trials= 54
       )
   ]
 
@@ -34,19 +36,19 @@ def create_experiments_luminance(model):
 def create_experiments_contrast(model):
   return [
       #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # CONTRAST SENSITIVITY
       # as in DerringtonLennie1984, HeggelundKarlsenFlugsrudNordtug1989, SaulHumphrey1990, BoninManteCarandini2005
       MeasureContrastSensitivity(
           model, 
-          size=20.0,
+          size = 20.0,
           orientation=numpy.pi/2, 
-          spatial_frequency=0.25, 
-          temporal_frequency=2.0, #8.0,
-          grating_duration=147*7,
-          contrasts=[0,25,50,75,100], #[100],
-          num_trials=1
+          spatial_frequency = 0.5, 
+          temporal_frequency = 2.5, 
+          grating_duration = 147*7,
+          contrasts = [80], #[0, 25, 50, 75, 100],
+          num_trials = 1
       )
   ]
 
@@ -54,7 +56,7 @@ def create_experiments_contrast(model):
 def create_experiments_spatial(model):
   return [
       #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      #PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # SPATIAL FREQUENCY TUNING (with different contrasts)
       # as in SolomonWhiteMartin2002, SceniakChatterjeeCallaway2006
@@ -62,12 +64,13 @@ def create_experiments_spatial(model):
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], #[25,50,100], #
-          spatial_frequencies=[0.08, 0.16, 0.18, 0.2, 0.22, 0.24, 0.3, 0.4, 0.5],
-          temporal_frequencies=[8.0],
+          # spatial_frequencies = [0.1, 0.2, 0.5, 1., 2.], #[0.16, 0.24, 0.3, 0.4, 0.5, 0.8, 1., 2.],
+          spatial_frequencies=np.arange(0.0, 3., 0.2),
+          temporal_frequencies=[2.5],
           grating_duration=147*7,
           frame_duration=7,
           # square=True,
-          num_trials=10
+          num_trials=14
       )
   ]
 
@@ -75,7 +78,7 @@ def create_experiments_spatial(model):
 def create_experiments_temporal(model):
   return [
       #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # TEMPORAL FREQUENCY TUNING (with different contrasts)
       # as in SaulHumphrey1990, AlittoUsrey2004
@@ -83,12 +86,12 @@ def create_experiments_temporal(model):
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], #[25,50,100], #
-          spatial_frequencies=[0.25], #[0.1, 0.5, 0.9], 
-          temporal_frequencies=[0.2, 0.4, 0.6, 1.2, 2.5, 5.1, 6.4, 8.0, 12., 16.],
+          spatial_frequencies=[0.5], #[0.1, 0.5, 0.9], 
+          temporal_frequencies=[0.8, 1.2, 2.5, 5.1, 6.4, 8.0, 12., 16.],
           grating_duration=147*7,
           frame_duration=7,
           #square=True,
-          num_trials=10
+          num_trials=14
       )
   ]
 
@@ -96,20 +99,20 @@ def create_experiments_temporal(model):
 def create_experiments_size(model):
   return [
       #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      #PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # SIZE TUNING
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=14, 
+          num_sizes=10, 
           max_size=10.0, 
           orientation=numpy.pi/2, 
-          spatial_frequency=0.25, #0.15, 
-          temporal_frequency=2.0, #8.0, !!!!!!!!!!!!!
+          spatial_frequency=0.5, #0.8
+          temporal_frequency=2.5,
           grating_duration=147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=4,
+          num_trials=2,
           log_spacing=True,
           with_flat=False #use also flat luminance discs
       )
@@ -126,7 +129,7 @@ def create_experiments_orientation(model):
       MeasureOrientationTuningFullfield(
           model,
           num_orientations=8,
-          spatial_frequency=0.25,
+          spatial_frequency=0.5,
           temporal_frequency=8.0,
           grating_duration=147*7,
           contrasts=[80],
@@ -149,7 +152,7 @@ def create_experiments_correlation(model):
       MeasureFeatureInducedCorrelation(
           model, 
           contrast=80, 
-          spatial_frequencies=[0.25],
+          spatial_frequencies=[0.5],
           separation=6,
           temporal_frequency=8.0,
           exp_duration=147*7,

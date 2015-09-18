@@ -27,7 +27,17 @@
                 'v': -70.0,
             }
         },
-        'artificial_stimulators' : {},  
+        'artificial_stimulators' : {
+        #    'background_act' : {
+        #        'component' :  'mozaik.sheets.direct_stimulator.BackgroundActivityBombardment',   
+        #        'params' : {
+        #            'exc_firing_rate' : 3000.0, 
+        #            'exc_weight' : 0.0015,
+        #            'inh_firing_rate' : 0.0,
+        #            'inh_weight' : 0.0,
+        #        }
+        #    }
+        },  
         'recorders' :  url("param/pgn_rec"),
         'recording_interval': 0.1,
     },
@@ -52,7 +62,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1', 
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.003, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.004, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
 
@@ -73,7 +83,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # ms # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.003, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': ref('pgn.LGN_PGN_ConnectionOn.base_weight'),
         'num_samples' : 60, # estimated see evernote
     },
     
@@ -115,7 +125,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0001, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
     # to LGN
@@ -135,7 +145,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': ref('pgn.PGN_LGN_ConnectionOn.base_weight'),
         'num_samples' : 180,
     },
 
