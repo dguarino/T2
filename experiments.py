@@ -5,7 +5,7 @@ from mozaik.experiments.vision import *
 from mozaik.sheets.population_selector import RCRandomPercentage
 from parameters import ParameterSet
 
-    
+
 def create_experiments_spontaneous(model):
   return [
       # SPONTANEOUS ACTIVITY (darkness)
@@ -25,10 +25,10 @@ def create_experiments_luminance(model):
       # as in PapaioannouWhite1972
       MeasureFlatLuminanceSensitivity(
           model, 
-          # luminances=[0.01, 20.0, 50.0, 100.0],
-          luminances=[0.01, 0.1, 1.0, 10.0, 20.0, 50.0, 70.0, 100.0],
+          luminances=[0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0], # as in BarlowLevick1969, SakmannCreutzfeldt1969
+          # luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
           step_duration=147*7,
-          num_trials= 54
+          num_trials=10
       )
   ]
 
@@ -47,8 +47,8 @@ def create_experiments_contrast(model):
           spatial_frequency = 0.5, 
           temporal_frequency = 2.5, 
           grating_duration = 147*7,
-          contrasts = [80], #[0, 25, 50, 75, 100],
-          num_trials = 1
+          contrasts = [0, 2, 4, 6, 8, 12, 18, 25, 35, 50],
+          num_trials = 10
       )
   ]
 
@@ -64,13 +64,14 @@ def create_experiments_spatial(model):
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], #[25,50,100], #
-          # spatial_frequencies = [0.1, 0.2, 0.5, 1., 2.], #[0.16, 0.24, 0.3, 0.4, 0.5, 0.8, 1., 2.],
-          spatial_frequencies=np.arange(0.0, 3., 0.2),
+          spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 10.], # KimuraShimegiHaraOkamotoSato2013
+          # spatial_frequencies = [0.2, 0.3],
+          # spatial_frequencies=np.arange(0.0, 3., 0.2),
           temporal_frequencies=[2.5],
           grating_duration=147*7,
           frame_duration=7,
           # square=True,
-          num_trials=14
+          num_trials=10
       )
   ]
 
@@ -85,13 +86,13 @@ def create_experiments_temporal(model):
       MeasureFrequencySensitivity(
           model, 
           orientation=numpy.pi/2, 
-          contrasts=[80], #[25,50,100], #
-          spatial_frequencies=[0.5], #[0.1, 0.5, 0.9], 
-          temporal_frequencies=[0.8, 1.2, 2.5, 5.1, 6.4, 8.0, 12., 16.],
+          contrasts=[80], 
+          spatial_frequencies=[0.5], 
+          temporal_frequencies=[0.2, 0.6, 1.2, 1.8, 2.4, 6.4, 8.0, 12., 16.], # DerringtonLennie1982, AlittoUsrey2004
           grating_duration=147*7,
           frame_duration=7,
           #square=True,
-          num_trials=14
+          num_trials=10
       )
   ]
 
@@ -105,16 +106,16 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=10, 
-          max_size=10.0, 
+          num_sizes=2, 
+          max_size=8.0, 
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #0.8
           temporal_frequency=2.5,
           grating_duration=147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=2,
+          num_trials=4,
           log_spacing=True,
-          with_flat=False #use also flat luminance discs
+          with_flat=True #use also flat luminance discs
       )
   ]
 
@@ -128,15 +129,22 @@ def create_experiments_orientation(model):
       # as in DanielsNormanPettigrew1977, VidyasagarUrbas1982
       MeasureOrientationTuningFullfield(
           model,
-          num_orientations=8,
-          spatial_frequency=0.5,
-          temporal_frequency=8.0,
-          grating_duration=147*7,
-          contrasts=[80],
-          num_trials=4
+          num_orientations=2, # rad: [0.0, 1.5707...]  (0, 90 deg)
+          spatial_frequency=0.8, #0.5,
+          temporal_frequency=2.0, #8.0,
+          grating_duration=2*147*7,
+          contrasts=[100],
+          num_trials=2
       )
-      # MeasureOrientationTuningFullfield(model,num_orientations=2,spatial_frequency=0.8,temporal_frequency=2,grating_duration=2*147*7,contrasts=[100],num_trials=2),
   ]
+  # #Spontaneous Activity 
+  # NoStimulation(model,duration=2*2*5*3*8*7),
+  # # Measure orientation tuning with full-filed sinusoidal gratins
+  # MeasureOrientationTuningFullfield(model,num_orientations=2,spatial_frequency=0.8,temporal_frequency=2,grating_duration=2*147*7,contrasts=[100],num_trials=2),
+
+  # # Measure response to natural image with simulated eye movement
+  # MeasureNaturalImagesWithEyeMovement(model,stimulus_duration=2*147*7,num_trials=2),
+
 
 
 def create_experiments_correlation(model):

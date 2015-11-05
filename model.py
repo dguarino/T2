@@ -9,8 +9,10 @@ from mozaik.space import VisualRegion
 
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
-withPGN = True
-withV1 = False
+withPGN = True  # 
+withV1 = False  # open-loop
+withFeedback_CxPGN = False # closed loop
+withFeedback_CxLGN = False # closed loop
 
 
 class ThalamoCorticalModel(Model):
@@ -190,23 +192,24 @@ class ThalamoCorticalModel(Model):
 
             ########################################################
             # CORTICO-THALAMIC
-            ModularSamplingProbabilisticConnector(
-                self,
-                'V1EffConnectionOn',
-                cortex_exc_l4,
-                self.input_layer.sheets['X_ON'],
-                self.parameters.l4_cortex_exc.EfferentConnection_LGN
-            ).connect()
+            if withFeedback_CxLGN:
+                ModularSamplingProbabilisticConnector(
+                    self,
+                    'V1EffConnectionOn',
+                    cortex_exc_l4,
+                    self.input_layer.sheets['X_ON'],
+                    self.parameters.l4_cortex_exc.EfferentConnection_LGN
+                ).connect()
 
-            ModularSamplingProbabilisticConnector(
-                self,
-                'V1EffConnectionOff',
-                cortex_exc_l4,
-                self.input_layer.sheets['X_OFF'],
-                self.parameters.l4_cortex_exc.EfferentConnection_LGN
-            ).connect()
+                ModularSamplingProbabilisticConnector(
+                    self,
+                    'V1EffConnectionOff',
+                    cortex_exc_l4,
+                    self.input_layer.sheets['X_OFF'],
+                    self.parameters.l4_cortex_exc.EfferentConnection_LGN
+                ).connect()
 
-            if withPGN:
+            if withFeedback_CxPGN and withPGN:
                 ModularSamplingProbabilisticConnector(
                     self,
                     'V1EffConnectionPGN',

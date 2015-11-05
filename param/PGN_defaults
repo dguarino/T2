@@ -31,8 +31,8 @@
         #    'background_act' : {
         #        'component' :  'mozaik.sheets.direct_stimulator.BackgroundActivityBombardment',   
         #        'params' : {
-        #            'exc_firing_rate' : 3000.0, 
-        #            'exc_weight' : 0.0015,
+        #            'exc_firing_rate' : 3000.0, # Hz?
+        #            'exc_weight' : 0.0005,
         #            'inh_firing_rate' : 0.0,
         #            'inh_weight' : 0.0,
         #        }
@@ -96,7 +96,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 600.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 200.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -104,7 +104,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.003, # µS 0.003-5, UlrichHuguenard1996
+        'base_weight': 0.005, # µS 0.003-5, UlrichHuguenard1996
         'num_samples' : 90,
     },
 

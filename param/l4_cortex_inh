@@ -16,7 +16,7 @@
                             'v_reset': -53.0,
                             'tau_refrac': 0.5,
                             'tau_m': 10.0,
-                            'cm': 0.04,
+                            'cm': 0.05,
             	            'e_rev_E': 0.0,
                             'e_rev_I': -80.0,
                     	    'tau_syn_E': 7.8,
@@ -39,10 +39,10 @@
     'L4InhL4ExcConnection': {
         'target_synapses' : 'inhibitory',               
         'short_term_plasticity': {
-				            'U': 0.1, 
-				            'tau_rec': 1.5, 
-	 		    	            'tau_psc': 0.0,
-				            'tau_fac': 300.0,
+				            'U': 0.2, 
+				            'tau_rec': 15, 
+	 		    	        'tau_psc': 0.0,
+				            'tau_fac': 0.0,
                         },
         'weight_functions' : {  
                                 'f1' : {
@@ -65,7 +65,7 @@
         'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
         'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_expression'),
         'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
-        'base_weight': 0.0007,
+        'base_weight': 0.0026,
         'num_samples' : ref('l4_cortex_exc.L4ExcL4ExcConnection.num_samples')/4,
         'fan_in' : True,
     },
@@ -94,7 +94,7 @@
         'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
         'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_expression'),
         'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
-        'base_weight': 0.0001,
+        'base_weight': 0.0002,
         'num_samples' : ref('l4_cortex_inh.L4InhL4ExcConnection.num_samples'),
         'fan_in' : True,
     },
@@ -123,7 +123,7 @@
         'fan_in' : True,
     },
     
-    'ExcInhAfferentRatio' : 0.7, 
+    'ExcInhAfferentRatio' : 1.25, 
     
     'AfferentConnection': {
             'aspect_ratio':            UniformDist(min=0.57, max=0.57),

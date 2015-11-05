@@ -9,7 +9,10 @@
         #'size'  : (6.0,0.8), # deg; the effective size of the modelled section of retina/lgn
         # --- one cell in the center ---
         #'density': 10000.0, # high density
-        #'size'  : (0.01,0.01), # deg; but small size
+        #'size'  : (0.02,0.02), # deg; but small size
+        # --- one in one degree ---
+        #'density': 1.0, # neurons per degree squared 
+        #'size'  : (1.0,1.0), # deg; the effective size of the modelled section of retina/lgn
         # --- Biological ---
         'density': 100.0, # neurons per degree squared 
         'size'  : (7.0,7.0), # deg; the effective size of the modelled section of retina/lgn
@@ -32,16 +35,16 @@
                 'As': 0.05, # derived from TroyerKrukowskiPriebeMiller1998 (see evernote)
                 'sigma_c': 0.2, # LinsenmeierFrishmanJakielaEnroth1982
                 'sigma_s': 0.7, # derived from TroyerKrukowskiPriebeMiller1998
-                # Temporal filter
-                'K1': 1.05, # AllenFreeman2006
-                'c1': 0.14, # AllenFreeman2006
-                'n1': 7.0, # AllenFreeman2006
-                't1': -6.0, # ms # AllenFreeman2006
-                'K2': -0.3, # AllenFreeman2006
-                'c2': 0.12, # AllenFreeman2006
-                'n2': 8.0, # AllenFreeman2006
-                't2': -6.0, # ms # AllenFreeman2006
-                'td': 6.0, # time difference between ON-OFF # AllenFreeman2006
+                # Temporal filter (starting from AllenFreeman2006)
+                'K1': 1.05, # transient height
+                'c1': 0.4,  # transient bell (high=steep,narrow)
+                'n1': 7.0,  # transient center
+                't1': -6.0, # transient offset (ms)
+                'K2': -0.3, # sustained height
+                'c2': 0.02,# sustained bell (low=flat,large)
+                'n2': 1.2,  # sustained center
+                't2': -6.0, # susteined offset (ms)
+                'td': 0.0,  # time difference between ON-OFF
                 'subtract_mean': False,
             },
             'width': 9.0, # degrees
@@ -52,36 +55,43 @@
         },
 
         'gain_control' : {
-            'gain': 150,  # nA*cd/m²
+            'gain': 100,  # nA*cd/m²
+            #'non_linear_gain' : None,
             'non_linear_gain' : {
-                'luminance_gain' : 20.0,
-                'luminance_scaler' : 0.01,
-                'contrast_scaler' : 0.001
+                'luminance_gain' : 20000.0, 
+                'luminance_scaler' : 99,
+                'contrast_scaler' : 0.000001
             }
         },
 
         'cell': {
             'model': 'IF_cond_exp',
             'params': {
-                'v_thresh': -50.0, # HuertasGroffSmith2005 # -40.0, WorgotterKoch1991 # -35, # Coombes2003
-                'v_rest': -63.0, # Kim Sanchez-Vivez McCormick 1997 # HuertasGroffSmith2005 # -70.0, # WorgotterKoch1991 # 
-                'v_reset': -55.0, # HuertasGroffSmith2005, Kremkow2014, LesicaWengJinYehAlonsoStanley2006
-                'tau_refrac': 4.0, # HuertasGroffSmith2005 # 2 Kremkow2014
-                'tau_m': 10.0, # WorgotterKoch1991
-                'cm': 1.0, # Kremkow2014
-                'e_rev_E': 0.0, # HuertasGroffSmith2005
-                'e_rev_I': -85.0, # HuertasGroffSmith2005
-                'tau_syn_E': 1.5, # Kremkow
-                'tau_syn_I': 10.0, # Kremkow
+                'v_thresh': -50.0, # GreenbergVelteHumayunScarlatisJuan2001
+                'v_rest': -63.0, # LankheetMolenaarVandegrind1989
+                'v_reset': -55.0, # MargolisDetwiler2007
+                'tau_refrac': 2.0, # LankheetMolenaarVandegrind1989
+                'tau_m': 10.0, # 
+                'cm': 0.1, # 0.074 FreedSterling1988, Weiner2012
+                'e_rev_E': 0.0, # Not used
+                'e_rev_I': 0.0, # Not used
+                'tau_syn_E': 1.0, # Not used
+                'tau_syn_I': 1.0, # Not used
             },
             'initial_values': {
                 'v': -70.0,
             },
         },
-
+        
         'noise': {
-            'mean': 0.0,
-            'stdev': 10.5, # nA, for spontaneous
+            'X_ON': {
+                'mean': 0.0,
+                'stdev': 1.45, # nA, for spontaneous
+            },
+            'X_OFF': {
+                'mean': 0.0,
+                'stdev': 2.5, # nA, for spontaneous
+            },
         },
 
         ############################################
@@ -96,7 +106,7 @@
                     'v_reset': -55.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
                     'tau_refrac': 4.0, # HuertasGroffSmith2005, not in WorgotterKoch1991
                     'tau_m': 10.0, # WorgotterKoch1991
-                    'cm': 0.2, # nF see evernote
+                    'cm': 0.2, # nF see evernote (DestexheNeubigUlrichHuguenard1998)
                     'e_rev_E': 20.0, # WorgotterKoch1991 
                     'e_rev_I': -85.0, # HuertasGroffSmith2005, no inh in WorgotterKoch1991
                     'tau_syn_E': 1.5, # WorgotterKoch1991
