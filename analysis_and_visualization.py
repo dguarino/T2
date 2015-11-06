@@ -308,7 +308,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
        plot_file_name="FlatLuminanceSensitivity_LGN_On.png"
     ).plot({
-       '*.y_lim':(0,60), 
+       '*.y_lim':(0,30), 
        '*.x_lim':(0,100), 
        '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':17,
@@ -327,7 +327,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
        plot_file_name="FlatLuminanceSensitivity_LGN_On_mean.png"
     ).plot({
-       '*.y_lim':(0,60), 
+       '*.y_lim':(0,30), 
        '*.x_lim':(0,100), 
        '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':17,
@@ -346,7 +346,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="FlatLuminanceSensitivity_LGN_Off.png"
     ).plot({
-        '*.y_lim':(0,60), 
+        '*.y_lim':(0,30), 
         '*.x_lim':(0,100), 
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':17,
@@ -365,7 +365,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="FlatLuminanceSensitivity_LGN_Off_mean.png"
     ).plot({
-        '*.y_lim':(0,60), 
+        '*.y_lim':(0,30), 
         '*.x_lim':(0,100), 
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':17,
@@ -385,7 +385,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
            plot_file_name="FlatLuminanceSensitivity_PGN.png"
         ).plot({
-           #'*.y_lim':(0,60), 
+           '*.y_lim':(0,30), 
            # '*.x_scale':'log', '*.x_scale_base':10,
            '*.fontsize':17
         })
@@ -403,7 +403,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
            plot_file_name="FlatLuminanceSensitivity_PGN_mean.png"
         ).plot({
-           #'*.y_lim':(0,60), 
+           '*.y_lim':(0,30), 
            # '*.x_scale':'log', '*.x_scale_base':10,
            '*.fontsize':17
         })

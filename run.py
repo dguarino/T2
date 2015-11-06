@@ -47,10 +47,11 @@ withFeedback_CxLGN = False # closed loop
 if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_temporal )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
+    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
     if False: # save connections
         if withPGN: # PGN
@@ -88,9 +89,9 @@ else:
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
-    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )

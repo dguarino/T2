@@ -106,18 +106,31 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=2, 
+          num_sizes=20, 
           max_size=8.0, 
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #0.8
           temporal_frequency=2.5,
           grating_duration=147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=4,
+          num_trials=10,
           log_spacing=True,
           with_flat=True #use also flat luminance discs
       )
   ]
+
+
+def create_experiments_combined(model):
+  create_experiments_luminance(model)
+  create_experiments_contrast(model)
+  create_experiments_spatial(model)
+  create_experiments_temporal(model)
+  # create_experiments_size(model)
+
+
+
+# ------------------------------------------
+
 
 
 def create_experiments_orientation(model):
@@ -137,6 +150,8 @@ def create_experiments_orientation(model):
           num_trials=2
       )
   ]
+
+
   # #Spontaneous Activity 
   # NoStimulation(model,duration=2*2*5*3*8*7),
   # # Measure orientation tuning with full-filed sinusoidal gratins
@@ -170,7 +185,6 @@ def create_experiments_correlation(model):
   ]
 
 
-# ------------------------------------------
 
 # LIFELONG SPARSENESS
 # as in RathbunWarlandUsrey2010, AndolinaJonesWangSillito2007
