@@ -20,7 +20,9 @@ from experiments import create_experiments_temporal
 from experiments import create_experiments_size
 from experiments import create_experiments_orientation
 from experiments import create_experiments_correlation
+from experiments import create_experiments_combined
 
+from analysis_and_visualization import perform_analysis_test
 from analysis_and_visualization import perform_analysis_and_visualization
 # from analysis_and_visualization import perform_analysis_and_visualization_size
 
@@ -38,20 +40,21 @@ logger = mozaik.getMozaikLogger()
 
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
-withPGN = True  # 
+withPGN = False  # 
 withV1 = False  # open-loop
 withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
 # Model execution
 if True:
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spontaneous )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
-    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
+    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_temporal )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
     if False: # save connections
         if withPGN: # PGN
@@ -89,9 +92,10 @@ else:
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
-    perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+    # perform_analysis_test( data_store )
+    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )

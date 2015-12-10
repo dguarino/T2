@@ -52,7 +52,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1', 
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.004, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.002, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
 
@@ -94,7 +94,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.003, # µS 0.003-5, UlrichHuguenard1996
+        'base_weight': 0.0045, # µS 0.003-5, UlrichHuguenard1996
         'num_samples' : 90,
     },
 
@@ -115,7 +115,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.0008, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
     # to LGN

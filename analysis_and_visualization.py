@@ -21,6 +21,25 @@ logger = mozaik.getMozaikLogger()
 
 
 
+def perform_analysis_test( data_store ):
+    dsv = param_filter_query( data_store, st_name='InternalStimulus', sheet_name=['X_ON','X_OFF'] )  
+    # TrialAveragedFiringRateCutout( dsv, ParameterSet({}) ).analyse(start=100, end=1000)
+    # data_store.print_content(full_recordings=True)
+
+    # dsv = param_filter_query( data_store, st_name='InternalStimulus', sheet_name=['X_ON','X_OFF'],analysis_algorithm='TrialAveragedFiringRateCutout')  
+    # dsv.print_content(full_ADS=True)
+
+
+    # PerNeuronValuePlot(dsv,ParameterSet({"cortical_view":True}), plot_file_name='test_LGN.png').plot()
+
+    # dsv = param_filter_query( data_store, st_name='InternalStimulus', sheet_name=['PGN'] )  
+    # TrialAveragedFiringRateCutout( dsv, ParameterSet({}) ).analyse(start=100, end=1000)
+    # dsv = param_filter_query( data_store, st_name='InternalStimulus', sheet_name=['PGN'],analysis_algorithm='TrialAveragedFiringRateCutout')  
+
+    # PerNeuronValuePlot(dsv,ParameterSet({"cortical_view":True}), plot_file_name='test_PGN.png').plot()
+    
+
+
 def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=False, withV1=False ):
     # Gather indexes
     # analog_RGC_Xon_ids = sorted( param_filter_query(data_store,sheet_name="Retina_X_ON").get_segments()[0].get_stored_vm_ids() )
@@ -221,14 +240,14 @@ def perform_analysis_luminance( data_store, withPGN=False, withV1=False ):
 def perform_analysis_full_field( data_store, withPGN=False, withV1=False ):
     dsv10 = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name='X_ON' )  
     # TrialAveragedFiringRate( dsv10, ParameterSet({}) ).analyse()
-    TrialAveragedFiringRateCutout( dsv10, ParameterSet({}) ).analyse(start=100, end=1000)
+    TrialAveragedFiringRateCutout( dsv10, ParameterSet({}) ).analyse(start=100, end=10000)
     dsv11 = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name='X_OFF' )  
     # TrialAveragedFiringRate( dsv11, ParameterSet({}) ).analyse()
-    TrialAveragedFiringRateCutout( dsv11, ParameterSet({}) ).analyse(start=100, end=1000)
+    TrialAveragedFiringRateCutout( dsv11, ParameterSet({}) ).analyse(start=100, end=10000)
     if withPGN:
         dsv12 = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name='PGN' )  
         # TrialAveragedFiringRate( dsv12, ParameterSet({}) ).analyse()
-        TrialAveragedFiringRateCutout( dsv12, ParameterSet({}) ).analyse(start=100, end=1000)
+        TrialAveragedFiringRateCutout( dsv12, ParameterSet({}) ).analyse(start=100, end=10000)
     if withV1:
         dsv1_V1e = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name='V1_Exc_L4' )  
         TrialAveragedFiringRate( dsv1_V1e, ParameterSet({}) ).analyse()
@@ -240,15 +259,15 @@ def perform_analysis_full_field( data_store, withPGN=False, withV1=False ):
 
 def perform_analysis_size( data_store, withPGN=False, withV1=False ):
     dsv10 = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='X_ON' )  
-    TrialAveragedFiringRate( dsv10, ParameterSet({}) ).analyse()
+    TrialAveragedFiringRateCutout( dsv10, ParameterSet({}) ).analyse(start=100, end=1000)
     dsv11 = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='X_OFF' )  
-    TrialAveragedFiringRate( dsv11, ParameterSet({}) ).analyse()
+    TrialAveragedFiringRateCutout( dsv11, ParameterSet({}) ).analyse(start=100, end=1000)
     dsv12 = param_filter_query( data_store, st_name='FlatDisk', sheet_name='X_ON' )  
-    TrialAveragedFiringRate( dsv12, ParameterSet({}) ).analyse()
+    TrialAveragedFiringRateCutout( dsv12, ParameterSet({}) ).analyse(start=100, end=1000)
 
     if withPGN:
         dsv12 = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='PGN' )  
-        TrialAveragedFiringRate( dsv12, ParameterSet({}) ).analyse()
+        TrialAveragedFiringRateCutout( dsv12, ParameterSet({}) ).analyse(start=100, end=1000)
 
     if withV1:
         analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
@@ -308,7 +327,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
        plot_file_name="FlatLuminanceSensitivity_LGN_On.png"
     ).plot({
-       '*.y_lim':(0,30), 
+       '*.y_lim':(0,60), 
        '*.x_lim':(0,100), 
        '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':17,
@@ -327,7 +346,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
        plot_file_name="FlatLuminanceSensitivity_LGN_On_mean.png"
     ).plot({
-       '*.y_lim':(0,30), 
+       '*.y_lim':(0,60), 
        '*.x_lim':(0,100), 
        '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':17,
@@ -346,7 +365,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="FlatLuminanceSensitivity_LGN_Off.png"
     ).plot({
-        '*.y_lim':(0,30), 
+        '*.y_lim':(0,60), 
         '*.x_lim':(0,100), 
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':17,
@@ -365,7 +384,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="FlatLuminanceSensitivity_LGN_Off_mean.png"
     ).plot({
-        '*.y_lim':(0,30), 
+        '*.y_lim':(0,60), 
         '*.x_lim':(0,100), 
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':17,
@@ -425,8 +444,26 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'neurons': list(analog_Xon_ids[0:1]), 
             'sheet_name' : 'X_ON'
        }), 
-       fig_param={'dpi' : 100,'figsize': (8,8)}, 
+       fig_param={'dpi' : 100,'figsize': (10,8)}, 
        plot_file_name="ContrastSensitivity_LGN_On.png"
+    ).plot({
+       '*.y_lim':(0,100), 
+       # '*.x_scale':'log', '*.x_scale_base':10,
+       '*.fontsize':17
+    })
+    PlotTuningCurve(
+       dsv,
+       ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': True,
+            'parameter_name' : 'contrast', 
+            'neurons': list(analog_Xon_ids), 
+            'sheet_name' : 'X_ON'
+       }), 
+       fig_param={'dpi' : 100,'figsize': (10,8)}, 
+       plot_file_name="ContrastSensitivity_LGN_On_mean.png"
     ).plot({
        '*.y_lim':(0,100), 
        # '*.x_scale':'log', '*.x_scale_base':10,
@@ -443,8 +480,26 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'neurons': list(analog_Xoff_ids[0:1]), 
             'sheet_name' : 'X_OFF'
        }), 
-       fig_param={'dpi' : 100,'figsize': (8,8)}, 
+       fig_param={'dpi' : 100,'figsize': (10,8)}, 
        plot_file_name="ContrastSensitivity_LGN_Off.png"
+    ).plot({
+       '*.y_lim':(0,100), 
+       # '*.x_scale':'log', '*.x_scale_base':10,
+       '*.fontsize':17
+    })
+    PlotTuningCurve(
+       dsv,
+       ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': True,
+            'parameter_name' : 'contrast', 
+            'neurons': list(analog_Xoff_ids), 
+            'sheet_name' : 'X_OFF'
+       }), 
+       fig_param={'dpi' : 100,'figsize': (10,8)}, 
+       plot_file_name="ContrastSensitivity_LGN_Off_mean.png"
     ).plot({
        '*.y_lim':(0,100), 
        # '*.x_scale':'log', '*.x_scale_base':10,
@@ -464,6 +519,24 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
            plot_file_name="ContrastSensitivity_PGN.png"
+        ).plot({
+           '*.y_lim':(0,100), 
+           # '*.x_scale':'log', '*.x_scale_base':10,
+           '*.fontsize':17
+        })
+        PlotTuningCurve(
+           dsv,
+           ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': True,
+                'parameter_name' : 'contrast', 
+                'neurons': list(analog_PGN_ids), 
+                'sheet_name' : 'PGN'
+           }), 
+           fig_param={'dpi' : 100,'figsize': (8,8)}, 
+           plot_file_name="ContrastSensitivity_PGN_mean.png"
         ).plot({
            '*.y_lim':(0,100), 
            # '*.x_scale':'log', '*.x_scale_base':10,
@@ -772,7 +845,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            plot_file_name="TemporalFrequencyTuning_PGN.png"
         ).plot({
            '*.y_lim':(0,100), 
-           #'*.x_scale':'log', '*.x_scale_base':2,
+           '*.x_scale':'log', '*.x_scale_base':2,
            '*.fontsize':17
         })
         PlotTuningCurve(
@@ -790,7 +863,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            plot_file_name="TemporalFrequencyTuning_PGN_mean.png"
         ).plot({
            '*.y_lim':(0,100), 
-           #'*.x_scale':'log', '*.x_scale_base':2,
+           '*.x_scale':'log', '*.x_scale_base':2,
            '*.fontsize':17
         })
     if analog_ids:
@@ -817,27 +890,27 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
 
 def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
     # firing rate against disk
-    # dsv = param_filter_query( data_store, st_name='FlatDisk', analysis_algorithm=['TrialAveragedFiringRate'] )
-    # PlotTuningCurve(
-    #     dsv,
-    #     ParameterSet({
-    #         'polar': False,
-    #         'pool': False,
-    #         'centered': False,
-    #         'mean': False,
-    #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_Xon_ids[0:1]), 
-    #         'sheet_name' : 'X_ON'
-    #     }), 
-    #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
-    #     plot_file_name="SizeTuning_Disk_LGN_On.png"
-    # ).plot({
-    #     '*.y_lim':(0,150), 
-    #     '*.x_scale':'log', '*.x_scale_base':2,
-    #     '*.fontsize':17
-    # })
+    dsv = param_filter_query( data_store, st_name='FlatDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+    PlotTuningCurve(
+        dsv,
+        ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': False,
+            'parameter_name' : 'radius', 
+            'neurons': list(analog_Xon_ids[0:1]), 
+            'sheet_name' : 'X_ON'
+        }), 
+        fig_param={'dpi' : 100,'figsize': (8,8)}, 
+        plot_file_name="SizeTuning_Disk_LGN_On.png"
+    ).plot({
+        '*.y_lim':(0,150), 
+        '*.x_scale':'log', '*.x_scale_base':2,
+        '*.fontsize':17
+    })
     # firing rate against sizes
-    dsv = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRate'] )
+    dsv = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
     PlotTuningCurve(
         dsv,
         ParameterSet({
@@ -852,61 +925,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_On.png"
     ).plot({
-        '*.y_lim':(0,100), 
-        '*.x_scale':'log', '*.x_scale_base':2,
-        '*.fontsize':17
-    })
-    PlotTuningCurve(
-        dsv,
-        ParameterSet({
-            'polar': False,
-            'pool': False,
-            'centered': False,
-            'mean': False,
-            'parameter_name' : 'radius', 
-            'neurons': list(analog_Xoff_ids[0:1]), 
-            'sheet_name' : 'X_OFF'
-        }), 
-        fig_param={'dpi' : 100,'figsize': (8,8)}, 
-        plot_file_name="SizeTuning_Grating_LGN_Off.png"
-    ).plot({
-        '*.y_lim':(0,100), 
-        '*.x_scale':'log', '*.x_scale_base':2,
-        '*.fontsize':17
-    })
-    PlotTuningCurve(
-        dsv,
-        ParameterSet({
-            'polar': False,
-            'pool': False,
-            'centered': False,
-            'mean': False,
-            'parameter_name' : 'radius', 
-            'neurons': list(analog_Xon_ids[0:9]), 
-            'sheet_name' : 'X_ON'
-        }), 
-        fig_param={'dpi' : 100,'figsize': (80,8)}, 
-        plot_file_name="SizeTuning_Grating_LGN_On_10.png"
-    ).plot({
-        '*.y_lim':(0,100), 
-        '*.x_scale':'log', '*.x_scale_base':2,
-        '*.fontsize':17
-    })
-    PlotTuningCurve(
-        dsv,
-        ParameterSet({
-            'polar': False,
-            'pool': False,
-            'centered': False,
-            'mean': False,
-            'parameter_name' : 'radius', 
-            'neurons': list(analog_Xoff_ids[0:9]), 
-            'sheet_name' : 'X_OFF'
-        }), 
-        fig_param={'dpi' : 100,'figsize': (80,8)}, 
-        plot_file_name="SizeTuning_Grating_LGN_Off_10.png"
-    ).plot({
-        '*.y_lim':(0,100), 
+        '*.y_lim':(0,150), 
         '*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':17
     })
@@ -924,7 +943,25 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_On_mean.png"
     ).plot({
-        '*.y_lim':(0,100), 
+        '*.y_lim':(0,150), 
+        '*.x_scale':'log', '*.x_scale_base':2,
+        '*.fontsize':17
+    })
+    PlotTuningCurve(
+        dsv,
+        ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': False,
+            'parameter_name' : 'radius', 
+            'neurons': list(analog_Xoff_ids[0:1]), 
+            'sheet_name' : 'X_OFF'
+        }), 
+        fig_param={'dpi' : 100,'figsize': (8,8)}, 
+        plot_file_name="SizeTuning_Grating_LGN_Off.png"
+    ).plot({
+        '*.y_lim':(0,150), 
         '*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':17
     })
@@ -942,10 +979,47 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_Off_mean.png"
     ).plot({
-        '*.y_lim':(0,100), 
+        '*.y_lim':(0,150), 
         '*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':17
     })
+    PlotTuningCurve(
+        dsv,
+        ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': False,
+            'parameter_name' : 'radius', 
+            'neurons': list(analog_Xon_ids[0:9]), 
+            'sheet_name' : 'X_ON'
+        }), 
+        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+        plot_file_name="SizeTuning_Grating_LGN_On_10.png"
+    ).plot({
+        '*.y_lim':(0,150), 
+        '*.x_scale':'log', '*.x_scale_base':2,
+        '*.fontsize':17
+    })
+    PlotTuningCurve(
+        dsv,
+        ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': False,
+            'parameter_name' : 'radius', 
+            'neurons': list(analog_Xoff_ids[0:9]), 
+            'sheet_name' : 'X_OFF'
+        }), 
+        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+        plot_file_name="SizeTuning_Grating_LGN_Off_10.png"
+    ).plot({
+        '*.y_lim':(0,150), 
+        '*.x_scale':'log', '*.x_scale_base':2,
+        '*.fontsize':17
+    })
+
     if analog_PGN_ids:
         PlotTuningCurve(
             dsv,
@@ -965,6 +1039,42 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             '*.x_scale':'log', '*.x_scale_base':2,
             '*.fontsize':17
         })
+        PlotTuningCurve(
+            dsv,
+            ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': True,
+                'parameter_name' : 'radius', 
+                'neurons': list(analog_PGN_ids), 
+                'sheet_name' : 'PGN'
+            }), 
+            fig_param={'dpi' : 100,'figsize': (8,8)}, 
+            plot_file_name="SizeTuning_Grating_PGN_mean.png"
+        ).plot({
+            '*.y_lim':(0,150), 
+            '*.x_scale':'log', '*.x_scale_base':2,
+            '*.fontsize':17
+        })
+    PlotTuningCurve(
+        dsv,
+        ParameterSet({
+            'polar': False,
+            'pool': False,
+            'centered': False,
+            'mean': False,
+            'parameter_name' : 'radius', 
+            'neurons': list(analog_PGN_ids[0:9]), 
+            'sheet_name' : 'PGN'
+        }), 
+        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+        plot_file_name="SizeTuning_Grating_PGN_10.png"
+    ).plot({
+        '*.y_lim':(0,100), 
+        '*.x_scale':'log', '*.x_scale_base':2,
+        '*.fontsize':17
+    })
         # PlotTuningCurve(
         #     dsv,
         #     ParameterSet({
@@ -983,24 +1093,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
         #     '*.x_scale':'log', '*.x_scale_base':2,
         #     '*.fontsize':17
         # })
-        PlotTuningCurve(
-            dsv,
-            ParameterSet({
-                'polar': False,
-                'pool': False,
-                'centered': False,
-                'mean': True,
-                'parameter_name' : 'radius', 
-                'neurons': list(analog_PGN_ids), 
-                'sheet_name' : 'PGN'
-            }), 
-            fig_param={'dpi' : 100,'figsize': (8,8)}, 
-            plot_file_name="SizeTuning_Grating_PGN_mean.png"
-        ).plot({
-            '*.y_lim':(0,100), 
-            '*.x_scale':'log', '*.x_scale_base':2,
-            '*.fontsize':17
-        })
+
     if analog_ids:
         PlotTuningCurve(
             dsv,

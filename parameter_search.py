@@ -11,19 +11,28 @@ from mozaik.meta_workflow.parameter_search import LocalSequentialBackend
 import numpy
 
 CombinationParameterSearch(
-	LocalSequentialBackend( num_threads=8 ),
+	LocalSequentialBackend( num_threads=1 ),
 	{
-        #'lgn.params.noise.stdev' : [1,2,3,4,5],
-        # 'lgn.params.gain_control.gain' : [40, 30, 20, 10],
-        # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [100, 150, 200, 250, 300],
-        # 'lgn.params.gain_control.non_linear_gain.luminance_scaler' : [0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.1],
-        'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [0.5, 0.1, 0.01, 0.001, 0.0001],
-        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [10., 1.0, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00005],
+        # 'lgn.params.receptive_field.func_params.c2' : [0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
+        #'lgn.params.receptive_field.func_params.K1' : [0.525, 1.05, 2.1, 3.15, 4.2],
+        #'lgn.params.receptive_field.func_params.K2' : [0.35, 0.7, 1.4, 2.1, 2.8],
 
-    	# 'pgn.LGN_PGN_ConnectionOn.base_weight': [0.0001, 0.0005, 0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035, 0.004], # automatic (ref) assignment also to Off neurons
-    	# 'pgn.PGN_PGN_Connection.base_weight': [0.003, 0.0035, 0.004, 0.0045, 0.005], 
-    	# 'pgn.PGN_LGN_ConnectionOn.base_weight': [0.0001, 0.0005, 0.001], # automatic (ref) assignment also to Off neurons
+        # 'lgn.params.noise.stdev' : [1,2,3,4,5],
+
+        'lgn.params.gain_control.gain' : [200, 250, 300, 350], #, 400, 450, 500, 550], # 100 for luminance
+
+        # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [20000, 60000, 100000],
+        'lgn.params.gain_control.non_linear_gain.luminance_scaler' : [10, 50, 100, 150],
+
+        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [100, 1000],
+        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [0.1, 0.01, 0.001, 0.0001],
+        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [.000000000000001, .00000000000001, .0000000000001],
+
+    	#'pgn.LGN_PGN_ConnectionOn.base_weight': [0.002, 0.003], # automatic (ref) assignment also to Off neurons
+    	# 'pgn.PGN_PGN_Connection.base_weight': [0.003, 0.004, 0.005], 
+    	#'pgn.PGN_LGN_ConnectionOn.base_weight': [0.0005, 0.001], # automatic (ref) assignment also to Off neurons
         # 'pgn.PGN_PGN_Connection.weight_functions.f1.params.arborization_constant': [200.0, 400.0, 600.0],  # um decay distance from the innervation point
+
         # 'pgn.params.cell.params.tau_m': [17.0]
 
         # 'l4_cortex_exc.AfferentConnection.base_weight' : [0.0001, 0.0005, 0.001],

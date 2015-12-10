@@ -203,10 +203,9 @@
             }, 
         },
         'delay_functions' : {},
-        'weight_expression' : '0.0004',
+        'weight_expression' : '0.0005',
         'delay_expression' : '2.0',
         'base_weight' : 0.0005, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
-                                 # but fan_in means that each cell will receive 10 inputs, so we divide 0.0004/10
         'num_samples' : 10, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
