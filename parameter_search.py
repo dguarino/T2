@@ -11,7 +11,7 @@ from mozaik.meta_workflow.parameter_search import LocalSequentialBackend
 import numpy
 
 CombinationParameterSearch(
-	LocalSequentialBackend( num_threads=1 ),
+	LocalSequentialBackend( num_threads=8 ),
 	{
         # 'lgn.params.receptive_field.func_params.c2' : [0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
         #'lgn.params.receptive_field.func_params.K1' : [0.525, 1.05, 2.1, 3.15, 4.2],
@@ -19,14 +19,11 @@ CombinationParameterSearch(
 
         # 'lgn.params.noise.stdev' : [1,2,3,4,5],
 
-        'lgn.params.gain_control.gain' : [200, 250, 300, 350], #, 400, 450, 500, 550], # 100 for luminance
+        # 'lgn.params.gain_control.gain' : [150, 200, 250, 300], #, 400, 450, 500, 550],
+        # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [200000., 230000., 250000., 280000.],
+        # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [0.001, 0.0001, 0.00001],
 
-        # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [20000, 60000, 100000],
-        'lgn.params.gain_control.non_linear_gain.luminance_scaler' : [10, 50, 100, 150],
-
-        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [100, 1000],
-        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [0.1, 0.01, 0.001, 0.0001],
-        # 'lgn.params.gain_control.non_linear_gain.contrast_scaler' : [.000000000000001, .00000000000001, .0000000000001],
+        # 'lgn.params.retino_thalamic_weight' : [.005, .01, .02],
 
     	#'pgn.LGN_PGN_ConnectionOn.base_weight': [0.002, 0.003], # automatic (ref) assignment also to Off neurons
     	# 'pgn.PGN_PGN_Connection.base_weight': [0.003, 0.004, 0.005], 
@@ -35,11 +32,15 @@ CombinationParameterSearch(
 
         # 'pgn.params.cell.params.tau_m': [17.0]
 
-        # 'l4_cortex_exc.AfferentConnection.base_weight' : [0.0001, 0.0005, 0.001],
-    	# 'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [0.0001, 0.0005, 0.001],
-    	# 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [0.0005, 0.001, 0.0015],
+        'l4_cortex_exc.AfferentConnection.base_weight' : [0.0001, 0.0005, 0.001],        # 0.0005
+    	'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [0.00005, 0.0001, 0.0005],  # 0.0001
+    	'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [0.0001, 0.0005, 0.001],    # 0.0005
   	}
 ).run_parameter_search()
+
+#                                                      Aff                LGN               PGN
+# ThalamoCorticalModel_ParameterSearch_____base_weight:0.0005_base_weight:5e-05_base_weight:0.0001
+
 
 # RGC tuning
 # luminance

@@ -1,0 +1,218 @@
+{
+    # CorticalUniformSheet parameters
+    'component': 'mozaik.sheets.vision.VisualCorticalUniformSheet',
+    'params':{
+        'name':'V1_Exc_L4',
+        'sx':6000.0,
+        'sy':ref('l4_cortex_exc.params.sx'),
+        'density': 300.0,
+        'mpi_safe' : False,    
+        'magnification_factor': 1000.0,
+                    
+        'cell': {
+                'model': 'EIF_cond_exp_isfa_ista',
+                'params': {
+                    'v_rest': -80,
+                    'v_reset': -54.0,
+                    'tau_refrac': 2.0,
+                    'tau_m': 10.0,
+                    'cm': 0.05,
+    	            'e_rev_E': 0.0,
+                    'e_rev_I': -80.0,
+            	    'tau_syn_E': 7.8,
+                    'tau_syn_I': 15.0,
+                    'a' : PyNNDistribution(name='uniform',params=(-5,2)),
+                    'b' : PyNNDistribution(name='uniform',params=(0.0,0.08)),
+                    'delta_T' : 2.0,
+                    'tau_w' : 88.0,
+                    'v_thresh' : -53.0                            
+                },
+
+               'initial_values': {
+                            'v': PyNNDistribution(name='uniform',params=(-70,-51)),
+                        },
+
+        },
+        'artificial_stimulators' : {},
+        'recording_interval'  :  1.0,                                                            
+        'recorders' : url("param/l4_exc_rec_mea"),
+    },
+
+    'rand_struct_ratio' : 0.8, # the ratio of synapses due to random and strucured connectivity
+    'K' : 500.0, # Number of synapses per neuron
+    'L4ExcL4ExcConnection': {
+        'target_synapses' : 'excitatory',             
+        'short_term_plasticity': {
+            'U': 0.5, 
+            'tau_rec': 440.0, 
+                'tau_psc': 0.0,
+            'tau_fac': 0.0,
+        },
+        'weight_functions' : {                          
+            'f1' : {
+                'component' : 'mozaik.connectors.vision.V1CorrelationBasedConnectivity',
+                'params' : {
+                    'sigma' : 0.3,
+                    'target_synapses' : 'excitatory',  
+                }
+            }, 
+            'f2' : {
+                'component' : 'mozaik.connectors.modular_connector_functions.HyperbolicModularConnectorFunction',
+                'params' : {
+    	            'theta': 207.76,
+                    'alpha': 0.013944,
+                }
+            },                                        
+         },
+        'delay_functions' : {
+            'd1' : {
+                'component' : 'mozaik.connectors.modular_connector_functions.LinearModularConnectorFunction',
+                'params' : {
+                    'constant_scaler': 0.2,
+                    'linear_scaler': 0.0033333333,   
+                }
+            }, 
+        },
+        'weight_expression' : 'f1*f2',
+        'delay_expression' : 'd1',
+        'fan_in' : True,
+        'base_weight': 0.0005,
+        'num_samples' : ref('l4_cortex_exc.K')*4.0/5.0*(1.0-ref('l4_cortex_exc.rand_struct_ratio'))
+    },
+    
+    
+    'L4ExcL4InhConnection': {
+        'target_synapses' : 'excitatory',             
+        'fan_in' : True,
+                
+        'short_term_plasticity': ref('l4_cortex_exc.L4ExcL4ExcConnection.short_term_plasticity'),        
+        'weight_functions' : {                          
+            'f1' : {
+                'component' : 'mozaik.connectors.vision.V1CorrelationBasedConnectivity',
+                'params' : {
+                    'sigma' : 0.3,
+                    'target_synapses' : 'excitatory',  
+                }
+            }, 
+            'f2' : {
+                'component' : 'mozaik.connectors.modular_connector_functions.HyperbolicModularConnectorFunction',
+                'params' : {
+                    'theta': 191.84,
+                    'alpha': 0.014827,
+                }
+            },                                        
+         },
+
+        'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
+        'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_expression'),
+        'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
+        'base_weight': 0.00075,
+        'num_samples' : ref('l4_cortex_exc.L4ExcL4ExcConnection.num_samples'),
+    },
+    
+
+   'L4ExcL4ExcConnectionRand': {
+        'target_synapses' : 'excitatory',             
+        'fan_in' : True,
+        'short_term_plasticity': ref('l4_cortex_exc.L4ExcL4ExcConnection.short_term_plasticity'),        
+        'weight_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_functions'),
+        'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
+        'weight_expression' : 'f2',
+        'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_expression'),
+        'base_weight': ref('l4_cortex_exc.L4ExcL4ExcConnection.base_weight'),
+	    'connection_probability' : ref('l4_cortex_exc.K')/(ref('l4_cortex_exc.params.sx')*ref('l4_cortex_exc.params.sy')/1000000*ref('l4_cortex_exc.params.density')*5.0/4.0)*ref('l4_cortex_exc.rand_struct_ratio'),
+    },
+
+
+    'L4ExcL4InhConnectionRand': {
+        'target_synapses' : 'excitatory',             
+        'fan_in' : True,
+        'short_term_plasticity': ref('l4_cortex_exc.L4ExcL4ExcConnection.short_term_plasticity'),        
+        'weight_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.weight_functions'),
+        'delay_functions' : ref('l4_cortex_exc.L4ExcL4ExcConnection.delay_functions'),
+        'weight_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.weight_expression'),
+        'delay_expression' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.delay_expression'),
+        'base_weight': ref('l4_cortex_exc.L4ExcL4InhConnection.base_weight'),
+	    'connection_probability' : ref('l4_cortex_exc.L4ExcL4ExcConnectionRand.connection_probability'),
+    },
+    
+
+    'AfferentConnection': {
+        'aspect_ratio':            UniformDist(min=0.57, max=0.57),
+        'size':                    UniformDist(min=0.2501, max=0.2501),
+        'orientation_preference':  UniformDist(min=0.0, max=3.141592653589793),
+        'phase':                   UniformDist(min=0.0, max=6.283185307179586),
+        'frequency':               UniformDist(min=0.8, max=0.8),
+        'delay': 2.0,    
+        'topological' : True,
+        'fan_in' : True,
+    
+        'or_map' : True,
+        'or_map_location' : './or_map_4x4',
+        'phase_map' : False,
+        'phase_map_location' : './phase_map',
+
+        'base_weight' : 0.0005,
+        'num_samples' : 45,
+        'short_term_plasticity':  {
+            'U': 0.3, 
+            'tau_rec': 60.0, 
+            'tau_psc': 0.0,
+            'tau_fac': 21.0,
+        },
+    },
+
+
+    # V1 to LGN
+    'EfferentConnection_LGN': {
+        'target_synapses' : 'excitatory',               
+        'weight_functions' : {},
+        'delay_functions' :  {
+            'f1' : {
+                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'params' : {
+                    'arborization_constant': 600.0,  # μm decay distance from the innervation point
+                    'arborization_scaler': 1.0,   # the scaler of the exponential decay
+                }
+            }, 
+        },
+        'weight_expression' : '0.0001',
+        'delay_expression' : '2.0',
+        'base_weight' : 0.0001, # µS, GolshaniLiuJones2001
+        'num_samples' : 100, # MurphyDuckettSillito2000
+        'short_term_plasticity': {
+            'U': 1.0, 
+            'tau_rec': 30.0, 
+            'tau_psc': 0.0,
+            'tau_fac': 21.0,
+        },
+        'fan_in' : False,
+    },
+
+
+    # V1 to PGN
+    'EfferentConnection_PGN': {
+        'target_synapses' : 'excitatory',               
+        'weight_functions' :  {
+            'f1' : {
+                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'params' : {
+                    'arborization_constant': 25.0,  # μm decay distance from the innervation point
+                    'arborization_scaler': 1.0,   # the scaler of the exponential decay
+                }
+            }, 
+        },
+        'delay_functions' : {},
+        'weight_expression' : '0.0005',
+        'delay_expression' : '2.0',
+        'base_weight' : 0.0005, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
+        'num_samples' : 10, # MurphyDuckettSillito2000
+        'short_term_plasticity': {
+            'U': 1.0, 
+            'tau_rec': 30.0, 
+            'tau_psc': 0.0,
+            'tau_fac': 21.0,
+        },
+        'fan_in' : False,
+    }
+}

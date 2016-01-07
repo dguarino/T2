@@ -21,7 +21,7 @@
         'mpi_reproducible_noise' : False,
         'cached' : False,
         'cache_path' : 'retinal_cache/',
-        'recorders' :  url("param/lgn_rec"),
+        'recorders' :  url("param/lgn_rec_mea"),
         'recording_interval': 0.1, 
 
         'receptive_field': {

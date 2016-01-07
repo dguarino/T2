@@ -25,9 +25,9 @@ def create_experiments_luminance(model):
       # as in PapaioannouWhite1972
       MeasureFlatLuminanceSensitivity(
           model, 
-          luminances=[0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0], # as in BarlowLevick1969, SakmannCreutzfeldt1969
-          #luminances=[0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
-          step_duration=1*147*7,
+          luminances=[0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0], # as in BarlowLevick1969, SakmannCreutzfeldt1969
+          #luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
+          step_duration=2*147*7,
           num_trials=10
       )
   ]
@@ -44,10 +44,10 @@ def create_experiments_contrast(model):
           model, 
           size = 20.0,
           orientation=numpy.pi/2, 
-          spatial_frequency = 0.8, 
-          temporal_frequency = 2.5, 
-          grating_duration = 10*147*7,
-          contrasts = [0, 2, 4, 8, 18, 36, 50], # KaplanPurpuraShapley1987
+          spatial_frequency = 0.5, 
+          temporal_frequency = 8.0, 
+          grating_duration = 2*147*7,
+          contrasts = [0, 2, 4, 8, 18, 36, 50, 100], # KaplanPurpuraShapley1987
           num_trials = 10
       )
   ]
@@ -58,20 +58,21 @@ def create_experiments_spatial(model):
       #Lets kick the network up into activation
       #PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
-      # SPATIAL FREQUENCY TUNING (with different contrasts)
+      # SPATIAL FREQUENCY TUNING
       # as in SolomonWhiteMartin2002, SceniakChatterjeeCallaway2006
       MeasureFrequencySensitivity(
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], #[25,50,100], #
-          spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
+          # spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
+          spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5, 8.], # Reduced KimuraShimegiHaraOkamotoSato2013
           # spatial_frequencies = [0.2, 0.3],
           # spatial_frequencies=np.arange(0.0, 3., 0.2),
-          temporal_frequencies=[2.5],
-          grating_duration=10*147*7,
+          temporal_frequencies=[8.0],
+          grating_duration=2*147*7,
           frame_duration=7,
           # square=True,
-          num_trials=10
+          num_trials=1
       )
   ]
 
@@ -81,19 +82,19 @@ def create_experiments_temporal(model):
       #Lets kick the network up into activation
       # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
-      # TEMPORAL FREQUENCY TUNING (with different contrasts)
+      # TEMPORAL FREQUENCY TUNING
       # as in SaulHumphrey1990, AlittoUsrey2004
       MeasureFrequencySensitivity(
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], 
-          spatial_frequencies=[0.8], 
-          temporal_frequencies=[0.05, 0.1, 0.2, 0.6, .8, 1.2, 2.4, 6.4, 8], # AlittoUsrey2004
+          spatial_frequencies=[0.5], 
+          temporal_frequencies=[0.05, 0.2, 1.2, 3.0, 6.4, 8, 12, 50], # AlittoUsrey2004
           #temporal_frequencies=[0.2, .8, 2.4, 6.0, 12.], # DerringtonLennie1982
-          grating_duration=20*147*7,
+          grating_duration=10*147*7,
           frame_duration=7,
           #square=True,
-          num_trials=10
+          num_trials=1
       )
   ]
 
@@ -110,9 +111,9 @@ def create_experiments_size(model):
           num_sizes=10, 
           max_size=8.0, 
           orientation=numpy.pi/2, 
-          spatial_frequency=0.8,
-          temporal_frequency=2.5,
-          grating_duration=147*7,
+          spatial_frequency=0.5,
+          temporal_frequency=8.0,
+          grating_duration=2*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
           num_trials=10,
           log_spacing=True,
