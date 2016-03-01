@@ -11,8 +11,8 @@
 
     'l4_cortex_exc': url("param/l4_cortex_exc_mea"),
     'l4_cortex_inh': url("param/l4_cortex_inh"),
-    'lgn_mea': url("param/RetinaLGN_defaults_mea"),
-    'pgn_mea': url("param/PGN_defaults_mea"),
+    'lgn': url("param/RetinaLGN_defaults_mea"),
+    'pgn': url("param/PGN_defaults_mea"),
 
     'only_afferent' : False,
     'results_dir': '',

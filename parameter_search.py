@@ -5,6 +5,8 @@
 #
 # usage:
 # python parameter_search.py run.py nest param/defaults
+# python parameter_search.py run_spatial.py nest param/defaults
+# python parameter_search.py run_spatial_V1.py nest param/defaults
 
 from mozaik.meta_workflow.parameter_search import CombinationParameterSearch
 from mozaik.meta_workflow.parameter_search import LocalSequentialBackend
@@ -25,16 +27,15 @@ CombinationParameterSearch(
 
         # 'lgn.params.retino_thalamic_weight' : [.005, .01, .02],
 
-    	#'pgn.LGN_PGN_ConnectionOn.base_weight': [0.002, 0.003], # automatic (ref) assignment also to Off neurons
-    	# 'pgn.PGN_PGN_Connection.base_weight': [0.003, 0.004, 0.005], 
-    	#'pgn.PGN_LGN_ConnectionOn.base_weight': [0.0005, 0.001], # automatic (ref) assignment also to Off neurons
-        # 'pgn.PGN_PGN_Connection.weight_functions.f1.params.arborization_constant': [200.0, 400.0, 600.0],  # um decay distance from the innervation point
+    	'pgn.LGN_PGN_ConnectionOn.base_weight': [0.002, 0.003], # 0.0001, 0.001, 0.002, 0.003, 0.004 # automatic (ref) assignment also to Off neurons
+    	'pgn.PGN_PGN_Connection.base_weight': [0.003], # 0.003, 0.005
+        'pgn.PGN_LGN_ConnectionOn.base_weight': [0.0005], # 0.0005, 0.001 # automatic (ref) assignment also to Off neurons
 
         # 'pgn.params.cell.params.tau_m': [17.0]
 
-        'l4_cortex_exc.AfferentConnection.base_weight' : [0.0001, 0.0005, 0.001],        # 0.0005
-    	'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [0.00005, 0.0001, 0.0005],  # 0.0001
-    	'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [0.0001, 0.0005, 0.001],    # 0.0005
+        # 'l4_cortex_exc.AfferentConnection.base_weight' : [0.0001, 0.0005, 0.001],
+    	# 'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [0.00001, 0.0001, 0.001],
+    	# 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [0.00001, 0.0001],
   	}
 ).run_parameter_search()
 

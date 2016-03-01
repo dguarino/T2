@@ -10,7 +10,7 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model import ThalamoCorticalModel
+from model_V1 import ThalamoCorticalModel
     
 from experiments import create_experiments_spontaneous
 from experiments import create_experiments_luminance
@@ -41,9 +41,9 @@ logger = mozaik.getMozaikLogger()
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
 withPGN = True  # 
-withV1 = False  # open-loop
-withFeedback_CxPGN = False # closed loop
-withFeedback_CxLGN = False # closed loop
+withV1 = True  # open-loop
+withFeedback_CxPGN = True # closed loop
+withFeedback_CxLGN = True # closed loop
 
 # Model execution
 if True:
@@ -86,16 +86,10 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_spatial_V1_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
     data_store.save()
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
-    # perform_analysis_test( data_store )
-    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )

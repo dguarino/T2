@@ -64,11 +64,10 @@ def create_experiments_spatial(model):
           model, 
           orientation=numpy.pi/2, 
           contrasts=[80], #[25,50,100], #
-          # spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
-          spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5, 8.], # Reduced KimuraShimegiHaraOkamotoSato2013
+          spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
           # spatial_frequencies = [0.2, 0.3],
           # spatial_frequencies=np.arange(0.0, 3., 0.2),
-          temporal_frequencies=[8.0],
+          temporal_frequencies=[2.0], # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=2*147*7,
           frame_duration=7,
           # square=True,
@@ -112,10 +111,10 @@ def create_experiments_size(model):
           max_size=8.0, 
           orientation=numpy.pi/2, 
           spatial_frequency=0.5,
-          temporal_frequency=8.0,
-          grating_duration=2*147*7,
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=10,
+          num_trials=2,
           log_spacing=True,
           with_flat=True #use also flat luminance discs
       )
