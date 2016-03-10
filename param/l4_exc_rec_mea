@@ -1,69 +1,32 @@
 {
-    "1" : {
-      'component' :  'mozaik.sheets.population_selector.RCRandomN',
-      'variables' : ("spikes"),
-      'params' :  {
-                    'num_of_cells' : 10,
-                  }
-    },
-
-    #"2" : {
-    #  'component' :  'mozaik.sheets.population_selector.RCGrid',
-    #  'variables' : ("spikes","v","gsyn_exc" , "gsyn_inh"),
-    #  'params' :  {
-    #                        'size': 700.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
-    #                        'spacing' : 100.0, #the space between two electrodes (micro meters)
-    #                        'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
-    #                        'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
-    #              }
-    #},
-
-    #"3" : {
-    #  'component' :  'mozaik.sheets.population_selector.RCGrid',
+    #"1" : {
+    #  'component' :  'mozaik.sheets.population_selector.RCRandomN',
     #  'variables' : ("spikes"),
     #  'params' :  {
-    #                        'size': 700.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
-    #                        'spacing' : 14.0, #the space between two electrodes (micro meters)
-    #                        'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
-    #                        'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
+    #                'num_of_cells' : 10,
     #              }
-    #},
-
-    #"4" : {
-    #  'component' :  'mozaik.sheets.same_parametrization_grid.SimilarAnnotationGrid',
-    #  'variables' : ("spikes","v","gsyn_exc" , "gsyn_inh"),
-    #  'params' :  {
-    #    'annotation' : 'LGNAfferentOrientation',
-    #    'distance' : 3.141592653589793/8,
-    #    'value': 0.0,
-    #    'period' : 3.141592653589793, # if the value is periodic this should be set to the period, oterwise it should be set to 0.
-    #    'size': 700.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
-    #    'spacing' : 14.0, #the space between two electrodes (micro meters)
-    #    'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
-    #    'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
-    #  }
     #},
 
     "2" : {
       'component' :  'mozaik.sheets.population_selector.RCGrid',
       'variables' : ("spikes"),
       'params' :  {
-                    'size': 50.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
-                    'spacing' : 1.0, # the space between two electrodes (micro meters)
+                    'size': 70.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
+                    'spacing' : 0.7, # the space between two electrodes (micro meters)
                     'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
                     'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
                   }
     },
 
-    "3" : {
-      'component' :  'mozaik.sheets.population_selector.RCGrid',
-      'variables' : ("spikes", "v", "gsyn_exc", "gsyn_inh"),
-      'params' :  {
-                    'size': 10.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
-                    'spacing' : 2.0, # the space between two electrodes (micro meters)
-                    'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
-                    'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
-                  }
-    },
+    #"3" : {
+    #  'component' :  'mozaik.sheets.population_selector.RCGrid',
+    #  'variables' : ("spikes", "v", "gsyn_exc", "gsyn_inh"),
+    #  'params' :  {
+    #                'size': 10.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
+    #                'spacing' : 2.0, # the space between two electrodes (micro meters)
+    #                'offset_x' : 0.0, # the x axis offset from the center of the sheet (micro meters)
+    #                'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
+    #              }
+    #},
 
 }

@@ -114,9 +114,9 @@ def create_experiments_size(model):
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=2,
+          num_trials=8,
           log_spacing=True,
-          with_flat=True #use also flat luminance discs
+          with_flat=False #use also flat luminance discs
       )
   ]
 
