@@ -166,8 +166,7 @@
     # V1 to LGN
     'EfferentConnection_LGN': {
         'target_synapses' : 'excitatory',               
-        'weight_functions' : {},
-        'delay_functions' :  {
+        'weight_functions' : {
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
                 'params' : {
@@ -176,9 +175,10 @@
                 }
             }, 
         },
-        'weight_expression' : '0.0002',
+        'weight_expression' : '0.002',
+        'delay_functions' :  {},
         'delay_expression' : '2.0',
-        'base_weight' : 0.0002, # µS, GolshaniLiuJones2001
+        'base_weight' : 0.002, # µS, GolshaniLiuJones2001
         'num_samples' : 100, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
@@ -202,10 +202,10 @@
                 }
             }, 
         },
+        'weight_expression' : '0.001',
         'delay_functions' : {},
-        'weight_expression' : '0.0005',
         'delay_expression' : '2.0',
-        'base_weight' : 0.0005, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
+        'base_weight' : 0.001, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
         'num_samples' : 10, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 

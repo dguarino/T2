@@ -18,6 +18,18 @@
                   }
     },
 
+    #"2" : {
+    #  'component' : 'mozaik.sheets.population_selector.SimilarAnnotationSelector',
+    #  'variables' : ("spikes"),
+    #  'params' :  {
+    #                'num_of_cells' : 50,
+    #                'annotation' : 'LGNAfferentOrientation',
+    #                'distance' : 0.2,
+    #                'value': 0.0,
+    #                'period' :  3.14159265359, 
+    #              }
+    #},
+
     #"3" : {
     #  'component' :  'mozaik.sheets.population_selector.RCGrid',
     #  'variables' : ("spikes", "v", "gsyn_exc", "gsyn_inh"),

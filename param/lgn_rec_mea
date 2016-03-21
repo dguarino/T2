@@ -17,6 +17,7 @@
       'offset_y' : 0.0, # the y axis offset from the center of the sheet (micro meters)
     }
   },
+  
   "3" : {
     'component' :  'mozaik.sheets.population_selector.RCGrid',
     'variables' : ("spikes", "v", "gsyn_exc", "gsyn_inh"),

@@ -46,7 +46,7 @@ withFeedback_CxPGN = True # closed loop
 withFeedback_CxLGN = True # closed loop
 
 # Model execution
-if False:
+if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spontaneous )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
