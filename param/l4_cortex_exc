@@ -170,15 +170,15 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 1200.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 500.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
-        'weight_expression' : '0.002',
+        'weight_expression' : '0.0015',
         'delay_functions' :  {},
         'delay_expression' : '2.0',
-        'base_weight' : 0.002, # µS, GolshaniLiuJones2001
+        'base_weight' : 0.0015, # µS, GolshaniLiuJones2001
         'num_samples' : 100, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
@@ -197,7 +197,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 50.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 100.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
