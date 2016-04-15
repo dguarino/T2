@@ -42,17 +42,17 @@
         'fan_in' : True,
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 260.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 40.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
         'delay_functions' : {},
         'weight_expression' : 'f1', 
-        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
-        'base_weight': 0.002, # µS, LiuBoleaGolshaniJones2001
+        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
+        'base_weight': 0.004, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
 
@@ -63,16 +63,16 @@
         'fan_in' : True,
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 260.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 40.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
         'delay_functions' : {},
         'weight_expression' : 'f1',
-        'delay_expression' : '1', # ms # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
+        'delay_expression' : '1', # ms # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight': ref('pgn.LGN_PGN_ConnectionOn.base_weight'),
         'num_samples' : 60, # estimated see evernote
     },
@@ -84,16 +84,16 @@
         'fan_in' : True,
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 600.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 120.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
         'delay_functions' : {},
         'weight_expression' : 'f1',
-        'delay_expression' : '1', # RogalaWaleszczyLeskiWrobelWojcik2013
+        'delay_expression' : '1', # RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight': 0.003, # µS 0.003-5, UlrichHuguenard1996
         'num_samples' : 90,
     },
@@ -105,16 +105,16 @@
         'fan_in' : True,
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 900.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 90.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
         'delay_functions' : {},
         'weight_expression' : 'f1',
-        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
+        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
@@ -125,16 +125,16 @@
         'fan_in' : True,
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 900.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 90.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
         'delay_functions' : {},
         'weight_expression' : 'f1',
-        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczyLeskiWrobelWojcik2013
+        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight': ref('pgn.PGN_LGN_ConnectionOn.base_weight'),
         'num_samples' : 180,
     },

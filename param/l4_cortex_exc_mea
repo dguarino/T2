@@ -168,17 +168,19 @@
         'target_synapses' : 'excitatory',               
         'weight_functions' : {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 500.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 60.0,  # V1-LGN << PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 120.0,# V1-LGN >> PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 90.0, # V1-LGN == PGN-LGN  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
-        'weight_expression' : '0.0015',
+        'weight_expression' : 'f1',
         'delay_functions' :  {},
-        'delay_expression' : '2.0',
-        'base_weight' : 0.0015, # µS, GolshaniLiuJones2001
+        'delay_expression' : '5.0', # RogalaWaleszczykLeskiWrobelWojcik2013
+        'base_weight' : 0.001, # µS, GolshaniLiuJones2001
         'num_samples' : 100, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
@@ -195,16 +197,16 @@
         'target_synapses' : 'excitatory',               
         'weight_functions' :  {
             'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.ExponentialDecayModularConnectorFunction',
+                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 100.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 20.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
         },
-        'weight_expression' : '0.001',
+        'weight_expression' : 'f1',
         'delay_functions' : {},
-        'delay_expression' : '2.0',
+        'delay_expression' : '5.0', # RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight' : 0.001, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
         'num_samples' : 10, # MurphyDuckettSillito2000
         'short_term_plasticity': {

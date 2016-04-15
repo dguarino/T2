@@ -7,6 +7,14 @@
   #              }
   #},
   
+  #"1" : {
+  #  'component' :  'mozaik.sheets.population_selector.RCRandomN',
+  #  'variables' : ("spikes"),
+  #  'params' :  {
+  #                'num_of_cells' : 20,
+  #              }
+  #},
+  
   "2" : {
     'component' :  'mozaik.sheets.population_selector.RCGrid',
     'variables' : ("spikes"),

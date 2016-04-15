@@ -96,6 +96,10 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
 
     # NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
     # data_store.print_content(full_ADS=True)
+    #     l4_exc = analog_ids[numpy.argmin([circular_dist(o,numpy.pi/2,numpy.pi)  for (o,p) in zip(l4_exc_or[0].get_value_by_id(analog_ids),l4_exc_phase[0].get_value_by_id(analog_ids))])]
+    # z = datastore.get_neuron_postions()[conn.source_name]
+    # idx = self.datastore.get_sheet_indexes(conn.source_name,self.parameters.neuron)
+    # perform_analysis_and_visualization_subcortical_conn(data_store, spike_Xon_ids, spike_Xoff_ids, analog_PGN_ids)
 
 
     ##############
@@ -110,7 +114,7 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
         perform_analysis_size( data_store, withPGN, withV1 )
 
     if atype == 'subcortical_conn':
-        perform_analysis_and_visualization_subcortical_conn(data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids)
+        perform_analysis_and_visualization_subcortical_conn(data_store, withV1, spike_Xon_ids, spike_Xoff_ids, spike_PGN_ids, analog_ids)
 
     if atype == 'cortical_or_conn':
         perform_analysis_and_visualization_cortical_or_conn( data_store )
@@ -125,7 +129,7 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
     }
 
     # Overview
-    # plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+    plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
 
     # Tuning
     if atype == 'luminance':
@@ -135,7 +139,8 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
         plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
 
     if atype == 'size':
-        plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+        # plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+        plot_size_tuning( data_store, spike_Xon_ids, spike_Xoff_ids, analog_PGN_ids, analog_ids )
 
     if atype == 'spatial_frequency':
         plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids)
@@ -154,63 +159,109 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
 
 
 
-def perform_analysis_and_visualization_subcortical_conn(data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None):
-    # CONNECTIVITY PLOT
-    # LGN On -> PGN: 'LGN_PGN_ConnectionOn'
-    ConnectivityPlot(
-        data_store,
-        ParameterSet({
-            'neuron': analog_Xon_ids[0],  # the target neuron whose connections are to be displayed
-            'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
-            'sheet_name': 'X_ON',  # for neuron in which sheet to display connectivity
-        }),
-        fig_param={'dpi':100, 'figsize': (10,12)},
-        plot_file_name='LGN_On_'+str(analog_Xon_ids[0])+'_outgoing.png'
-    ).plot()    
-    # LGN Off -> PGN: 'LGN_PGN_ConnectionOff'
-    ConnectivityPlot(
-        data_store,
-        ParameterSet({
-            'neuron': analog_Xoff_ids[0],  # the target neuron whose connections are to be displayed
-            'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
-            'sheet_name': 'X_OFF',  # for neuron in which sheet to display connectivity
-        }),
-        fig_param={'dpi':100, 'figsize': (10,12)},
-        plot_file_name='LGN_Off_'+str(analog_Xoff_ids[0])+'_outgoing.png'
-    ).plot()    
-    # PGN lateral: 'PGN_PGN_Connection'
-    ConnectivityPlot(
-        data_store,
-        ParameterSet({
-            'neuron': analog_PGN_ids[0],  # the target neuron whose connections are to be displayed
-            'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
-            'sheet_name': 'PGN',  # for neuron in which sheet to display connectivity
-        }),
-        fig_param={'dpi':100, 'figsize': (24,12)},
-        plot_file_name='PGN_Connections.png'
-    ).plot()    
-    # PGN -> LGN On: 'PGN_LGN_ConnectionOn'
-    ConnectivityPlot(
-        data_store,
-        ParameterSet({
-            'neuron': analog_Xon_ids[0],  # the target neuron whose connections are to be displayed
-            'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
-            'sheet_name': 'X_ON',  # for neuron in which sheet to display connectivity
-        }),
-        fig_param={'dpi':100, 'figsize': (10,12)},
-        plot_file_name='LGN_On_'+str(analog_Xon_ids[0])+'_incoming.png'
-    ).plot()    
-    # PGN -> LGN On: 'PGN_LGN_ConnectionOff'
-    ConnectivityPlot(
-        data_store,
-        ParameterSet({
-            'neuron': analog_Xoff_ids[0],  # the target neuron whose connections are to be displayed
-            'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
-            'sheet_name': 'X_OFF',  # for neuron in which sheet to display connectivity
-        }),
-        fig_param={'dpi':100, 'figsize': (10,12)},
-        plot_file_name='LGN_Off_'+str(analog_Xoff_ids[0])+'_incoming.png'
-    ).plot()
+def perform_analysis_and_visualization_subcortical_conn(data_store, withV1, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None):
+    # LGN ON
+    for i in Xon_ids:
+        if not withV1:
+            # LGN On -> PGN: 'LGN_PGN_ConnectionOn'
+            ConnectivityPlot(
+                data_store,
+                ParameterSet({
+                    'neuron': i,  # the target neuron whose connections are to be displayed
+                    'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                    'sheet_name': 'X_ON',  # for neuron in which sheet to display connectivity
+                }),
+                # pnv_dsv=data_store,
+                fig_param={'dpi':100, 'figsize': (10,12)},
+                plot_file_name='LGN_On_'+str(i)+'_outgoing.png'
+            ).plot({
+                '*.line':True,
+            })
+            # PGN -> LGN On: 'PGN_LGN_ConnectionOn'
+        ConnectivityPlot(
+            data_store,
+            ParameterSet({
+                'neuron': i,  # the target neuron whose connections are to be displayed
+                'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                'sheet_name': 'X_ON',  # for neuron in which sheet to display connectivity
+            }),
+            fig_param={'dpi':100, 'figsize': (10,12)},
+            plot_file_name='LGN_On_'+str(i)+'_incoming.png'
+        ).plot()    
+    # LGN OFF
+    for i in Xoff_ids:
+        # LGN Off -> : ex 'LGN_PGN_ConnectionOff'
+        if not withV1:
+            ConnectivityPlot(
+                data_store,
+                ParameterSet({
+                    'neuron': i,  # the target neuron whose connections are to be displayed
+                    'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                    'sheet_name': 'X_OFF',  # for neuron in which sheet to display connectivity
+                }),
+                fig_param={'dpi':100, 'figsize': (10,12)},
+                plot_file_name='LGN_Off_'+str(i)+'_outgoing.png'
+            ).plot()    
+        #  -> LGN Off: ex 'PGN_LGN_ConnectionOff'
+        ConnectivityPlot(
+            data_store,
+            ParameterSet({
+                'neuron': i,  # the target neuron whose connections are to be displayed
+                'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                'sheet_name': 'X_OFF',  # for neuron in which sheet to display connectivity
+            }),
+            fig_param={'dpi':100, 'figsize': (10,12)},
+            plot_file_name='LGN_Off_'+str(i)+'_incoming.png'
+        ).plot()
+    # PGN
+    for i in PGN_ids:
+        # PGN lateral: 'PGN_PGN_Connection'
+        if not withV1:
+            ConnectivityPlot(
+                data_store,
+                ParameterSet({
+                    'neuron': i,  # the target neuron whose connections are to be displayed
+                    'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                    'sheet_name': 'PGN',  # for neuron in which sheet to display connectivity
+                }),
+                fig_param={'dpi':100, 'figsize': (24,12)},
+                plot_file_name='PGN_'+str(i)+'_outgoing.png'
+            ).plot()    
+        ConnectivityPlot(
+            data_store,
+            ParameterSet({
+                'neuron': i,  # the target neuron whose connections are to be displayed
+                'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                'sheet_name': 'PGN',  # for neuron in which sheet to display connectivity
+            }),
+            fig_param={'dpi':100, 'figsize': (24,12)},
+            plot_file_name='PGN_'+str(i)+'_incoming.png'
+        ).plot()    
+    # V1
+    for i in V1_ids:
+        # Cx ->
+        ConnectivityPlot(
+            data_store,
+            ParameterSet({
+                'neuron': i,  # the target neuron whose connections are to be displayed
+                'reversed': False,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+                'sheet_name': 'V1_Exc_L4',  # for neuron in which sheet to display connectivity
+            }),
+            fig_param={'dpi':100, 'figsize': (24,12)},
+            plot_file_name='V1_'+str(i)+'_outgoing.png'
+        ).plot()   
+        # -> Cx 
+        # ConnectivityPlot(
+        #     data_store,
+        #     ParameterSet({
+        #         'neuron': i,  # the target neuron whose connections are to be displayed
+        #         'reversed': True,  # False: outgoing connections from the given neuron are shown. True: incoming connections are shown
+        #         'sheet_name': 'V1_Exc_L4',  # for neuron in which sheet to display connectivity
+        #     }),
+        #     fig_param={'dpi':100, 'figsize': (24,12)},
+        #     plot_file_name='V1_'+str(i)+'_incoming.png'
+        # ).plot()    
+
 
 
 
@@ -341,7 +392,7 @@ def perform_analysis_size( data_store, withPGN=False, withV1=False ):
 #########################################################################################
 #########################################################################################
 
-def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_luminance_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     # firing rate against luminance levels              
     # dsv = param_filter_query( data_store, st_name='Null', analysis_algorithm=['TrialAveragedFiringRate'] )
     dsv = param_filter_query( data_store, st_name='Null', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
@@ -353,7 +404,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
             'centered': False,
             'mean': False,
             'parameter_name' : 'background_luminance', 
-            'neurons': list(analog_Xon_ids[0:1]), 
+            'neurons': list(Xon_ids[0:1]), 
             'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -371,7 +422,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
             'centered': False,
             'mean': True,
             'parameter_name' : 'background_luminance', 
-            'neurons': list(analog_Xon_ids), 
+            'neurons': list(Xon_ids), 
             'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -389,7 +440,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
             'centered': False,
             'mean': False,
             'parameter_name' : 'background_luminance', 
-            'neurons': list(analog_Xoff_ids[0:1]), 
+            'neurons': list(Xoff_ids[0:1]), 
             'sheet_name' : 'X_OFF'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -407,7 +458,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
             'centered': False,
             'mean': True,
             'parameter_name' : 'background_luminance', 
-            'neurons': list(analog_Xoff_ids), 
+            'neurons': list(Xoff_ids), 
             'sheet_name' : 'X_OFF'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -417,7 +468,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':24,
     })
-    if analog_PGN_ids:
+    if PGN_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -426,7 +477,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
                 'centered': False,
                 'mean': False,
                 'parameter_name' : 'background_luminance', 
-                'neurons': list(analog_PGN_ids[0:1]), 
+                'neurons': list(PGN_ids[0:1]), 
                 'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -444,7 +495,7 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
                 'centered': False,
                 'mean': True,
                 'parameter_name' : 'background_luminance', 
-                'neurons': list(analog_PGN_ids), 
+                'neurons': list(PGN_ids), 
                 'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -457,8 +508,8 @@ def plot_luminance_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_P
 
 
 
-def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
-    # CONTRAST SENSITIVITY analog_LGNon_ids
+def plot_contrast_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
+    # CONTRAST SENSITIVITY LGNon_ids
     # dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRate'] )
     dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
     PlotTuningCurve(
@@ -469,7 +520,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'centered': False,
             'mean': False,
             'parameter_name' : 'contrast', 
-            'neurons': list(analog_Xon_ids[0:1]), 
+            'neurons': list(Xon_ids[0:1]), 
             'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (10,8)}, 
@@ -487,7 +538,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'centered': False,
             'mean': True,
             'parameter_name' : 'contrast', 
-            'neurons': list(analog_Xon_ids), 
+            'neurons': list(Xon_ids), 
             'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (10,8)}, 
@@ -505,7 +556,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'centered': False,
             'mean': False,
             'parameter_name' : 'contrast', 
-            'neurons': list(analog_Xoff_ids[0:1]), 
+            'neurons': list(Xoff_ids[0:1]), 
             'sheet_name' : 'X_OFF'
        }), 
        fig_param={'dpi' : 100,'figsize': (10,8)}, 
@@ -523,7 +574,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
             'centered': False,
             'mean': True,
             'parameter_name' : 'contrast', 
-            'neurons': list(analog_Xoff_ids), 
+            'neurons': list(Xoff_ids), 
             'sheet_name' : 'X_OFF'
        }), 
        fig_param={'dpi' : 100,'figsize': (10,8)}, 
@@ -533,7 +584,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
        # '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':24
     })
-    if analog_PGN_ids:
+    if PGN_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -542,7 +593,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
                 'centered': False,
                 'mean': False,
                 'parameter_name' : 'contrast', 
-                'neurons': list(analog_PGN_ids[0:1]), 
+                'neurons': list(PGN_ids[0:1]), 
                 'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -560,7 +611,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
                 'centered': False,
                 'mean': True,
                 'parameter_name' : 'contrast', 
-                'neurons': list(analog_PGN_ids), 
+                'neurons': list(PGN_ids), 
                 'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -570,7 +621,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
            # '*.x_scale':'log', '*.x_scale_base':10,
            '*.fontsize':24
         })
-    if analog_ids:
+    if V1_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -579,7 +630,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
                 'centered': False,
                 'mean': True,
                 'parameter_name' : 'contrast', 
-                'neurons': list(analog_ids), 
+                'neurons': list(V1_ids), 
                 'sheet_name' : 'V1_Exc_L4'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -592,7 +643,7 @@ def plot_contrast_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PG
 
 
 
-def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_spatial_frequency_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     # firing rate against spatial frequencies
     # dsv = param_filter_query( data_store, st_name='FullfieldDriftingSquareGrating', analysis_algorithm=['TrialAveragedFiringRate'] )
     dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
@@ -605,7 +656,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
            'centered': False,
            'mean': False,
            'parameter_name' : 'spatial_frequency', 
-           'neurons': list(analog_Xon_ids[0:1]), 
+           'neurons': list(Xon_ids[0:1]), 
            'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -626,7 +677,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
            'centered': False,
            'mean': False,
            'parameter_name' : 'spatial_frequency', 
-           'neurons': list(analog_Xoff_ids[0:1]), 
+           'neurons': list(Xoff_ids[0:1]), 
            'sheet_name' : 'X_OFF'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -647,7 +698,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
            'centered': False,
            'mean': True,
            'parameter_name' : 'spatial_frequency', 
-           'neurons': list(analog_Xon_ids), 
+           'neurons': list(Xon_ids), 
            'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -668,7 +719,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
            'centered': False,
            'mean': True,
            'parameter_name' : 'spatial_frequency', 
-           'neurons': list(analog_Xoff_ids), 
+           'neurons': list(Xoff_ids), 
            'sheet_name' : 'X_OFF'
        }), 
        fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -681,7 +732,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
         '*.x_ticks':[0.1, 0.2, 0.5, 1, 1.5], 
         '*.fontsize':24
     })
-    if analog_PGN_ids:
+    if PGN_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -690,7 +741,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
                'centered': False,
                'mean': False,
                'parameter_name' : 'spatial_frequency', 
-               'neurons': list(analog_PGN_ids[0:1]), 
+               'neurons': list(PGN_ids[0:1]), 
                'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -711,7 +762,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
                'centered': False,
                'mean': True,
                'parameter_name' : 'spatial_frequency', 
-               'neurons': list(analog_PGN_ids), 
+               'neurons': list(PGN_ids), 
                'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -724,7 +775,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
             '*.x_ticks':[0.1, 0.2, 0.5, 1, 1.5], 
             '*.fontsize':24
         })
-    if analog_ids:
+    if V1_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -733,7 +784,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
                'centered': False,
                'mean': True,
                'parameter_name' : 'spatial_frequency', 
-               'neurons': list(analog_ids), 
+               'neurons': list(V1_ids), 
                'sheet_name' : 'V1_Exc_L4'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -749,7 +800,7 @@ def plot_spatial_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, 
 
 
 
-def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_temporal_frequency_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     # dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRate'] )
     dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
     PlotTuningCurve(
@@ -760,7 +811,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            'centered': False,
            'mean': False,
            'parameter_name' : 'temporal_frequency', 
-           'neurons': list(analog_Xon_ids[0:1]), 
+           'neurons': list(Xon_ids[0:1]), 
            'sheet_name' : 'X_ON'
       }), 
       fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -780,7 +831,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            'centered': False,
            'mean': False,
            'parameter_name' : 'temporal_frequency', 
-           'neurons': list(analog_Xon_ids[0:5]), 
+           'neurons': list(Xon_ids[0:5]), 
            'sheet_name' : 'X_ON'
       }), 
       fig_param={'dpi' : 100,'figsize': (40,8)}, 
@@ -800,7 +851,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            'centered': False,
            'mean': True,
            'parameter_name' : 'temporal_frequency', 
-           'neurons': list(analog_Xon_ids), 
+           'neurons': list(Xon_ids), 
            'sheet_name' : 'X_ON'
       }), 
       fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -820,7 +871,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            'centered': False,
            'mean': False,
            'parameter_name' : 'temporal_frequency', 
-           'neurons': list(analog_Xoff_ids[0:1]), 
+           'neurons': list(Xoff_ids[0:1]), 
            'sheet_name' : 'X_OFF'
       }), 
       fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -840,7 +891,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
            'centered': False,
            'mean': True,
            'parameter_name' : 'temporal_frequency', 
-           'neurons': list(analog_Xoff_ids), 
+           'neurons': list(Xoff_ids), 
            'sheet_name' : 'X_OFF'
       }), 
       fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -852,7 +903,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
         '*.y_scale':'log', '*.y_scale_base':2,
         '*.fontsize':24
     })
-    if analog_PGN_ids:
+    if PGN_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -861,7 +912,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
                'centered': False,
                'mean': False,
                'parameter_name' : 'temporal_frequency', 
-               'neurons': list(analog_PGN_ids[0:1]), 
+               'neurons': list(PGN_ids[0:1]), 
                'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -881,7 +932,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
                'centered': False,
                'mean': True,
                'parameter_name' : 'temporal_frequency', 
-               'neurons': list(analog_PGN_ids), 
+               'neurons': list(PGN_ids), 
                'sheet_name' : 'PGN'
            }), 
            fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -893,7 +944,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
             '*.y_scale':'log', '*.y_scale_base':2,
             '*.fontsize':24
         })
-    if analog_ids:
+    if V1_ids:
         PlotTuningCurve(
            dsv,
            ParameterSet({
@@ -902,7 +953,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
                'centered': False,
                'mean': False,
                'parameter_name' : 'temporal_frequency', 
-               'neurons': list(analog_ids[0:1]), 
+               'neurons': list(V1_ids[0:1]), 
                'sheet_name' : 'V1_Exc_L4'
           }), 
           fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -923,7 +974,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
                'centered': False,
                'mean': True,
                'parameter_name' : 'temporal_frequency', 
-               'neurons': list(analog_ids), 
+               'neurons': list(V1_ids), 
                'sheet_name' : 'V1_Exc_L4'
           }), 
           fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -939,7 +990,7 @@ def plot_temporal_frequency_tuning( data_store, analog_Xon_ids, analog_Xoff_ids,
 
 
 
-def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_size_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     # DISKS
     # dsv = param_filter_query( data_store, st_name='FlatDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
     # PlotTuningCurve(
@@ -950,7 +1001,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         'centered': False,
     #         'mean': False,
     #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_Xon_ids[0:1]), 
+    #         'neurons': list(Xon_ids[0:1]), 
     #         'sheet_name' : 'X_ON'
     #     }), 
     #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -970,7 +1021,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         'centered': False,
     #         'mean': True,
     #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_Xon_ids), 
+    #         'neurons': list(Xon_ids), 
     #         'sheet_name' : 'X_ON'
     #     }), 
     #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -982,7 +1033,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #     #'*.x_scale':'log', '*.x_scale_base':2,
     #     '*.fontsize':24
     # })
-    # if analog_PGN_ids:
+    # if PGN_ids:
     #     PlotTuningCurve(
     #         dsv,
     #         ParameterSet({
@@ -991,7 +1042,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #             'centered': False,
     #             'mean': True,
     #             'parameter_name' : 'radius', 
-    #             'neurons': list(analog_PGN_ids), 
+    #             'neurons': list(PGN_ids), 
     #             'sheet_name' : 'PGN'
     #         }), 
     #         fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -1003,7 +1054,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         #'*.x_scale':'log', '*.x_scale_base':2,
     #         '*.fontsize':24
     #     })
-    # if analog_ids:
+    # if V1_ids:
     #     PlotTuningCurve(
     #         dsv,
     #         ParameterSet({
@@ -1012,7 +1063,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #             'centered': False,
     #             'mean': True,
     #             'parameter_name' : 'radius', 
-    #             'neurons': list(analog_ids), 
+    #             'neurons': list(V1_ids), 
     #             'sheet_name' : 'V1_Exc_L4'
     #         }), 
     #         fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -1034,14 +1085,14 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             'centered': False,
             'mean': False,
             'parameter_name' : 'radius', 
-            'neurons': list(analog_Xon_ids[0:1]), 
+            'neurons': list(Xon_ids[0:1]), 
             'sheet_name' : 'X_ON'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_On.png"
     ).plot({
         '*.y_lim':(0,100), 
-        '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+        '*.x_ticks':[0.1, 1, 2, 4, 8], 
         '*.x_scale':'linear',
         #'*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':24
@@ -1054,18 +1105,39 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             'centered': False,
             'mean': True,
             'parameter_name' : 'radius', 
-            'neurons': list(analog_Xon_ids), 
+            'neurons': list(Xon_ids), 
             'sheet_name' : 'X_ON'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_On_mean.png"
     ).plot({
         '*.y_lim':(0,100), 
-        '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+        '*.x_ticks':[0.1, 1, 2, 4, 8], 
         '*.x_scale':'linear',
         #'*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':24
     })
+    for lid in Xon_ids:
+        PlotTuningCurve(
+            dsv,
+            ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': False,
+                'parameter_name' : 'radius', 
+                'neurons': list([lid]), 
+                'sheet_name' : 'X_ON'
+            }), 
+            fig_param={'dpi' : 100,'figsize': (8,8)}, 
+            plot_file_name="SizeTuning_Grating_LGN_On_"+str(lid)+".png"
+        ).plot({
+            '*.y_lim':(0,100), 
+            '*.x_ticks':[0.1, 1, 2, 4, 8], 
+            '*.x_scale':'linear',
+            #'*.x_scale':'log', '*.x_scale_base':2,
+            '*.fontsize':24
+        })
     PlotTuningCurve(
         dsv,
         ParameterSet({
@@ -1074,14 +1146,14 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             'centered': False,
             'mean': False,
             'parameter_name' : 'radius', 
-            'neurons': list(analog_Xoff_ids[0:1]), 
+            'neurons': list(Xoff_ids[0:1]), 
             'sheet_name' : 'X_OFF'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_Off.png"
     ).plot({
         '*.y_lim':(0,100), 
-        '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+        '*.x_ticks':[0.1, 1, 2, 4, 8], 
         '*.x_scale':'linear',
         #'*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':24
@@ -1094,20 +1166,41 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
             'centered': False,
             'mean': True,
             'parameter_name' : 'radius', 
-            'neurons': list(analog_Xoff_ids), 
+            'neurons': list(Xoff_ids), 
             'sheet_name' : 'X_OFF'
         }), 
         fig_param={'dpi' : 100,'figsize': (8,8)}, 
         plot_file_name="SizeTuning_Grating_LGN_Off_mean.png"
     ).plot({
         '*.y_lim':(0,100), 
-        '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+        '*.x_ticks':[0.1, 1, 2, 4, 8], 
         '*.x_scale':'linear',
         #'*.x_scale':'log', '*.x_scale_base':2,
         '*.fontsize':24
     })
+    for lid in Xoff_ids:
+        PlotTuningCurve(
+            dsv,
+            ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': False,
+                'parameter_name' : 'radius', 
+                'neurons': list([lid]), 
+                'sheet_name' : 'X_OFF'
+            }), 
+            fig_param={'dpi' : 100,'figsize': (8,8)}, 
+            plot_file_name="SizeTuning_Grating_LGN_Off_"+str(lid)+".png"
+        ).plot({
+            '*.y_lim':(0,100), 
+            '*.x_ticks':[0.1, 1, 2, 4, 8], 
+            '*.x_scale':'linear',
+            #'*.x_scale':'log', '*.x_scale_base':2,
+            '*.fontsize':24
+        })
 
-    if analog_PGN_ids:
+    if PGN_ids:
         PlotTuningCurve(
             dsv,
             ParameterSet({
@@ -1116,20 +1209,20 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
                 'centered': False,
                 'mean': True,
                 'parameter_name' : 'radius', 
-                'neurons': list(analog_PGN_ids), 
+                'neurons': list(PGN_ids), 
                 'sheet_name' : 'PGN'
             }), 
             fig_param={'dpi' : 100,'figsize': (8,8)}, 
             plot_file_name="SizeTuning_Grating_PGN_mean.png"
         ).plot({
             '*.y_lim':(0,100), 
-            '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+            '*.x_ticks':[0.1, 1, 2, 4, 8], 
             '*.x_scale':'linear',
             #'*.x_scale':'log', '*.x_scale_base':2,
             '*.fontsize':24
         })
 
-    if analog_ids: # V1
+    if V1_ids: # V1
         PlotTuningCurve(
             dsv,
             ParameterSet({
@@ -1138,19 +1231,19 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
                 'centered': False,
                 'mean': True,
                 'parameter_name' : 'radius', 
-                'neurons': list(analog_ids), 
+                'neurons': list(V1_ids), 
                 'sheet_name' : 'V1_Exc_L4'
             }), 
             fig_param={'dpi' : 100,'figsize': (8,8)}, 
             plot_file_name="SizeTuning_Grating_l4_exc_mean.png"
         ).plot({
             '*.y_lim':(0,25), 
-            '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+            '*.x_ticks':[0.1, 1, 2, 4, 8], 
             '*.x_scale':'linear',
             #'*.x_scale':'log', '*.x_scale_base':2,
             '*.fontsize':24
         })
-        for aid in analog_ids:
+        for aid in V1_ids:
             PlotTuningCurve(
                 dsv,
                 ParameterSet({
@@ -1166,7 +1259,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
                 plot_file_name="SizeTuning_Grating_V1_Exc_L4_"+str(aid)+".png"
             ).plot({
                 '*.y_lim':(0,25), 
-                '*.x_ticks':[0.0, 0.1, 1, 2, 4, 8], 
+                '*.x_ticks':[0.1, 1, 2, 4, 8], 
                 '*.x_scale':'linear',
                 #'*.x_scale':'log', '*.x_scale_base':2,
                 '*.fontsize':24
@@ -1181,7 +1274,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         'centered': False,
     #         'mean': False,
     #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_Xon_ids[0:1]), 
+    #         'neurons': list(Xon_ids[0:1]), 
     #         'sheet_name' : 'X_ON'
     #    }), 
     #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -1199,7 +1292,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         'centered': False,
     #         'mean': False,
     #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_Xoff_ids[0:1]), 
+    #         'neurons': list(Xoff_ids[0:1]), 
     #         'sheet_name' : 'X_OFF'
     #    }), 
     #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -1217,7 +1310,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
     #         'centered': False,
     #         'mean': False,
     #         'parameter_name' : 'radius', 
-    #         'neurons': list(analog_ids), 
+    #         'neurons': list(V1_ids), 
     #         'sheet_name' : 'V1_Exc_L4'
     #    }), 
     #     fig_param={'dpi' : 100,'figsize': (8,8)}, 
@@ -1260,7 +1353,7 @@ def plot_size_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_id
 #-------------------
 # ORIENTATION TUNING
 
-def plot_orientation_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_orientation_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     dsv = param_filter_query( data_store, st_name='FullfieldDriftingSinusoidalGrating', analysis_algorithm=['TrialAveragedFiringRate'] )
     dsv.print_content(full_ADS=True)
     PlotTuningCurve(
@@ -1271,7 +1364,7 @@ def plot_orientation_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog
            'centered': False,
            'mean': True,
            'parameter_name' : 'orientation', 
-           'neurons': list(analog_Xon_ids[:]), 
+           'neurons': list(Xon_ids[:]), 
            'sheet_name' : 'X_ON'
        }), 
        fig_param={'dpi' : 100,'figsize': (240,8)}, 
@@ -1287,7 +1380,7 @@ def plot_orientation_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog
            'centered': False,
            'mean': False,
            'parameter_name' : 'orientation', 
-           'neurons': list(analog_Xoff_ids[:]), 
+           'neurons': list(Xoff_ids[:]), 
            'sheet_name' : 'X_OFF'
        }), 
        fig_param={'dpi' : 100,'figsize': (240,8)}, 
@@ -1295,73 +1388,73 @@ def plot_orientation_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog
     ).plot({
        '*.fontsize':24
     })
-    if analog_PGN_ids:
-        # PlotTuningCurve(
-        #    dsv,
-        #    ParameterSet({
-        #        'polar': False,
-        #        'pool': False,
-        #        'centered': False,
-        #        'mean': False,
-        #        'parameter_name' : 'orientation', 
-        #        'neurons': list(analog_PGN_ids[:]), 
-        #        'sheet_name' : 'PGN'
-        #    }), 
-        #    fig_param={'dpi' : 100,'figsize': (16,8)}, 
-        #    plot_file_name="OrientationTuning_PGN_mean.png"
-        # ).plot({
-        #    '*.fontsize':24
-        # })
-        # if analog_ids:
-        # PlotTuningCurve(
-        #    dsv,
-        #    ParameterSet({
-        #        'polar': False,
-        #        'pool': False,
-        #        'centered': False,
-        #        'mean': False,
-        #        'parameter_name' : 'orientation', 
-        #        'neurons': list(analog_ids[0:9]), 
-        #        'sheet_name' : 'V1_Exc_L4'
-        #    }), 
-        #    fig_param={'dpi' : 100,'figsize': (80,8)}, 
-        #    plot_file_name="OrientationTuning_V1e_1.png"
-        # ).plot({
-        #    '*.fontsize':24
-        # })
-        # PlotTuningCurve(
-        #    dsv,
-        #    ParameterSet({
-        #        'polar': False,
-        #        'pool': False,
-        #        'centered': False,
-        #        'mean': False,
-        #        'parameter_name' : 'orientation', 
-        #        'neurons': list(analog_ids[10:19]), 
-        #        'sheet_name' : 'V1_Exc_L4'
-        #    }), 
-        #    fig_param={'dpi' : 100,'figsize': (80,8)}, 
-        #    plot_file_name="OrientationTuning_V1e_2.png"
-        # ).plot({
-        #    '*.fontsize':24
-        # })
-        # PlotTuningCurve(
-        #    dsv,
-        #    ParameterSet({
-        #        'polar': False,
-        #        'pool': False,
-        #        'centered': False,
-        #        'mean': False,
-        #        'parameter_name' : 'orientation', 
-        #        'neurons': list(analog_ids[19:29]), 
-        #        'sheet_name' : 'V1_Exc_L4'
-        #    }), 
-        #    fig_param={'dpi' : 100,'figsize': (80,8)}, 
-        #    plot_file_name="OrientationTuning_V1e_3.png"
-        # ).plot({
-        #    '*.fontsize':24
-        # })
-        # dsv = param_filter_query(data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name=['V1_Exc_L4'], value_name='LGNAfferentOrientation')   
+    if PGN_ids:
+    #     PlotTuningCurve(
+    #        dsv,
+    #        ParameterSet({
+    #            'polar': False,
+    #            'pool': False,
+    #            'centered': False,
+    #            'mean': False,
+    #            'parameter_name' : 'orientation', 
+    #            'neurons': list(PGN_ids[:]), 
+    #            'sheet_name' : 'PGN'
+    #        }), 
+    #        fig_param={'dpi' : 100,'figsize': (16,8)}, 
+    #        plot_file_name="OrientationTuning_PGN_mean.png"
+    #     ).plot({
+    #        '*.fontsize':24
+    #     })
+    # if V1_ids:
+    #     PlotTuningCurve(
+    #        dsv,
+    #        ParameterSet({
+    #            'polar': False,
+    #            'pool': False,
+    #            'centered': False,
+    #            'mean': False,
+    #            'parameter_name' : 'orientation', 
+    #            'neurons': list(V1_ids[0:9]), 
+    #            'sheet_name' : 'V1_Exc_L4'
+    #        }), 
+    #        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+    #        plot_file_name="OrientationTuning_V1e_1.png"
+    #     ).plot({
+    #        '*.fontsize':24
+    #     })
+    #     PlotTuningCurve(
+    #        dsv,
+    #        ParameterSet({
+    #            'polar': False,
+    #            'pool': False,
+    #            'centered': False,
+    #            'mean': False,
+    #            'parameter_name' : 'orientation', 
+    #            'neurons': list(V1_ids[10:19]), 
+    #            'sheet_name' : 'V1_Exc_L4'
+    #        }), 
+    #        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+    #        plot_file_name="OrientationTuning_V1e_2.png"
+    #     ).plot({
+    #        '*.fontsize':24
+    #     })
+    #     PlotTuningCurve(
+    #        dsv,
+    #        ParameterSet({
+    #            'polar': False,
+    #            'pool': False,
+    #            'centered': False,
+    #            'mean': False,
+    #            'parameter_name' : 'orientation', 
+    #            'neurons': list(V1_ids[19:29]), 
+    #            'sheet_name' : 'V1_Exc_L4'
+    #        }), 
+    #        fig_param={'dpi' : 100,'figsize': (80,8)}, 
+    #        plot_file_name="OrientationTuning_V1e_3.png"
+    #     ).plot({
+    #        '*.fontsize':24
+    #     })
+    #     dsv = param_filter_query(data_store, st_name='FullfieldDriftingSinusoidalGrating', sheet_name=['V1_Exc_L4'], value_name='LGNAfferentOrientation')   
         dsv = param_filter_query(data_store, sheet_name=['V1_Exc_L4'], value_name='LGNAfferentOrientation')   
         PerNeuronValuePlot(dsv,ParameterSet({"cortical_view":True}), plot_file_name='ORSet.png').plot()
         dsv = param_filter_query(data_store, sheet_name=['V1_Exc_L4'], value_name='Firing rate')   
@@ -1427,7 +1520,7 @@ def plot_orientation_tuning( data_store, analog_Xon_ids, analog_Xoff_ids, analog
 
 #########################################################################################
 # ---- OVERVIEW ----
-def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=None, analog_ids=None ):
+def plot_overview( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None ):
     # RETINA
     OverviewPlot(
        data_store,
@@ -1436,7 +1529,7 @@ def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=N
            # 'mean': False,
            'spontaneous': False,
            'sheet_name' : 'X_OFF', 
-           'neuron' : analog_Xoff_ids[0], 
+           'neuron' : Xoff_ids[0], 
            'sheet_activity' : {}
        }),
        fig_param={'dpi' : 100,'figsize': (19,12)},
@@ -1454,7 +1547,7 @@ def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=N
            # 'mean': False,
            'spontaneous': False,
            'sheet_name' : 'X_ON', 
-           'neuron' : analog_Xon_ids[0], 
+           'neuron' : Xon_ids[0], 
            'sheet_activity' : {}
        }),
        fig_param={'dpi':100, 'figsize':(19,12)},
@@ -1465,13 +1558,13 @@ def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=N
         '*.fontsize':7
     })
 
-    if analog_PGN_ids:
+    if PGN_ids:
         OverviewPlot(
            data_store,
            ParameterSet({
                'spontaneous': False,
                'sheet_name' : 'PGN', 
-               'neuron' : analog_PGN_ids[0], 
+               'neuron' : PGN_ids[0], 
                'sheet_activity' : {}
            }),
            fig_param={'dpi' : 100,'figsize': (19,12)},
@@ -1481,13 +1574,13 @@ def plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids=N
             '*.fontsize':7
         })
 
-    if analog_ids:
-        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[0], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_0.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,40.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[1], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_1.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[2], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_2.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[3], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_3.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[4], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_4.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[5], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_5.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[6], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_6.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
-        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':analog_ids[7], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_7.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+    if V1_ids:
+        OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[0], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_0.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,40.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[1], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_1.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[2], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_2.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[3], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_3.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[4], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_4.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[5], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_5.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[6], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_6.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
+        # OverviewPlot( data_store, ParameterSet({'spontaneous':False, 'sheet_name':'V1_Exc_L4', 'neuron':V1_ids[7], 'sheet_activity':{}}), fig_param={'dpi':100,'figsize':(19,12)}, plot_file_name="V1_Exc_L4_7.png").plot({'Vm_plot.*.y_lim':(-80,-50), 'Conductance_plot.y_lim':(0,100.0), '*.fontsize':7})
 

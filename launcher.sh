@@ -48,26 +48,27 @@ clear
 ################################################
 # EXPERIMENTS Closed loop 2 (LGN+PGN+V1)
 
-# echo "starting Contrast"
-# echo 
-# mpirun python run_contrast_V1.py nest 8 param/defaults 'data_contrast_V1'
+
+echo "starting Size"
+echo 
+mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
+   # #Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
+   # #Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
 
 
-# echo "starting Spatial"
-# echo 
-# mpirun python run_spatial_V1.py nest 8 param/defaults 'data_spatial_V1'
+echo "starting Contrast"
+echo 
+mpirun python run_contrast_V1.py nest 8 param/defaults 'data_contrast_V1'
 
 
-# echo "starting Spatial Kimura"
-# echo 
-# mpirun python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
+echo "starting Spatial"
+echo 
+mpirun python run_spatial_V1.py nest 8 param/defaults 'data_spatial_V1'
 
 
-# echo "starting Size"
-# echo 
-# mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
-   # Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
-   # Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
+echo "starting Spatial Kimura"
+echo 
+mpirun python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
 
 
 echo "starting Temporal"

@@ -25,8 +25,8 @@ def create_experiments_luminance(model):
       # as in PapaioannouWhite1972
       MeasureFlatLuminanceSensitivity(
           model, 
-          luminances=[0.0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0], # as in BarlowLevick1969, SakmannCreutzfeldt1969
-          #luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
+          # luminances=[.0, .00001, .0001, .001, .01, .1, 1., 10., 100.], # as in BarlowLevick1969, SakmannCreutzfeldt1969
+          luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
           step_duration=2*147*7,
           num_trials=10
       )
@@ -107,14 +107,14 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=10, 
-          max_size=8.0, 
+          num_sizes=6, 
+          max_size=6.0, # max radius
           orientation=numpy.pi/2, 
-          spatial_frequency=0.5,
+          spatial_frequency=0.7, # !!!!!!!!!! Test !!!!!!!!!!!
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=8,
+          num_trials=5,
           log_spacing=True,
           with_flat=False #use also flat luminance discs
       )

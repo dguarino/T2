@@ -10,7 +10,8 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model_V1 import ThalamoCorticalModel
+from model import ThalamoCorticalModel
+# from model_V1 import ThalamoCorticalModel
     
 from experiments import create_experiments_spontaneous
 from experiments import create_experiments_luminance
@@ -41,9 +42,9 @@ logger = mozaik.getMozaikLogger()
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
 withPGN = True  # 
-withV1 = True  # open-loop
-withFeedback_CxPGN = True # closed loop
-withFeedback_CxLGN = True # closed loop
+withV1 = False  # open-loop
+withFeedback_CxPGN = False # closed loop
+withFeedback_CxLGN = False # closed loop
 
 # Model execution
 if True:
@@ -56,31 +57,31 @@ if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
-    if False: # save connections
+    if True: # save connections
         if withPGN: # PGN
             model.connectors['LGN_PGN_ConnectionOn'].store_connections(data_store)    
             model.connectors['LGN_PGN_ConnectionOff'].store_connections(data_store)    
             model.connectors['PGN_PGN_Connection'].store_connections(data_store)    
             model.connectors['PGN_LGN_ConnectionOn'].store_connections(data_store)    
             model.connectors['PGN_LGN_ConnectionOff'].store_connections(data_store)    
-        if withV1: # CORTEX
-            model.connectors['V1AffConnectionOn'].store_connections(data_store)    
-            model.connectors['V1AffConnectionOff'].store_connections(data_store)    
-            model.connectors['V1AffInhConnectionOn'].store_connections(data_store)    
-            model.connectors['V1AffInhConnectionOff'].store_connections(data_store)    
-            model.connectors['V1L4ExcL4ExcConnection'].store_connections(data_store)    
-            model.connectors['V1L4ExcL4InhConnection'].store_connections(data_store)    
-            model.connectors['V1L4InhL4ExcConnection'].store_connections(data_store)    
-            model.connectors['V1L4InhL4InhConnection'].store_connections(data_store)    
-            model.connectors['V1L4ExcL4ExcConnectionRand'].store_connections(data_store)    
-            model.connectors['V1L4ExcL4InhConnectionRand'].store_connections(data_store)    
-            model.connectors['V1L4InhL4ExcConnectionRand'].store_connections(data_store)    
-            model.connectors['V1L4InhL4InhConnectionRand'].store_connections(data_store)
-            if withFeedback_CxLGN:
-                model.connectors['V1EffConnectionOn'].store_connections(data_store)    
-                model.connectors['V1EffConnectionOff'].store_connections(data_store)    
-            if withPGN and withFeedback_CxPGN:
-                model.connectors['V1EffConnectionPGN'].store_connections(data_store)    
+        # if withV1: # CORTEX
+        #     # model.connectors['V1AffConnectionOn'].store_connections(data_store)    
+        #     # model.connectors['V1AffConnectionOff'].store_connections(data_store)    
+        #     # model.connectors['V1AffInhConnectionOn'].store_connections(data_store)    
+        #     # model.connectors['V1AffInhConnectionOff'].store_connections(data_store)    
+        #     # model.connectors['V1L4ExcL4ExcConnection'].store_connections(data_store)    
+        #     # model.connectors['V1L4ExcL4InhConnection'].store_connections(data_store)    
+        #     # model.connectors['V1L4InhL4ExcConnection'].store_connections(data_store)    
+        #     # model.connectors['V1L4InhL4InhConnection'].store_connections(data_store)    
+        #     # model.connectors['V1L4ExcL4ExcConnectionRand'].store_connections(data_store)    
+        #     # model.connectors['V1L4ExcL4InhConnectionRand'].store_connections(data_store)    
+        #     # model.connectors['V1L4InhL4ExcConnectionRand'].store_connections(data_store)    
+        #     # model.connectors['V1L4InhL4InhConnectionRand'].store_connections(data_store)
+        #     if withFeedback_CxLGN:
+        #         model.connectors['V1EffConnectionOn'].store_connections(data_store)    
+        #         model.connectors['V1EffConnectionOff'].store_connections(data_store)    
+        #     # if withPGN and withFeedback_CxPGN:
+        #     #     model.connectors['V1EffConnectionPGN'].store_connections(data_store)    
 
     data_store.save()
 # or only load pickled data
