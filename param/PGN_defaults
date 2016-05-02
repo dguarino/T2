@@ -35,7 +35,16 @@
 
     # Connectivity
 
-    # from LGN On
+    # Feedback connectivity type 1: Inh from PGN larger than Exc from cortex
+    # LGN->PGN 200μm (FriedlanderLinSherman1979; AlonsoYehWengStoelzel2006; LamSherman2005, figs 7,8)
+    # PGN->PGN 500μm (CucchiaroUhlrichSherman1991, SanchezBalMcCormick1997; Fitzgibbon2000; ShermanGuillery2001; Fitzgibbon2006)
+    # PGN->LGN 450μm (CucchiaroUhlrichSherman1991, SanchezBalMcCormick1997; LamSherman2005_10ABCD)
+
+    # Overall connection probability (Destexhe 2009):
+    # the TC to RE excitatory projection of 2% (PGN:2450 => ~49)
+    # the RE to TC inhibitory projection of 8% (LGN:4900 => ~392)
+
+    # from LGN
     'LGN_PGN_ConnectionOn': {
         'target_synapses' : 'excitatory',             
         'short_term_plasticity': None, 
@@ -52,30 +61,10 @@
         'delay_functions' : {},
         'weight_expression' : 'f1', 
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.004, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.002, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
-
-    # from LGN Off
-    'LGN_PGN_ConnectionOff': {
-        'target_synapses' : 'excitatory',             
-        'short_term_plasticity': None, 
-        'fan_in' : True,
-        'weight_functions' : {
-            'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
-                'params' : {
-                    'arborization_constant': 40.0,  # μm decay distance from the innervation point
-                    'arborization_scaler': 1.0,   # the scaler of the exponential decay
-                }
-            }, 
-        },
-        'delay_functions' : {},
-        'weight_expression' : 'f1',
-        'delay_expression' : '1', # ms # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': ref('pgn.LGN_PGN_ConnectionOn.base_weight'),
-        'num_samples' : 60, # estimated see evernote
-    },
+    'LGN_PGN_ConnectionOff': ref('pgn.LGN_PGN_ConnectionOn'),
     
     # lateral
     'PGN_PGN_Connection': {
@@ -94,7 +83,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.003, # µS 0.003-5, UlrichHuguenard1996
+        'base_weight': 0.0002, # µS 0.003-5, UlrichHuguenard1996
         'num_samples' : 90,
     },
 
@@ -115,28 +104,9 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0002, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 180,
     },
-    # to LGN
-    'PGN_LGN_ConnectionOff': {
-        'target_synapses' : 'inhibitory',             
-        'short_term_plasticity': None ,
-        'fan_in' : True,
-        'weight_functions' : {
-            'f1' : {
-                'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
-                'params' : {
-                    'arborization_constant': 90.0,  # μm decay distance from the innervation point
-                    'arborization_scaler': 1.0,   # the scaler of the exponential decay
-                }
-            }, 
-        },
-        'delay_functions' : {},
-        'weight_expression' : 'f1',
-        'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': ref('pgn.PGN_LGN_ConnectionOn.base_weight'),
-        'num_samples' : 180,
-    },
+    'PGN_LGN_ConnectionOff': ref('pgn.PGN_LGN_ConnectionOn'),
 
 }

@@ -10,7 +10,7 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model_V1 import ThalamoCorticalModel
+from model_V1_full import ThalamoCorticalModel
     
 from experiments import create_experiments_spontaneous
 from experiments import create_experiments_luminance
@@ -42,8 +42,8 @@ logger = mozaik.getMozaikLogger()
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
 withPGN = True  # 
 withV1 = True  # open-loop
-withFeedback_CxPGN = False  # closed loop
-withFeedback_CxLGN = False # closed loop
+withFeedback_CxPGN = True # closed loop
+withFeedback_CxLGN = True # closed loop
 
 # Model execution
 if True:

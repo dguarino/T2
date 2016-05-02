@@ -10,8 +10,7 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model import ThalamoCorticalModel
-# from model_V1 import ThalamoCorticalModel
+from model_V1 import ThalamoCorticalModel
     
 from experiments import create_experiments_spontaneous
 from experiments import create_experiments_luminance
@@ -42,7 +41,7 @@ logger = mozaik.getMozaikLogger()
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
 withPGN = True  # 
-withV1 = False  # open-loop
+withV1 = True  # open-loop
 withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
@@ -57,7 +56,7 @@ if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
-    if True: # save connections
+    if False: # save connections
         if withPGN: # PGN
             model.connectors['LGN_PGN_ConnectionOn'].store_connections(data_store)    
             model.connectors['LGN_PGN_ConnectionOff'].store_connections(data_store)    

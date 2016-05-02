@@ -180,7 +180,7 @@
         'weight_expression' : 'f1',
         'delay_functions' :  {},
         'delay_expression' : '5.0', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight' : 0.001, # µS, GolshaniLiuJones2001
+        'base_weight' : 0.0001, # µS, GolshaniLiuJones2001
         'num_samples' : 100, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 

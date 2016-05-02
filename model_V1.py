@@ -11,8 +11,8 @@ from mozaik.space import VisualRegion
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
 withPGN = True  # 
 withV1 = True  # open-loop
-withFeedback_CxPGN = True # closed loop
-withFeedback_CxLGN = True # closed loop
+withFeedback_CxPGN = False # closed loop
+withFeedback_CxLGN = False # closed loop
 
 
 class ThalamoCorticalModel(Model):
