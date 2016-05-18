@@ -8,16 +8,16 @@ clear
 
 ################################################
 # PARAMETER SEARCH
-echo "starting PARAMETER SEARCH"
-echo 
+# echo "starting PARAMETER SEARCH"
+# echo 
 
-python parameter_search.py run_spatial_V1.py nest param/defaults
+# python parameter_search.py run_spatial_V1.py nest param/defaults
 
-python parameter_search.py run_size_V1.py nest param/defaults_mea
+# python parameter_search.py run_size_V1.py nest param/defaults_mea
 
-python parameter_search_full.py run_spatial_V1_full.py nest param/defaults
+# python parameter_search_full.py run_spatial_V1_full.py nest param/defaults
 
-python parameter_search_full.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_full.py run_size_V1_full.py nest param/defaults_mea
 
 
 ################################################
@@ -57,14 +57,14 @@ python parameter_search_full.py run_size_V1_full.py nest param/defaults_mea
 # echo "starting Size"
 # echo 
 # mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
+mpirun python run_size_V1_full.py nest 8 param/defaults_mea 'data_size_V1' 
+#V1 Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
+#V1 Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
 
-#    # #Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
-#    # #Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
 
-
-# echo "starting Contrast"
-# echo 
-# mpirun python run_contrast_V1.py nest 8 param/defaults 'data_contrast_V1'
+echo "starting Contrast"
+echo 
+mpirun python run_contrast_V1.py nest 8 param/defaults 'data_contrast_V1'
 
 
 # echo "starting Spatial"
@@ -72,12 +72,12 @@ python parameter_search_full.py run_size_V1_full.py nest param/defaults_mea
 # mpirun python run_spatial_V1.py nest 8 param/defaults 'data_spatial_V1'
 
 
-# echo "starting Spatial Kimura"
-# echo 
-# mpirun python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
+echo "starting Spatial Kimura"
+echo 
+mpirun python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
 
 
-# echo "starting Temporal"
-# echo 
-# mpirun python run_temporal_V1.py nest 8 param/defaults 'data_temporal_V1'
+echo "starting Temporal"
+echo 
+mpirun python run_temporal_V1.py nest 8 param/defaults 'data_temporal_V1'
 

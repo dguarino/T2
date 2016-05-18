@@ -23,8 +23,8 @@ from experiments import create_experiments_correlation
 from experiments import create_experiments_combined
 
 from analysis_and_visualization import perform_analysis_test
-from analysis_and_visualization import perform_analysis_and_visualization
-# from analysis_and_visualization import perform_analysis_and_visualization_size
+# from analysis_and_visualization import perform_analysis_and_visualization
+from analysis_and_visualization_nonoverlapping import perform_analysis_and_visualization
 
 
 try:
@@ -46,7 +46,7 @@ withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
 # Model execution
-if True:
+if False:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spontaneous )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
@@ -86,7 +86,8 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_____', 'store_stimuli' : False}),replace=True)
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_____LGN+PGN+V1_overlapping', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
     data_store.save()
 
@@ -97,5 +98,6 @@ if mpi_comm.rank == MPI_ROOT:
     # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )

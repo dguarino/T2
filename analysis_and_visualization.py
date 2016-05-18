@@ -50,16 +50,39 @@ def perform_analysis_test( data_store ):
 
 def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=False, withV1=False ):
     # Gather indexes
-    # analog_RGC_Xon_ids = sorted( param_filter_query(data_store,sheet_name="Retina_X_ON").get_segments()[0].get_stored_vm_ids() )
-    # analog_RGC_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="Retina_X_OFF").get_segments()[0].get_stored_vm_ids() )
-    analog_Xon_ids = sorted( param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_vm_ids() )
-    analog_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_vm_ids() )
+    # analog_Xon_ids = sorted( param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_vm_ids() )
+    # analog_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_vm_ids() )
     spike_Xon_ids = param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_spike_train_ids()
     spike_Xoff_ids = param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_spike_train_ids()
-    print "analog_Xon_ids: ",analog_Xon_ids
-    print "analog_Xoff_ids: ",analog_Xoff_ids
+    # print "analog_Xon_ids: ",analog_Xon_ids
+    # print "analog_Xoff_ids: ",analog_Xoff_ids
     print "spike_Xon_ids: ",spike_Xon_ids
     print "spike_Xoff_ids: ",spike_Xoff_ids
+
+    # NON-OVERLAPPING indexes
+    # we want to have only the spike_Xon_ids that lie outside of the excitatory zone overlapping with the cortical one
+    position_Xon = data_store.get_neuron_postions()['X_ON']
+    position_Xoff = data_store.get_neuron_postions()['X_OFF']
+    Xon_sheet_ids = data_store.get_sheet_indexes(sheet_name='X_ON',neuron_ids=spike_Xon_ids)
+    Xoff_sheet_ids = data_store.get_sheet_indexes(sheet_name='X_OFF',neuron_ids=spike_Xoff_ids)
+    nonoverlap_Xon_ids = []
+    nonoverlap_Xoff_ids = []
+    for i in Xon_sheet_ids:
+        a = numpy.array((position_Xon[0][i],position_Xon[1][i],position_Xon[2][i]))
+        l = numpy.linalg.norm(a - 0.0)
+        if l>1. and l<3.:
+            nonoverlap_Xon_ids.append(i[0])
+            # print a
+    for i in Xoff_sheet_ids:
+        a = numpy.array((position_Xoff[0][i],position_Xoff[1][i],position_Xoff[2][i]))
+        l = numpy.linalg.norm(a - 0.0)
+        if l>1. and l<3.:
+            nonoverlap_Xoff_ids.append(i[0])
+    nonoverlap_Xon_ids = data_store.get_sheet_ids(sheet_name='X_ON',indexes=nonoverlap_Xon_ids)
+    nonoverlap_Xoff_ids = data_store.get_sheet_ids(sheet_name='X_OFF',indexes=nonoverlap_Xoff_ids)
+    print "nonoverlap_Xon_ids: ",nonoverlap_Xon_ids
+    print "nonoverlap_Xoff_ids: ",nonoverlap_Xoff_ids
+
 
     analog_PGN_ids = None
     if withPGN:
@@ -70,7 +93,7 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
 
     analog_ids = None
     spike_ids = None
-    if withV1:
+    if withV1:        
         #analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
         analog_ids = spike_ids
@@ -94,13 +117,6 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
         #     l4_inh_or_many_analog = numpy.array(analog_ids_inh)[numpy.nonzero(numpy.array([circular_dist(l4_inh_or[0].get_value_by_id(i),0,numpy.pi)  for i in analog_ids_inh]) < 0.1)[0]]
     
 
-    # NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-    # data_store.print_content(full_ADS=True)
-    #     l4_exc = analog_ids[numpy.argmin([circular_dist(o,numpy.pi/2,numpy.pi)  for (o,p) in zip(l4_exc_or[0].get_value_by_id(analog_ids),l4_exc_phase[0].get_value_by_id(analog_ids))])]
-    # z = datastore.get_neuron_postions()[conn.source_name]
-    # idx = self.datastore.get_sheet_indexes(conn.source_name,self.parameters.neuron)
-    # perform_analysis_and_visualization_subcortical_conn(data_store, spike_Xon_ids, spike_Xoff_ids, analog_PGN_ids)
-
 
     ##############
     # ANALYSES
@@ -110,7 +126,7 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
     if atype in ['contrast', 'spatial_frequency', 'temporal_frequency', 'orientation']:
         perform_analysis_full_field( data_store, withPGN, withV1 )
 
-    if atype == 'size':
+    if atype == 'size' or atype == 'size_nonoverlap':
         perform_analysis_size( data_store, withPGN, withV1 )
 
     if atype == 'subcortical_conn':
@@ -129,7 +145,7 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
     }
 
     # Overview
-    plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
+    #plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids )
 
     # Tuning
     if atype == 'luminance':
@@ -140,6 +156,8 @@ def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=Fa
 
     if atype == 'size':
         plot_size_tuning( data_store, spike_Xon_ids, spike_Xoff_ids, spike_PGN_ids, spike_ids )
+    if atype == 'size_nonoverlap':
+        plot_size_tuning( data_store, nonoverlap_Xon_ids, nonoverlap_Xoff_ids, spike_PGN_ids, spike_ids )
 
     if atype == 'spatial_frequency':
         plot_spatial_frequency_tuning( data_store, spike_Xon_ids, spike_Xoff_ids, spike_PGN_ids, spike_ids)

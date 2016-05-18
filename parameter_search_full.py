@@ -37,9 +37,9 @@ CombinationParameterSearch(
         # 'pgn.params.cell.params.tau_m': [17.0]
 
         # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [100, 150], #200],
-        'l4_cortex_exc.AfferentConnection.base_weight' : [.0015, .002],        
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001, .0005, .001],
-        'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0005, .001],
+        'l4_cortex_exc.AfferentConnection.base_weight' : [.002],
+        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [ .0001, .0005],
+        'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.001],
   	}
 ).run_parameter_search()
 

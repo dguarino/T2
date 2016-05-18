@@ -75,7 +75,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 120.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 70.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -96,7 +96,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 90.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 150.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 

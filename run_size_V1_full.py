@@ -24,7 +24,6 @@ from experiments import create_experiments_combined
 
 from analysis_and_visualization import perform_analysis_test
 from analysis_and_visualization import perform_analysis_and_visualization
-# from analysis_and_visualization import perform_analysis_and_visualization_size
 
 
 try:
@@ -97,5 +96,6 @@ if mpi_comm.rank == MPI_ROOT:
     # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+    perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
