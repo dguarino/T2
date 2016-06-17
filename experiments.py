@@ -3,6 +3,7 @@ import numpy as np
 from mozaik.experiments import *
 from mozaik.experiments.vision import *
 from mozaik.sheets.population_selector import RCRandomPercentage
+from mozaik.sheets.population_selector import RCSpace
 from parameters import ParameterSet
 
 
@@ -101,8 +102,6 @@ def create_experiments_temporal(model):
 
 def create_experiments_size(model):
   return [
-      #Lets kick the network up into activation
-      #PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # SIZE TUNING
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
@@ -120,6 +119,61 @@ def create_experiments_size(model):
           with_flat=False #use also flat luminance discs
       )
   ]
+
+
+def create_experiments_size_V1_inactivated_small(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # SIZE TUNING
+      # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
+      MeasureSizeTuningWithInactivation(
+          model, 
+          sheet_list=["V1_Exc_L4"],
+          injection_configuration={
+            'component':'mozaik.sheets.population_selector.RCSpace', 
+            'params':{'radius':0.2, 'offset_x':0.0, 'offset_y':0.0}
+          },
+          injection_current=-.5, # nA
+          num_sizes=10, 
+          max_size=6.0, # max radius
+          orientation=numpy.pi/2, 
+          spatial_frequency=0.5, #
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7,
+          contrasts=[80], #40,100  to look for contrast-dependent RF expansion
+          num_trials=4,
+          log_spacing=True
+      )
+  ]
+def create_experiments_size_V1_inactivated_large(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # SIZE TUNING
+      # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
+      MeasureSizeTuningWithInactivation(
+          model, 
+          sheet_list=["V1_Exc_L4"],
+          injection_configuration={
+            'component':'mozaik.sheets.population_selector.RCSpace', 
+            'params':{'radius':0.6, 'offset_x':0.0, 'offset_y':0.0}
+          },
+          injection_current=-.5, # nA
+          num_sizes=10, 
+          max_size=6.0, # max radius
+          orientation=numpy.pi/2, 
+          spatial_frequency=0.5, #
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7,
+          contrasts=[80], #40,100  to look for contrast-dependent RF expansion
+          num_trials=4,
+          log_spacing=True
+      )
+  ]
+
+
+
+# ------------------------------------------
+
 
 
 def create_experiments_combined(model):

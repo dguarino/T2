@@ -101,7 +101,7 @@ class ThalamoCorticalModel(Model):
             cortex_exc_l4 = CortexExcL4(self, self.parameters.l4_cortex_exc.params)
             cortex_inh_l4 = CortexInhL4(self, self.parameters.l4_cortex_inh.params)
 
-            ########################################################
+            # ########################################################
             # THALAMO-CORTICAL
             # initialize afferent layer 4 projections
             GaborConnector(
@@ -122,7 +122,7 @@ class ThalamoCorticalModel(Model):
                 'V1AffInhConnection'
             )
 
-            ########################################################
+            # ########################################################
             # CORTICO-CORTICAL
             # random lateral layer 4 projections
             ModularSingleWeightProbabilisticConnector(

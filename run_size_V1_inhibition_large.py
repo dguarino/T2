@@ -18,6 +18,8 @@ from experiments import create_experiments_contrast
 from experiments import create_experiments_spatial
 from experiments import create_experiments_temporal
 from experiments import create_experiments_size
+from experiments import create_experiments_size_V1_inactivated_small
+from experiments import create_experiments_size_V1_inactivated_large
 from experiments import create_experiments_orientation
 from experiments import create_experiments_correlation
 from experiments import create_experiments_combined
@@ -52,17 +54,19 @@ if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_temporal )
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
+    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_small )
+    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_large )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
-    if False: # save connections
-        if withPGN: # PGN
-            model.connectors['LGN_PGN_ConnectionOn'].store_connections(data_store)    
-            model.connectors['LGN_PGN_ConnectionOff'].store_connections(data_store)    
-            model.connectors['PGN_PGN_Connection'].store_connections(data_store)    
-            model.connectors['PGN_LGN_ConnectionOn'].store_connections(data_store)    
-            model.connectors['PGN_LGN_ConnectionOff'].store_connections(data_store)    
+    # if False: # save connections
+    #     if withPGN: # PGN
+    #         model.connectors['LGN_PGN_ConnectionOn'].store_connections(data_store)    
+    #         model.connectors['LGN_PGN_ConnectionOff'].store_connections(data_store)    
+    #         model.connectors['PGN_PGN_Connection'].store_connections(data_store)    
+    #         model.connectors['PGN_LGN_ConnectionOn'].store_connections(data_store)    
+    #         model.connectors['PGN_LGN_ConnectionOff'].store_connections(data_store)    
         # if withV1: # CORTEX
         #     # model.connectors['V1AffConnectionOn'].store_connections(data_store)    
         #     # model.connectors['V1AffConnectionOff'].store_connections(data_store)    
@@ -87,21 +91,21 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_inh_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-    # data_store.save()
+    data_store.save()
 
-# Analysis and Plotting
-if mpi_comm.rank == MPI_ROOT:
-    # perform_analysis_test( data_store )
-    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'size_radius', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
-    # import numpy
-    # step = .2
-    # for i in numpy.arange(step, 3.+step, step):
-    #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
+# # Analysis and Plotting
+# if mpi_comm.rank == MPI_ROOT:
+#     # perform_analysis_test( data_store )
+#     # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'size_radius', withPGN, withV1 )
+#     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+#     import numpy
+#     step = .2
+#     for i in numpy.arange(step, 2.+step, step):
+#         perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )

@@ -1,5 +1,6 @@
 # Usage
-# $ python parameter_search_analysis.py 20160504-100834[param.defaults]CombinationParamSearch{3}
+# $ python parameter_search_analysis.py CombinationParamSearch_PGN_LGN___PGN_PGN
+# $ python parameter_search_analysis.py CombinationParamSearch_l4_LGN_PGN
 
 import sys
 from mozaik.meta_workflow.parameter_search import parameter_search_run_script

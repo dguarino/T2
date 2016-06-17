@@ -24,7 +24,7 @@ from experiments import create_experiments_combined
 
 from analysis_and_visualization import perform_analysis_test
 from analysis_and_visualization import perform_analysis_and_visualization
-# from analysis_and_visualization import perform_analysis_and_visualization_size
+from analysis_and_visualization import perform_analysis_and_visualization_radius
 
 
 try:
@@ -88,7 +88,7 @@ else:
     setup_logging()
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-    data_store.save()
+    # data_store.save()
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
@@ -98,4 +98,10 @@ if mpi_comm.rank == MPI_ROOT:
     # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
     perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+    # perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+    # import numpy
+    # step = .2
+    # for i in numpy.arange(step, 3.+step, step):
+    #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
+

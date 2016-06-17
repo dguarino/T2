@@ -84,7 +84,7 @@
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczykLeskiWrobelWojcik2013
         'base_weight': 0.0002, # µS 0.003-5, UlrichHuguenard1996
-        'num_samples' : 90,
+        'num_samples' : 40,
     },
 
     # to LGN
@@ -104,8 +104,8 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0002, # µS SanchezMcCormick1997, LamSherman2011
-        'num_samples' : 180,
+        'base_weight': 0.0004, # µS SanchezMcCormick1997, LamSherman2011
+        'num_samples' : 110,
     },
     'PGN_LGN_ConnectionOff': ref('pgn.PGN_LGN_ConnectionOn'),
 
