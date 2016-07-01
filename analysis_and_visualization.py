@@ -47,15 +47,21 @@ def perform_analysis_test( data_store ):
 # analog_ids:  [43039]
 # spike_ids:  [42554, 43039, 44519, 44984, 47454, 47630, 48105, 50330, 50603, 50665, 51862, 51957, 52009, 52015]
 
-def select_ids_by_radius(radius, sheet_ids, positions):
+def select_ids_by_radius(radius, sheet_ids, positions, show=False):
     radius_ids = []
     min_radius = radius[0] # over: 0. # non: 1.
     max_radius = radius[1] # over: .7 # non: 3.
+    if show:
+        print min_radius, max_radius
     for i in sheet_ids:
         a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
+        if show:
+            print "supplied:",positions[0][i],positions[1][i],positions[2][i]
         l = numpy.linalg.norm(a - 0.0)
         if l>min_radius and l<max_radius:
             radius_ids.append(i[0])
+            if show:
+                print "chosen:",positions[0][i],positions[1][i],positions[2][i]            
     return radius_ids
 
 
@@ -111,9 +117,21 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
     if withV1:        
         #analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
+
+        NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+        l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+        # idx4 = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
+        # x = data_store.get_neuron_postions()['V1_Exc_L4'][0][idx4]
+        # y = data_store.get_neuron_postions()['V1_Exc_L4'][1][idx4]
+        # center4 = l4_exc_or_many[numpy.nonzero(numpy.sqrt(numpy.multiply(x,x)+numpy.multiply(y,y)) < 0.2)[0]]
+        # analog_center4 = set(center4).intersection(spike_ids)
+
         position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
-        V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=spike_ids)
-        radius_V1_ids = select_ids_by_radius(radius, V1_sheet_ids, position_V1)
+        # V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=spike_ids)
+        V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
+        print "# of V1 cells within radius range having orientation close to 0:",V1_sheet_ids
+        radius_V1_ids = select_ids_by_radius(radius, V1_sheet_ids, position_V1, True)
         radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
         spike_ids = radius_V1_ids
         analog_ids = spike_ids
@@ -121,21 +139,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
         # spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
         print "analog_ids: ",analog_ids
         print "spike_ids: ",spike_ids
-        # if False:
-        #     sheets = list(set(data_store.sheets()) & set(['V1_Exc_L4','V1_Inh_L4']))
-        #     exc_sheets = list(set(data_store.sheets()) & set(['V1_Exc_L4']))
-        #     l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')
-        #     l4_exc_phase = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentPhase', sheet_name = 'V1_Exc_L4')
-        #     l4_exc = analog_ids[numpy.argmin([circular_dist(o,numpy.pi/2,numpy.pi)  for (o,p) in zip(l4_exc_or[0].get_value_by_id(analog_ids),l4_exc_phase[0].get_value_by_id(analog_ids))])]
-        #     l4_inh_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Inh_L4')
-        #     l4_inh_phase = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentPhase', sheet_name = 'V1_Inh_L4')
-        #     l4_inh = analog_ids_inh[numpy.argmin([circular_dist(o,numpy.pi/2,numpy.pi)  for (o,p) in zip(l4_inh_or[0].get_value_by_id(analog_ids_inh),l4_inh_phase[0].get_value_by_id(analog_ids_inh))])]
-        #     l4_exc_or_many = numpy.array(l4_exc_or[0].ids)[numpy.nonzero(numpy.array([circular_dist(o,0,numpy.pi)  for (o,p) in zip(l4_exc_or[0].values,l4_exc_phase[0].values)]) < 0.1)[0]]
-        #     l4_exc_or_many = list(set(l4_exc_or_many) &  set(spike_ids))
-        #     orr = list(set([MozaikParametrized.idd(s).orientation for s in queries.param_filter_query(data_store,st_name='FullfieldDriftingSinusoidalGrating',st_contrast=100).get_stimuli()]))                
-        #     l4_exc_or_many_analog = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or[0].get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.1)[0]]
-        #     l4_inh_or_many_analog = numpy.array(analog_ids_inh)[numpy.nonzero(numpy.array([circular_dist(l4_inh_or[0].get_value_by_id(i),0,numpy.pi)  for i in analog_ids_inh]) < 0.1)[0]]
-    
+
 
 
     ##############

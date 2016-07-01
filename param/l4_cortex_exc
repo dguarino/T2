@@ -148,7 +148,7 @@
         'fan_in' : True,
     
         'or_map' : True,
-        'or_map_location' : './or_map_4x4',
+        'or_map_location' : './or_map_new_6x6',
         'phase_map' : False,
         'phase_map_location' : './phase_map',
 

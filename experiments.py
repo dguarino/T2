@@ -73,7 +73,7 @@ def create_experiments_spatial(model):
           grating_duration=2*147*7,
           frame_duration=7,
           # square=True,
-          num_trials=2
+          num_trials=5
       )
   ]
 

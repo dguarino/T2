@@ -17,21 +17,17 @@ echo "starting PARAMETER SEARCH"
 echo 
 
 # python parameter_search.py run_size.py nest param/defaults_mea
-
 # python parameter_search.py run_spatial_V1.py nest param/defaults
-
 # python parameter_search.py run_size_V1.py nest param/defaults_mea
-
 # python parameter_search_full.py run_spatial_V1_full.py nest param/defaults
 
-# python parameter_search_full.py run_size_V1_full.py nest param/defaults_mea
+# full closed loop model
+# python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
+python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
 
-
-
+# selective inhibition of cortex
 python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
-
 python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
-
 
 
 

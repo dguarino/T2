@@ -104,7 +104,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0004, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0008, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 110,
     },
     'PGN_LGN_ConnectionOff': ref('pgn.PGN_LGN_ConnectionOn'),
