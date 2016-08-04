@@ -115,12 +115,12 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
     analog_ids = []
     spike_ids = []
     if withV1:        
-        #analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
+        analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
 
         NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
         l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.2)[0]]
         # idx4 = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
         # x = data_store.get_neuron_postions()['V1_Exc_L4'][0][idx4]
         # y = data_store.get_neuron_postions()['V1_Exc_L4'][1][idx4]
@@ -134,7 +134,8 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
         radius_V1_ids = select_ids_by_radius(radius, V1_sheet_ids, position_V1, True)
         radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
         spike_ids = radius_V1_ids
-        analog_ids = spike_ids
+        if len(analog_ids)==0:
+            analog_ids = spike_ids
         # analog_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_esyn_ids()
         # spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
         print "analog_ids: ",analog_ids
@@ -169,7 +170,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
     }
 
     # Overview
-    plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
+    # plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
     # plot_overview( data_store, [], [], [], analog_ids, radius )
 
     # Tuning
@@ -1178,26 +1179,28 @@ def plot_size_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None, 
     # GRATINGS
     # ON cells
     dsv = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
-    PlotTuningCurve(
-        dsv,
-        ParameterSet({
-            'polar': False,
-            'pool': False,
-            'centered': False,
-            'mean': True,
-            'parameter_name' : 'radius', 
-            'neurons': list(Xon_ids), 
-            'sheet_name' : 'X_ON'
-        }), 
-        fig_param={'dpi' : 100,'figsize': (8,8)}, 
-        plot_file_name="SizeTuning_Grating_LGN_On_mean"+addon+".png"
-    ).plot({
-        '*.y_lim':(0,100), 
-        '*.x_ticks':[0.1, 1, 2, 4, 6], 
-        '*.x_scale':'linear',
-        #'*.x_scale':'log', '*.x_scale_base':2,
-        '*.fontsize':24
-    })
+    if len(Xon_ids):
+        PlotTuningCurve(
+            dsv,
+            ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': True,
+                'parameter_name' : 'radius', 
+                'neurons': list(Xon_ids), 
+                'sheet_name' : 'X_ON'
+            }), 
+            fig_param={'dpi' : 100,'figsize': (8,8)}, 
+            plot_file_name="SizeTuning_Grating_LGN_On_mean"+addon+".png"
+        ).plot({
+            '*.y_lim':(0,50), 
+            '*.y_ticks':[10, 20, 30, 40, 50], 
+            '*.x_ticks':[0.1, 1, 2, 4, 6], 
+            '*.x_scale':'linear',
+            #'*.x_scale':'log', '*.x_scale_base':2,
+            '*.fontsize':24
+        })
     # for lid in Xon_ids:
     #     PlotTuningCurve(
     #         dsv,
@@ -1220,26 +1223,28 @@ def plot_size_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None, 
     #         '*.fontsize':24
     #     })
     # OFF cells
-    PlotTuningCurve(
-        dsv,
-        ParameterSet({
-            'polar': False,
-            'pool': False,
-            'centered': False,
-            'mean': True,
-            'parameter_name' : 'radius', 
-            'neurons': list(Xoff_ids), 
-            'sheet_name' : 'X_OFF'
-        }), 
-        fig_param={'dpi' : 100,'figsize': (8,8)}, 
-        plot_file_name="SizeTuning_Grating_LGN_Off_mean"+addon+".png"
-    ).plot({
-        '*.y_lim':(0,100), 
-        '*.x_ticks':[0.1, 1, 2, 4, 6], 
-        '*.x_scale':'linear',
-        #'*.x_scale':'log', '*.x_scale_base':2,
-        '*.fontsize':24
-    })
+    if len(Xoff_ids):
+        PlotTuningCurve(
+            dsv,
+            ParameterSet({
+                'polar': False,
+                'pool': False,
+                'centered': False,
+                'mean': True,
+                'parameter_name' : 'radius', 
+                'neurons': list(Xoff_ids), 
+                'sheet_name' : 'X_OFF'
+            }), 
+            fig_param={'dpi' : 100,'figsize': (8,8)}, 
+            plot_file_name="SizeTuning_Grating_LGN_Off_mean"+addon+".png"
+        ).plot({
+            '*.y_lim':(0,50), 
+            '*.y_ticks':[10, 20, 30, 40, 50], 
+            '*.x_ticks':[0.1, 1, 2, 4, 6], 
+            '*.x_scale':'linear',
+            #'*.x_scale':'log', '*.x_scale_base':2,
+            '*.fontsize':24
+        })
     # for lid in Xoff_ids:
     #     PlotTuningCurve(
     #         dsv,

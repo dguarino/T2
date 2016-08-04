@@ -11,6 +11,9 @@ clear
 # mpirun python run_size_V1_inhibition_positive.py nest 8 param/defaults_mea 'data_size_V1_inh' 
 
 
+
+
+
 ################################################
 # PARAMETER SEARCH
 echo "starting PARAMETER SEARCH"
@@ -23,11 +26,36 @@ echo
 
 # full closed loop model
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
-python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
 
 # selective inhibition of cortex
-python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
+
+
+
+
+
+################################################
+## CHANGING NAME
+# ...
+#PLOTTING
+echo "starting PLOTTING"
+# echo 
+python parameter_search_analysis.py CombinationParamSearch_size_V1_full
+python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
+python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
+
+python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
+python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
+
+python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small
+python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more2
+
+
 
 
 
