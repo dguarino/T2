@@ -33,7 +33,7 @@ CombinationParameterSearch(
         # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [200000., 230000., 250000., 280000.],
         # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [0.001, 0.0001, 0.00001],
 
-        'pgn.LGN_PGN_ConnectionOn.base_weight': [.0005, .001, .0015], #orig: .002 # automatic (ref) assignment also to Off neurons
+        'pgn.LGN_PGN_ConnectionOn.base_weight': [.001], #orig: .002 # automatic (ref) assignment also to Off neurons
 
         # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0008], # automatic (ref) assignment also to Off neurons
         'pgn.PGN_PGN_Connection.base_weight': [.0001],

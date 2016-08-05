@@ -24,14 +24,16 @@ echo
 # python parameter_search.py run_size_V1.py nest param/defaults_mea
 # python parameter_search_full.py run_spatial_V1_full.py nest param/defaults
 
+# OVERLAPPING
 # full closed loop model
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
-# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-
+python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
 # selective inhibition of cortex
 # python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
 
+# NON-OVERLAPPING
+python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverlapping.py nest param/defaults_mea
 
 
 
@@ -42,18 +44,18 @@ echo
 #PLOTTING
 echo "starting PLOTTING"
 # echo 
-python parameter_search_analysis.py CombinationParamSearch_size_V1_full
-python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
-python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_full
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
+# # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
 
-python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
-python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
+# # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
 
-python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small
-python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more2
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more
+# # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more2
 
 
 

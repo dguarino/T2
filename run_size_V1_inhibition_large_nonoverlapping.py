@@ -19,7 +19,7 @@ from experiments import create_experiments_spatial
 from experiments import create_experiments_temporal
 from experiments import create_experiments_size
 from experiments import create_experiments_size_V1_inactivated_small
-from experiments import create_experiments_size_V1_inactivated_large
+from experiments import create_experiments_size_V1_inactivated_large_nonoverlapping
 from experiments import create_experiments_orientation
 from experiments import create_experiments_correlation
 from experiments import create_experiments_combined
@@ -56,7 +56,7 @@ if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_temporal )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_small )
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_large )
+    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_large_nonoverlapping )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
@@ -91,7 +91,7 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_inh_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_inh_non_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
 # # Analysis and Plotting

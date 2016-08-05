@@ -131,7 +131,7 @@ def create_experiments_size_V1_inactivated_small(model):
           sheet_list=["V1_Exc_L4"],
           injection_configuration={
             'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.2, 'offset_x':0.0, 'offset_y':0.0}
+            'params':{'radius':0.1, 'offset_x':0.0, 'offset_y':0.0}
           },
           injection_current=-.5, # nA
           num_sizes=10, 
@@ -155,7 +155,32 @@ def create_experiments_size_V1_inactivated_large(model):
           sheet_list=["V1_Exc_L4"],
           injection_configuration={
             'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.6, 'offset_x':0.0, 'offset_y':0.0}
+            'params':{'radius':0.3, 'offset_x':0.0, 'offset_y':0.0}
+          },
+          injection_current=-.5, # nA
+          num_sizes=10, 
+          max_size=6.0, # max radius
+          orientation=numpy.pi/2, 
+          spatial_frequency=0.5, #
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7,
+          contrasts=[80], #40,100  to look for contrast-dependent RF expansion
+          num_trials=4,
+          log_spacing=True
+      )
+  ]
+
+def create_experiments_size_V1_inactivated_large_nonoverlapping(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # SIZE TUNING
+      # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
+      MeasureSizeTuningWithInactivation(
+          model, 
+          sheet_list=["V1_Exc_L4"],
+          injection_configuration={
+            'component':'mozaik.sheets.population_selector.RCSpace', 
+            'params':{'radius':0.3, 'offset_x':1600.0, 'offset_y':0.0} # at 1.6 deg right (see or map 6x6)
           },
           injection_current=-.5, # nA
           num_sizes=10, 
