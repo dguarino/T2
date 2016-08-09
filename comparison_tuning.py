@@ -22,7 +22,7 @@ from mozaik.controller import Global
 
 
 
-def select_ids_by_radius(radius, sheet_ids, positions):
+def select_ids_by_position(position, radius, sheet_ids, positions):
 	radius_ids = []
 	distances = []
 	min_radius = radius[0] # over: 0. # non: 1.
@@ -30,9 +30,11 @@ def select_ids_by_radius(radius, sheet_ids, positions):
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
-		l = numpy.linalg.norm(a - 0.0)
-
+		# print a, " - ", position
+		l = numpy.linalg.norm(a - position)
+		# print "distance",l
 		if l>min_radius and l<max_radius:
+			# print "taken"
 			radius_ids.append(i[0])
 			distances.append(l)
 
@@ -43,11 +45,13 @@ def select_ids_by_radius(radius, sheet_ids, positions):
 	# return radius_ids
 
 
-def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inactive ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive ):
+	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
-	# data_store_full.print_content(full_recordings=False)
+	data_store_full.print_content(full_recordings=False)
+	print folder_inactive
 	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
-	# data_store_inac.print_content(full_recordings=False)
+	data_store_inac.print_content(full_recordings=False)
 
 	print "Checking data..."
 	# Full
@@ -67,7 +71,7 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 	neurons_full = []
 	neurons_inac = []
 	rowplots = 0
-	max_size = 2.
+	max_size = 0.6
 
 	slice_ranges = numpy.arange(step, max_size+step, step)
 	for col,cur_range in enumerate(slice_ranges):
@@ -75,21 +79,24 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 
 		# get the list of all recorded neurons in X_ON
 		# Full
-		spike_ids = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-		position = data_store_full.get_neuron_postions()[sheet]
-		sheet_ids = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids)
-		radius_ids = select_ids_by_radius(radius, sheet_ids, position)
-		neurons = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids)
-		if len(neurons) > rowplots:
-			rowplots = len(neurons)
-		neurons_full.append(neurons)
+		spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+		positions1 = data_store_full.get_neuron_postions()[sheet]
+		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
+		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1)
+		neurons1 = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids1)
+		if len(neurons1) > rowplots:
+			rowplots = len(neurons1)
+		neurons_full.append(neurons1)
+
 		# Inactivated
-		spike_ids = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-		position = data_store_inac.get_neuron_postions()[sheet]
-		sheet_ids = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids)
-		radius_ids = select_ids_by_radius(radius, sheet_ids, position)
-		neurons = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=radius_ids)
-		neurons_inac.append(neurons)
+		spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+		positions2 = data_store_inac.get_neuron_postions()[sheet]
+		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
+		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2)
+		neurons2 = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=radius_ids2)
+		neurons_inac.append(neurons2)
+
+		print "radius_ids", radius_ids2
 
 		assert len(neurons_full[col]) == len(neurons_inac[col]) , "ERROR: the number of recorded neurons is different"
 		assert set(neurons_full[col]) == set(neurons_inac[col]) , "ERROR: the neurons in the two arrays are not the same"
@@ -97,11 +104,14 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 	# subplot figure creation
 	print 'rowplots', rowplots
 	print "Starting plotting ..."
-	fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(4*rowplots, 4*len(slice_ranges)), sharey=False)
+	print len(slice_ranges), slice_ranges
+	fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
+	print axes.shape
 
 	for col,cur_range in enumerate(slice_ranges):
 		radius = [cur_range-step,cur_range]
 		interval = str(radius[0]) +" - "+ str(radius[1]) +" deg radius"
+		print interval
 		axes[col,0].set_ylabel(interval+"\n\nResponse change (%)")
 		print "range:",col
 		print "neurons_full:", len(neurons_full[col]), neurons_full[col]
@@ -128,15 +138,15 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 		    dic[k] = (par,numpy.array(val))
 		tc_dict2.append(dic)
 
+		# Plotting tuning curves
 		x_full = tc_dict1[0].values()[0][0]
 		x_inac = tc_dict2[0].values()[0][0]
-
 		# each cell couple 
 		print tc_dict1[0].values()[0][1].shape
 		axes[col,1].set_ylabel("Response (spikes/sec)", fontsize=10)
 		for j,nid in enumerate(neurons_full[col]):
 			# print col,j,nid
-			if len(neurons_full[col])>1:
+			if len(neurons_full[col])>1: # case with just one neuron in the group
 				y_full = tc_dict1[0].values()[0][1][:,j]
 				y_inac = tc_dict2[0].values()[0][1][:,j]
 			else:
@@ -145,12 +155,13 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 			axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
 			axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
 			axes[col,j+1].set_title(str(nid), fontsize=10)
+
 		# Population histogram
 		diff_full_inac = []
 		std_full_inac = []
-		smaller = -tc_dict1[0].values()[0][1][0:3]+tc_dict2[0].values()[0][1][0:3] # difference:  cell(inactivated V1) - cell(full)
-		equal = -tc_dict1[0].values()[0][1][3:5]+tc_dict2[0].values()[0][1][3:5]
-		larger = -tc_dict1[0].values()[0][1][5:]+tc_dict2[0].values()[0][1][5:]
+		smaller = tc_dict2[0].values()[0][1][0:3] - tc_dict1[0].values()[0][1][0:3]# difference:  cell(inactivated V1) - cell(full)
+		equal = tc_dict2[0].values()[0][1][3:5] - tc_dict1[0].values()[0][1][3:5]
+		larger = tc_dict2[0].values()[0][1][5:] - tc_dict1[0].values()[0][1][5:]
 		diff_full_inac.append( numpy.mean(numpy.sum(smaller, axis=1)) / 100 ) # mean percentage difference over cells
 		diff_full_inac.append( numpy.mean(numpy.sum(equal, axis=1)) / 100 )
 		diff_full_inac.append( numpy.mean(numpy.sum(larger, axis=1)) / 100 )
@@ -190,7 +201,7 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 		axes[col,0].spines['bottom'].set_visible(False)
 
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_step"+str(step)+".png", dpi=100 )
+	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+".png", dpi=100 )
 	# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
 	plt.close()
 
@@ -203,15 +214,20 @@ def perform_comparison_size_tuning( sheet, step, sizes, folder_full, folder_inac
 import os
 
 full_list = [ 
-	"CombinationParamSearch_size_V1_full", 
-	"CombinationParamSearch_size_V1_full_more", 
-	"CombinationParamSearch_size_V1_full_more2" 
+	"ThalamoCorticalModel_data_size_____full2"
+	# "CombinationParamSearch_size_V1_2sites_full2",
+	# "CombinationParamSearch_size_V1_full", 
+	# "CombinationParamSearch_size_V1_full_more", 
+	# "CombinationParamSearch_size_V1_full_more2" 
 	]
 
 inac_large_list = [ 
-	"CombinationParamSearch_size_V1_inhibition_large", 
-	"CombinationParamSearch_size_V1_inhibition_large_more", 
-	"CombinationParamSearch_size_V1_inhibition_large_more2" 
+	"ThalamoCorticalModel_data_size_____inactivated2"
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large2",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping",
+	# "CombinationParamSearch_size_V1_inhibition_large", 
+	# "CombinationParamSearch_size_V1_inhibition_large_more", 
+	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	]
 
 # inac_small_list = [
@@ -221,37 +237,39 @@ inac_large_list = [
 # 	]
 
 
-# for i,l in enumerate(full_list):
-# 	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
-# 	# small = [ inac_small_list[i]+"/"+f for f in os.listdir(inac_small_list[i]) if os.path.isdir(os.path.join(inac_small_list[i], f)) ]
-# 	large = [ inac_large_list[i]+"/"+f for f in os.listdir(inac_large_list[i]) if os.path.isdir(os.path.join(inac_large_list[i], f)) ]
+for i,l in enumerate(full_list):
+	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
+	# small = [ inac_small_list[i]+"/"+f for f in os.listdir(inac_small_list[i]) if os.path.isdir(os.path.join(inac_small_list[i], f)) ]
+	large = [ inac_large_list[i]+"/"+f for f in os.listdir(inac_large_list[i]) if os.path.isdir(os.path.join(inac_large_list[i], f)) ]
 
-# 	# print "\n\nFull:", i
-# 	# print full
-# 	# # print "\n\nSmall:", i
-# 	# # print small
-# 	# print "\n\nLarge:", i
-# 	# print large
+	# print "\n\nFull:", i
+	# print full
+	# # print "\n\nSmall:", i
+	# # print small
+	# print "\n\nLarge:", i
+	# print large
 
-# 	for i,f in enumerate(full):
-# 		print i
-# 		print f," vs ",large[i]
-# 		perform_comparison_size_tuning( 
-# 			sheet='X_ON', 
-# 			step=.3,
-# 			sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-# 			folder_full=f, 
-# 			folder_inactive=large[i]
-# 			)
+	for i,f in enumerate(full):
+		print i
+		perform_comparison_size_tuning( 
+			sheet='X_ON', 
+			reference_position=[[0.0], [0.0], [0.0]],
+			# reference_position=[[1.6], [0.0], [0.0]],
+			step=.4,
+			sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+			folder_full=f, 
+			folder_inactive=large[i]
+			)
 
 
 
 
-# Testing
-perform_comparison_size_tuning( 
-	sheet='X_ON', 
-	step=.25,
-	sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-	folder_full='ThalamoCorticalModel_data_size_____full', 
-	folder_inactive='ThalamoCorticalModel_data_size_____inactivated'
-	)
+# # Testing
+# perform_comparison_size_tuning( 
+# 	sheet='X_ON', 
+# 	reference_position=[[0.0], [0.0], [0.0]],
+# 	step=.4,
+# 	sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+# 	folder_full='ThalamoCorticalModel_data_size_____full2', 
+# 	folder_inactive='ThalamoCorticalModel_data_size_____inactivated2'
+# 	)

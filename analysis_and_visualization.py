@@ -47,7 +47,7 @@ def perform_analysis_test( data_store ):
 # analog_ids:  [43039]
 # spike_ids:  [42554, 43039, 44519, 44984, 47454, 47630, 48105, 50330, 50603, 50665, 51862, 51957, 52009, 52015]
 
-def select_ids_by_radius(radius, sheet_ids, positions, show=False):
+def select_ids_by_radius(position, radius, sheet_ids, positions, show=True):
     radius_ids = []
     min_radius = radius[0] # over: 0. # non: 1.
     max_radius = radius[1] # over: .7 # non: 3.
@@ -57,7 +57,7 @@ def select_ids_by_radius(radius, sheet_ids, positions, show=False):
         a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
         if show:
             print "supplied:",positions[0][i],positions[1][i],positions[2][i]
-        l = numpy.linalg.norm(a - 0.0)
+        l = numpy.linalg.norm(a - position)
         if l>min_radius and l<max_radius:
             radius_ids.append(i[0])
             if show:
@@ -66,9 +66,9 @@ def select_ids_by_radius(radius, sheet_ids, positions, show=False):
 
 
 def perform_analysis_and_visualization( data_store, atype='contrast', withPGN=False, withV1=False ):
-    perform_analysis_and_visualization_radius( data_store, atype=atype, radius=[0.,.5], withPGN=withPGN, withV1=withV1 )
+    perform_analysis_and_visualization_radius( data_store, atype=atype, position=[[.0],[.0],[.0]], radius=[0.,.5], withPGN=withPGN, withV1=withV1 )
 
-def perform_analysis_and_visualization_radius( data_store, atype='contrast', radius=[], withPGN=False, withV1=False ):
+def perform_analysis_and_visualization_radius( data_store, atype='contrast', position=[[.0],[.0],[.0]], radius=[], withPGN=False, withV1=False ):
     analog_Xon_ids = []
     analog_Xoff_ids = []
     # Gather indexes
@@ -87,8 +87,8 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
     position_Xoff = data_store.get_neuron_postions()['X_OFF']
     Xon_sheet_ids = data_store.get_sheet_indexes(sheet_name='X_ON',neuron_ids=spike_Xon_ids)
     Xoff_sheet_ids = data_store.get_sheet_indexes(sheet_name='X_OFF',neuron_ids=spike_Xoff_ids)
-    radius_Xon_ids = select_ids_by_radius(radius, Xon_sheet_ids, position_Xon)
-    radius_Xoff_ids = select_ids_by_radius(radius, Xoff_sheet_ids, position_Xoff)
+    radius_Xon_ids = select_ids_by_radius(position, radius, Xon_sheet_ids, position_Xon)
+    radius_Xoff_ids = select_ids_by_radius(position, radius, Xoff_sheet_ids, position_Xoff)
     radius_Xon_ids = data_store.get_sheet_ids(sheet_name='X_ON',indexes=radius_Xon_ids)
     radius_Xoff_ids = data_store.get_sheet_ids(sheet_name='X_OFF',indexes=radius_Xoff_ids)
     print "radius_Xon_ids: ",radius_Xon_ids
@@ -105,7 +105,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
         spike_PGN_ids = param_filter_query(data_store,sheet_name="PGN").get_segments()[0].get_stored_spike_train_ids()
         position_PGN = data_store.get_neuron_postions()['PGN']
         PGN_sheet_ids = data_store.get_sheet_indexes(sheet_name='PGN',neuron_ids=spike_PGN_ids)
-        radius_PGN_ids = select_ids_by_radius(radius, PGN_sheet_ids, position_PGN)
+        radius_PGN_ids = select_ids_by_radius(position, radius, PGN_sheet_ids, position_PGN)
         radius_PGN_ids = data_store.get_sheet_ids(sheet_name='PGN',indexes=radius_PGN_ids)
         print "radius_Xon_ids: ",radius_PGN_ids
         spike_PGN_ids = radius_PGN_ids
@@ -115,12 +115,12 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
     analog_ids = []
     spike_ids = []
     if withV1:        
-        analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
+        # analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
 
         NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
         l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.2)[0]]
+        l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
         # idx4 = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
         # x = data_store.get_neuron_postions()['V1_Exc_L4'][0][idx4]
         # y = data_store.get_neuron_postions()['V1_Exc_L4'][1][idx4]
@@ -130,8 +130,8 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', rad
         position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
         # V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=spike_ids)
         V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
-        print "# of V1 cells within radius range having orientation close to 0:",V1_sheet_ids
-        radius_V1_ids = select_ids_by_radius(radius, V1_sheet_ids, position_V1, True)
+        print "# of V1 cells within radius range having orientation close to 0:", len(V1_sheet_ids)
+        radius_V1_ids = select_ids_by_radius(position, radius, V1_sheet_ids, position_V1, True)
         radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
         spike_ids = radius_V1_ids
         if len(analog_ids)==0:

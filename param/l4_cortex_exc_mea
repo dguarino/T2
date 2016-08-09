@@ -152,7 +152,7 @@
         'phase_map' : False,
         'phase_map_location' : './phase_map',
 
-        'base_weight' : 0.0015,
+        'base_weight' : 0.002,
         'num_samples' : 45,
         'short_term_plasticity':  {
             'U': 0.3, 
@@ -171,8 +171,8 @@
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
                     #'arborization_constant': 60.0,  # V1-LGN << PGN-LGN  # μm decay distance from the innervation point
-                    'arborization_constant': 200.0,# V1-LGN >> PGN-LGN  # μm decay distance from the innervation point
-                    #'arborization_constant': 150.0,# V1-LGN == PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 200.0,# V1-LGN >> PGN-LGN  # μm decay distance from the innervation point
+                    'arborization_constant': 150.0,# V1-LGN == PGN-LGN  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -180,7 +180,7 @@
         'weight_expression' : 'f1',
         'delay_functions' :  {},
         'delay_expression' : '5.0', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight' : 0.0002, # µS, GolshaniLiuJones2001
+        'base_weight' : 0.0001, # µS, GolshaniLiuJones2001
         'num_samples' : 250, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 
@@ -199,7 +199,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 20.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 60.0,  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -207,7 +207,7 @@
         'weight_expression' : 'f1',
         'delay_functions' : {},
         'delay_expression' : '5.0', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight' : 0.002, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
+        'base_weight' : 0.001, # µS, GolshaniLiuJones2001, LiuBoleaGolshaniJones2001 (400 ± 257 pS), 
         'num_samples' : 40, # MurphyDuckettSillito2000
         'short_term_plasticity': {
             'U': 1.0, 

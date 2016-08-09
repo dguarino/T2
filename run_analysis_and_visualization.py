@@ -22,10 +22,18 @@ data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_director
 
 # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
 # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-import numpy
-step = .2
-for i in numpy.arange(step, 2.+step, step):
-    print i
-    perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
+
+# # Simple Analysis (just one group)
+perform_analysis_and_visualization_radius( data_store, 'size_radius', [[.0],[.0],[.0]], [.0,.5], withPGN, withV1 )
+# perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [.0,.5], withPGN, withV1 )
+
+# # Several Grouping Analysis
+# import numpy
+# step = .2
+# for i in numpy.arange(step, 1.+step, step):
+#     print i
+#     perform_analysis_and_visualization_radius( data_store, 'size_radius', [[.0],[.0],[.0]], [i-step,i], withPGN, withV1 )
+#     # perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [i-step,i], withPGN, withV1 )
+
 
 data_store.save() 

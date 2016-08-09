@@ -94,6 +94,8 @@ else:
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_inh_non_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
+    # perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [.0,.5], withPGN, withV1 )
+
 # # Analysis and Plotting
 # if mpi_comm.rank == MPI_ROOT:
 #     # perform_analysis_test( data_store )

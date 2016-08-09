@@ -28,8 +28,8 @@ echo
 # full closed loop model
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
 python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-# selective inhibition of cortex
-# python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
+# # selective inhibition of cortex
+# # python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
 
 # NON-OVERLAPPING
@@ -42,13 +42,15 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverl
 ## CHANGING NAME
 # ...
 #PLOTTING
-echo "starting PLOTTING"
+# echo "starting PLOTTING"
 # echo 
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full2
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
 # # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
 
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large2
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
 # # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
