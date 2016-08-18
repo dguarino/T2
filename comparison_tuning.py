@@ -171,7 +171,11 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		diff_full_inac = []
 		sem_full_inac = []
 		num_cells = tc_dict1[0].values()[0][1].shape[1]
+		smaller_pvalue = 0.
+		equal_pvalue = 0.
+		larger_pvalue = 0.
 
+		# -------------------------------------
 		# SIMPLE DIFFERENCE
 		# smaller = ( tc_dict2[0].values()[0][1][0:3] - tc_dict1[0].values()[0][1][0:3] ) / 3 # normalized difference:  cell(inactivated V1) - cell(full)
 		# equal = ( tc_dict2[0].values()[0][1][3:5] - tc_dict1[0].values()[0][1][3:5] ) / 2 # len(tc_dict1[0].values()[0][1][3:5])
@@ -180,6 +184,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		# diff_full_inac.append( numpy.mean(numpy.sum(equal, axis=1)) / 100 )
 		# diff_full_inac.append( numpy.mean(numpy.sum(larger, axis=1)) / 100 )
 
+		# -------------------------------------
 		# NON-PARAMETRIC TWO-TAILED TEST
 		# We want to have a summary statistical measure of the population of cells with and without inactivation.
 		# Our null-hypothesis is that the inactivation does not change the activity of cells.
@@ -194,18 +199,12 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		# and we get the value for one group.
 		# We repeat for each group
 
-		# # all trial-averaged response for each cell for each stimulus size
-		# print tc_dict1[0].values()[0][1][0:3] # 3,41
-		# # we want the average responses of cells for each stimulus size
-		# print "2", tc_dict2[0].values()[0][1][0]
-		# print "1", tc_dict1[0].values()[0][1][0]
-		# # and we want to compare the responses of full and inactivated
-		# print "wilcoxon", scipy.stats.wilcoxon( tc_dict2[0].values()[0][1][0], tc_dict1[0].values()[0][1][0], zero_method="zsplit")
-
+		# average of all trial-averaged response for each cell for grouped stimulus size
 		diff_smaller = numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3 - numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3
 		diff_equal = numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2
 		diff_larger = numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5
 
+		# #and we want to compare the responses of full and inactivated
 		# smaller, smaller_pvalue = scipy.stats.wilcoxon( diff_smaller, zero_method="zsplit" )
 		# equal, equal_pvalue = scipy.stats.wilcoxon( diff_equal, zero_method="zsplit" )
 		# larger, larger_pvalue = scipy.stats.wilcoxon( diff_larger, zero_method="zsplit" )
@@ -220,6 +219,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		diff_full_inac.append( equal / 100 )
 		diff_full_inac.append( larger / 100 )
 
+		# -------------------------------------
 		# Standard Error Mean
 		sem_full_inac.append( numpy.std(diff_smaller) / numpy.sqrt(num_cells) )
 		sem_full_inac.append( numpy.std(diff_equal) / numpy.sqrt(num_cells) ) 
@@ -227,7 +227,6 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 
 		# print diff_full_inac
 		# print sem_full_inac
-		# bp = axes[col,0].boxplot(diff_full_inac, vert=True, patch_artist=True, widths=(.9, .9, .9))
 		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8, color='r', yerr=sem_full_inac)
 		axes[col,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
 		for ba in barlist:
@@ -278,7 +277,7 @@ import os
 
 full_list = [ 
 	# "ThalamoCorticalModel_data_size_____full2"
-	"CombinationParamSearch_size_V1_2sites_full5",
+	"CombinationParamSearch_size_V1_2sites_full4",
 	# "CombinationParamSearch_size_V1_full", 
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
@@ -286,8 +285,8 @@ full_list = [
 
 inac_large_list = [ 
 	# "ThalamoCorticalModel_data_size_____inactivated2"
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large5",
-	"CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping5",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large4",
+	"CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping4",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 

@@ -31,9 +31,9 @@ clear
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
 
 # SIZE
-# # full closed loop model
+# full closed loop model
 python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-# #python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
+#python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverlapping.py nest param/defaults_mea
 
@@ -41,15 +41,13 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverl
 
 
 ################################################
-## CHANGING NAME
-# ...
 #PLOTTING
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full5
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large5
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping5
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full6
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large6
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping6
 
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full2
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full

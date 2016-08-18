@@ -12,11 +12,11 @@
         'cell': {
             'model' : 'IF_cond_exp',
             'params' : {
-                'v_thresh': -50.0,  # HuertasGroffSmith2005 # -35, # Coombes2003
-                'v_rest': -70.0,    # HuertasGroffSmith2005
+                'v_thresh': -50.0,  # DestexheContrerasSteriadeSejnowskiHuguenard1996
+                'v_rest': -70.0,    # HuertasGroffSmith2005 # -78., # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'v_reset': -55.0,   # HuertasGroffSmith2005
                 'tau_refrac': 5.0,  # HuertasGroffSmith2005
-                'tau_m': 20.0,      # ms # 17.3 (Rall1995) - 23.0 (DestexheContrerasSteriadeSejnowski1996)
+                'tau_m': 20.0,      # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'cm': 0.2,          # 
                 'e_rev_E': 0.0,     # HuertasGroffSmith2005
                 'e_rev_I': -85.0,   # HuertasGroffSmith2005
