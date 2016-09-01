@@ -72,12 +72,12 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
     analog_Xon_ids = []
     analog_Xoff_ids = []
     # Gather indexes
-    # analog_Xon_ids = sorted( param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_vm_ids() )
-    # analog_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_vm_ids() )
+    analog_Xon_ids = sorted( param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_vm_ids() )
+    analog_Xoff_ids = sorted( param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_vm_ids() )
     spike_Xon_ids = param_filter_query(data_store,sheet_name="X_ON").get_segments()[0].get_stored_spike_train_ids()
     spike_Xoff_ids = param_filter_query(data_store,sheet_name="X_OFF").get_segments()[0].get_stored_spike_train_ids()
-    # print "analog_Xon_ids: ",analog_Xon_ids
-    # print "analog_Xoff_ids: ",analog_Xoff_ids
+    print "analog_Xon_ids: ",analog_Xon_ids
+    print "analog_Xoff_ids: ",analog_Xoff_ids
     print "spike_Xon_ids: ",spike_Xon_ids
     print "spike_Xoff_ids: ",spike_Xoff_ids
 
@@ -93,15 +93,17 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
     radius_Xoff_ids = data_store.get_sheet_ids(sheet_name='X_OFF',indexes=radius_Xoff_ids)
     print "radius_Xon_ids: ",radius_Xon_ids
     print "radius_Xoff_ids: ",radius_Xoff_ids
-    analog_Xon_ids = radius_Xon_ids
-    analog_Xoff_ids = radius_Xoff_ids
+    if len(analog_Xon_ids)<1:
+        analog_Xon_ids = radius_Xon_ids
+    if len(analog_Xoff_ids)<1:
+        analog_Xoff_ids = radius_Xoff_ids
 
 
     analog_PGN_ids = []
     spike_PGN_ids = []
     if withPGN:
-        # analog_PGN_ids = sorted( param_filter_query(data_store,sheet_name="PGN").get_segments()[0].get_stored_vm_ids() )
-        # print "analog_PGN_ids: ",analog_PGN_ids
+        analog_PGN_ids = sorted( param_filter_query(data_store,sheet_name="PGN").get_segments()[0].get_stored_vm_ids() )
+        print "analog_PGN_ids: ",analog_PGN_ids
         spike_PGN_ids = param_filter_query(data_store,sheet_name="PGN").get_segments()[0].get_stored_spike_train_ids()
         position_PGN = data_store.get_neuron_postions()['PGN']
         PGN_sheet_ids = data_store.get_sheet_indexes(sheet_name='PGN',neuron_ids=spike_PGN_ids)
@@ -110,12 +112,13 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
         print "radius_Xon_ids: ",radius_PGN_ids
         spike_PGN_ids = radius_PGN_ids
         print "spike_PGN_ids: ",spike_PGN_ids
-        analog_PGN_ids = spike_PGN_ids
+        if len(analog_PGN_ids)<1:
+            analog_PGN_ids = spike_PGN_ids
 
     analog_ids = []
     spike_ids = []
     if withV1:        
-        # analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
+        analog_ids = sorted( param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_vm_ids() )
         spike_ids = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()[0].get_stored_spike_train_ids()
 
         NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
@@ -134,7 +137,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
         radius_V1_ids = select_ids_by_radius(position, radius, V1_sheet_ids, position_V1, True)
         radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
         spike_ids = radius_V1_ids
-        if len(analog_ids)==0:
+        if len(analog_ids)<1:
             analog_ids = spike_ids
         # analog_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_esyn_ids()
         # spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
@@ -170,7 +173,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
     }
 
     # Overview
-    # plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
+    plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
     # plot_overview( data_store, [], [], [], analog_ids, radius )
 
     # Tuning
@@ -1194,8 +1197,8 @@ def plot_size_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None, 
             fig_param={'dpi' : 100,'figsize': (8,8)}, 
             plot_file_name="SizeTuning_Grating_LGN_On_mean"+addon+".png"
         ).plot({
-            '*.y_lim':(0,50), 
-            '*.y_ticks':[10, 20, 30, 40, 50], 
+            '*.y_lim':(0,100), 
+            # '*.y_ticks':[10, 20, 30, 40, 50], 
             '*.x_ticks':[0.1, 1, 2, 4, 6], 
             '*.x_scale':'linear',
             #'*.x_scale':'log', '*.x_scale_base':2,
@@ -1238,8 +1241,8 @@ def plot_size_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None, 
             fig_param={'dpi' : 100,'figsize': (8,8)}, 
             plot_file_name="SizeTuning_Grating_LGN_Off_mean"+addon+".png"
         ).plot({
-            '*.y_lim':(0,50), 
-            '*.y_ticks':[10, 20, 30, 40, 50], 
+            '*.y_lim':(0,100), 
+            # '*.y_ticks':[10, 20, 30, 40, 50], 
             '*.x_ticks':[0.1, 1, 2, 4, 6], 
             '*.x_scale':'linear',
             #'*.x_scale':'log', '*.x_scale_base':2,
@@ -1614,55 +1617,62 @@ def plot_overview( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=None, rad
     else:
         addon = "_"+str(int(time.time()))
         
-    # if len(Xon_ids):
-    #     OverviewPlot(
-    #        data_store,
-    #        ParameterSet({
-    #            'spontaneous': False,
-    #            'sheet_name' : 'X_ON', 
-    #            'neuron' : Xon_ids[0], 
-    #            'sheet_activity' : {}
-    #        }),
-    #        fig_param={'dpi':100, 'figsize':(19,12)},
-    #        plot_file_name="LGN_On_"+addon+".png"
-    #     ).plot({
-    #         'Vm_plot.*.y_lim' : (-100,-40),
-    #         '*.fontsize':7
-    #     })
+    if len(Xon_ids):
+        logger.info("Xon_ids: %s" % ( str(Xon_ids) ) )
+        for i in Xon_ids:
+            OverviewPlot(
+               data_store,
+               ParameterSet({
+                   'spontaneous': False,
+                   'sheet_name' : 'X_ON', 
+                   'neuron' : i, 
+                   'sheet_activity' : {}
+               }),
+               fig_param={'dpi':100, 'figsize':(19,12)},
+               plot_file_name="LGN_On_"+addon+".png"
+            ).plot({
+                'Vm_plot.*.y_lim' : (-100,-40),
+                '*.fontsize':7
+            })
 
-    # if len(Xoff_ids):
-    #     OverviewPlot(
-    #        data_store,
-    #        ParameterSet({
-    #            'spontaneous': False,
-    #            'sheet_name' : 'X_OFF', 
-    #            'neuron' : Xoff_ids[0], 
-    #            'sheet_activity' : {}
-    #        }),
-    #        fig_param={'dpi' : 100,'figsize': (19,12)},
-    #        plot_file_name="LGN_Off_"+addon+".png"
-    #     ).plot({
-    #         'Vm_plot.*.y_lim' : (-100,-40),
-    #         '*.fontsize':7
-    #     })
+    if len(Xoff_ids):
+        logger.info("Xoff_ids: %s" % ( str(Xoff_ids) ) )
+        for i in Xoff_ids:
+            OverviewPlot(
+               data_store,
+               ParameterSet({
+                   'spontaneous': False,
+                   'sheet_name' : 'X_OFF', 
+                   'neuron' : i, 
+                   'sheet_activity' : {}
+               }),
+               fig_param={'dpi' : 100,'figsize': (19,12)},
+               plot_file_name="LGN_Off_"+str(i)+"_"+addon+".png"
+            ).plot({
+                'Vm_plot.*.y_lim' : (-100,-40),
+                '*.fontsize':7
+            })
 
-    # if len(PGN_ids):
-    #     OverviewPlot(
-    #        data_store,
-    #        ParameterSet({
-    #            'spontaneous': False,
-    #            'sheet_name' : 'PGN', 
-    #            'neuron' : PGN_ids[0], 
-    #            'sheet_activity' : {}
-    #        }),
-    #        fig_param={'dpi' : 100,'figsize': (19,12)},
-    #        plot_file_name="PGN_"+addon+".png"
-    #     ).plot({
-    #         'Vm_plot.*.y_lim' : (-100,-40),
-    #         '*.fontsize':7
-    #     })
+    if len(PGN_ids):
+        logger.info("PGN_ids: %s" % ( str(PGN_ids) ) )
+        for i in PGN_ids:
+            OverviewPlot(
+               data_store,
+               ParameterSet({
+                   'spontaneous': False,
+                   'sheet_name' : 'PGN', 
+                   'neuron' : i, 
+                   'sheet_activity' : {}
+               }),
+               fig_param={'dpi' : 100,'figsize': (19,12)},
+               plot_file_name="PGN_"+str(i)+"_"+addon+".png"
+            ).plot({
+                'Vm_plot.*.y_lim' : (-100,-40),
+                '*.fontsize':7
+            })
 
     if len(V1_ids):
+        logger.info("V1_ids: %s" % ( str(V1_ids) ) )
         for i in V1_ids:
             OverviewPlot( 
                 data_store, 

@@ -57,7 +57,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 	print "Checking data..."
 	# Full
 	dsv1 = queries.param_filter_query( data_store_full, identifier='PerNeuronValue', sheet_name=sheet )
-	# dsv.print_content(full_recordings=False)
+	# dsv1.print_content(full_recordings=False)
 	pnvs1 = [ dsv1.get_analysis_result() ]
 	# get stimuli
 	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
@@ -116,7 +116,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 	fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
 	print axes.shape
 
-	p_significance = .023
+	p_significance = .02
 	for col,cur_range in enumerate(slice_ranges):
 		radius = [cur_range-step,cur_range]
 		interval = str(radius[0]) +" - "+ str(radius[1]) +" deg radius"
@@ -176,21 +176,12 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		larger_pvalue = 0.
 
 		# -------------------------------------
-		# SIMPLE DIFFERENCE
-		# smaller = ( tc_dict2[0].values()[0][1][0:3] - tc_dict1[0].values()[0][1][0:3] ) / 3 # normalized difference:  cell(inactivated V1) - cell(full)
-		# equal = ( tc_dict2[0].values()[0][1][3:5] - tc_dict1[0].values()[0][1][3:5] ) / 2 # len(tc_dict1[0].values()[0][1][3:5])
-		# larger = ( tc_dict2[0].values()[0][1][5:] - tc_dict1[0].values()[0][1][5:] ) / 5
-		# diff_full_inac.append( numpy.mean(numpy.sum(smaller, axis=1)) / 100 ) # mean percentage difference over cells
-		# diff_full_inac.append( numpy.mean(numpy.sum(equal, axis=1)) / 100 )
-		# diff_full_inac.append( numpy.mean(numpy.sum(larger, axis=1)) / 100 )
-
-		# -------------------------------------
 		# NON-PARAMETRIC TWO-TAILED TEST
 		# We want to have a summary statistical measure of the population of cells with and without inactivation.
 		# Our null-hypothesis is that the inactivation does not change the activity of cells.
 		# A different result will tell us that the inactivation DOES something.
 		# Therefore our null-hypothesis is the result obtained in the intact system.
-
+		# Procedure:
 		# We have several stimulus sizes
 		# We want to group them in three: smaller than optimal, optimal, larger than optimal
 		# We do the mean response for each cell for the grouped stimuli
@@ -221,9 +212,12 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 
 		# -------------------------------------
 		# Standard Error Mean
-		sem_full_inac.append( numpy.std(diff_smaller) / numpy.sqrt(num_cells) )
-		sem_full_inac.append( numpy.std(diff_equal) / numpy.sqrt(num_cells) ) 
-		sem_full_inac.append( numpy.std(diff_larger) / numpy.sqrt(num_cells) ) 
+		sem_full_inac.append( scipy.stats.sem(diff_smaller) )
+		sem_full_inac.append( scipy.stats.sem(diff_equal) )
+		sem_full_inac.append( scipy.stats.sem(diff_larger) )
+		# sem_full_inac.append( numpy.std(diff_smaller) / numpy.sqrt(num_cells) )
+		# sem_full_inac.append( numpy.std(diff_equal) / numpy.sqrt(num_cells) ) 
+		# sem_full_inac.append( numpy.std(diff_larger) / numpy.sqrt(num_cells) ) 
 
 		# print diff_full_inac
 		# print sem_full_inac
@@ -246,7 +240,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 	fig.text(0.5, 0.04, 'cells', ha='center', va='center')
 	fig.text(0.06, 0.5, 'ranges', ha='center', va='center', rotation='vertical')
 	for ax in axes.flatten():
-		ax.set_ylim([0,160])
+		ax.set_ylim([0,90])
 		ax.set_xticks(sizes)
 		ax.set_xticklabels([0.1, '', '', '', '', 1, '', 2, 4, 6])
 
@@ -271,13 +265,124 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 
 
 
+
+
+def perform_comparison_size_inputs( sheet, reference_position, inactivated_position, step, sizes, folder_full, folder_inactive ):
+	print folder_full
+	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
+	data_store_full.print_content(full_recordings=False)
+	print folder_inactive
+	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
+	data_store_inac.print_content(full_recordings=False)
+
+	print "Checking data..."
+	# Full
+	dsv1 = queries.param_filter_query( data_store_full, identifier='PerNeuronValue', sheet_name=sheet )
+	# dsv.print_content(full_recordings=False)
+	pnvs1 = [ dsv1.get_analysis_result() ]
+	# get stimuli
+	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
+
+	# Inactivated
+	dsv2 = queries.param_filter_query( data_store_inac, identifier='PerNeuronValue', sheet_name=sheet )
+	pnvs2 = [ dsv2.get_analysis_result() ]
+	# get stimuli
+	st2 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs2[-1]]
+
+	# rings analysis
+	neurons_full = []
+	neurons_inac = []
+	rowplots = 0
+	max_size = 0.6
+
+	analog_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	print analog_ids1
+	# sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=analog_ids1)
+
+	analog_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	print analog_ids2
+
+	assert len(analog_ids1) == len(analog_ids2) , "ERROR: the number of recorded neurons is different"
+	assert set(analog_ids1) == set(analog_ids2) , "ERROR: the neurons in the two arrays are not the same"
+
+	for i,idd in enumerate(analog_ids1):
+		diff_e_full_inac = []
+		diff_i_full_inac = []
+
+		# get trial averaged gsyn for each stimulus condition
+		# then subtract full - inactive for each stimulus condition (size)
+		# then summarize the time differences in one number, to have one point for each size
+
+		# Full
+		segs = sorted( param_filter_query(data_store_full, sheet_name=sheet).get_segments(), key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial )
+		print idd # 
+		full_gsyn_es = [s.get_esyn(idd) for s in segs]
+		full_gsyn_is = [s.get_isyn(idd) for s in segs]
+		print len(full_gsyn_es) # 61
+
+		mean_full_gsyn_e = numpy.zeros(numpy.shape(full_gsyn_es[0]))
+		mean_full_gsyn_i = numpy.zeros(numpy.shape(full_gsyn_is[0]))
+		sampling_period = full_gsyn_es[0].sampling_period
+		t_stop = float(full_gsyn_es[0].t_stop - sampling_period)
+		t_start = float(full_gsyn_es[0].t_start)
+		time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
+
+		for e, i in zip(full_gsyn_es, full_gsyn_is):
+			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
+			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+			mean_full_gsyn_e = mean_full_gsyn_e + numpy.array(e.tolist())
+			mean_full_gsyn_i = mean_full_gsyn_i + numpy.array(i.tolist())
+
+		mean_full_gsyn_e = mean_full_gsyn_e / len(full_gsyn_es)
+		mean_full_gsyn_i = mean_full_gsyn_i / len(full_gsyn_is)
+		print "mean_full_gsyn_e", len(mean_full_gsyn_e), mean_full_gsyn_e
+		print "mean_full_gsyn_i", len(mean_full_gsyn_i), mean_full_gsyn_i
+
+		# Inactivated
+		segs = sorted( param_filter_query(data_store_inac, sheet_name=sheet).get_segments(), key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial )
+		print idd # 
+		inac_gsyn_es = [s.get_esyn(idd) for s in segs]
+		inac_gsyn_is = [s.get_isyn(idd) for s in segs]
+		print len(inac_gsyn_es) # 41
+
+		mean_inac_gsyn_e = numpy.zeros(numpy.shape(inac_gsyn_es[0]))
+		mean_inac_gsyn_i = numpy.zeros(numpy.shape(inac_gsyn_is[0]))
+		sampling_period = inac_gsyn_es[0].sampling_period
+		t_stop = float(inac_gsyn_es[0].t_stop - sampling_period)
+		t_start = float(inac_gsyn_es[0].t_start)
+		time_axis = numpy.arange(0, len(inac_gsyn_es[0]), 1) / float(len(inac_gsyn_es[0])) * abs(t_start-t_stop) + t_start
+
+		for e, i in zip(inac_gsyn_es, inac_gsyn_is):
+			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
+			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+			mean_inac_gsyn_e = mean_inac_gsyn_e + numpy.array(e.tolist())
+			mean_inac_gsyn_i = mean_inac_gsyn_i + numpy.array(i.tolist())
+
+		mean_inac_gsyn_e = mean_inac_gsyn_e / len(inac_gsyn_es)
+		mean_inac_gsyn_i = mean_inac_gsyn_i / len(inac_gsyn_is)
+		print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e
+		print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i
+
+		# trial averaged syn 
+		diff_e_full_inac = mean_full_gsyn_e - mean_inac_gsyn_e
+		diff_i_full_inac = mean_full_gsyn_i - mean_inac_gsyn_i
+		print "diff_e_full_inac", len(diff_e_full_inac), diff_e_full_inac
+		print "diff_i_full_inac", len(diff_i_full_inac), diff_i_full_inac
+
+		# BUT IT MUST BE DIVIDED BY STIMULUS SIZE !!!!!!!!!!!!
+
+		# plt.plot(diff_e_full_inac)
+		# plt.plot(diff_i_full_inac)
+		# plt.show()
+
+
 ###################################################
 # Execution
 import os
 
 full_list = [ 
 	# "ThalamoCorticalModel_data_size_____full2"
-	"CombinationParamSearch_size_V1_2sites_full4",
+	"CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_full", 
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
@@ -285,18 +390,12 @@ full_list = [
 
 inac_large_list = [ 
 	# "ThalamoCorticalModel_data_size_____inactivated2"
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large4",
-	"CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping4",
+	"CombinationParamSearch_size_V1_2sites_inhibition_large13",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	]
-
-# inac_small_list = [
-# 	"CombinationParamSearch_size_V1_inhibition_small",
-# 	"CombinationParamSearch_size_V1_inhibition_small_more",
-# 	"CombinationParamSearch_size_V1_inhibition_small_more2"
-# 	]
 
 
 for i,l in enumerate(full_list):
@@ -313,7 +412,19 @@ for i,l in enumerate(full_list):
 
 	for i,f in enumerate(full):
 		print i
-		perform_comparison_size_tuning( 
+
+		# perform_comparison_size_tuning( 
+		# 	sheet='X_ON', 
+		# 	reference_position=[[0.0], [0.0], [0.0]],
+		# 	inactivated_position=0, # !!!!!!!!!!!!!!
+		# 	# inactivated_position=[[1.6], [0.0], [0.0]], # !!!!!!!!!!!!!!
+		# 	step=.1,
+		# 	sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+		# 	folder_full=f, 
+		# 	folder_inactive=large[i]
+		# 	)
+
+		perform_comparison_size_inputs( 
 			sheet='X_ON', 
 			reference_position=[[0.0], [0.0], [0.0]],
 			inactivated_position=0, # !!!!!!!!!!!!!!

@@ -152,7 +152,7 @@
         'phase_map' : False,
         'phase_map_location' : './phase_map',
 
-        'base_weight' : 0.002,
+        'base_weight' : 0.0013,
         'num_samples' : 45,
         'short_term_plasticity':  {
             'U': 0.3, 

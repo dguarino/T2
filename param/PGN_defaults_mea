@@ -15,8 +15,8 @@
                 'v_thresh': -50.0,  # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'v_rest': -70.0,    # HuertasGroffSmith2005 # -78., # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'v_reset': -55.0,   # HuertasGroffSmith2005
-                'tau_refrac': 5.0,  # HuertasGroffSmith2005
-                'tau_m': 20.0,      # DestexheContrerasSteriadeSejnowskiHuguenard1996
+                'tau_refrac': 5.0,  # 0.5,  # !!!!!!!!!!!!!!!!!
+                'tau_m': 10.0,      # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'cm': 0.2,          # 
                 'e_rev_E': 0.0,     # HuertasGroffSmith2005
                 'e_rev_I': -85.0,   # HuertasGroffSmith2005

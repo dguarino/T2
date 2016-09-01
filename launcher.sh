@@ -3,8 +3,10 @@
 # $ chmod u+x launcher.sh
 # $ launcher.sh
 
-clear
-
+# executable from /etc/crontab
+# adding
+# m  h    d m n
+# 00 22   * * 5   root    /home/do/mozaik/mozaik/mozaik-contrib/T2/launcher.sh
 # touch /home/do/test_cron.txt
 
 
@@ -18,8 +20,8 @@ clear
 
 ################################################
 # PARAMETER SEARCH
-# echo "starting PARAMETER SEARCH"
-# echo 
+echo "starting PARAMETER SEARCH"
+echo 
 
 # python parameter_search.py run_size.py nest param/defaults_mea
 # python parameter_search.py run_spatial_V1.py nest param/defaults
@@ -33,9 +35,9 @@ clear
 # SIZE
 # full closed loop model
 python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-#python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverlapping.py nest param/defaults_mea
 
 
 
@@ -45,17 +47,17 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverl
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full6
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large6
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping6
+# python parameter_search_analysis.py 20160830-153007[param.defaults_mea]CombinationParamSearch{4}
 
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full2
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full13
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large13
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13
+
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
 # # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
 
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large2
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
 # # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
