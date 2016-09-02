@@ -155,7 +155,7 @@ def create_experiments_size_V1_inactivated_large(model):
           sheet_list=["V1_Exc_L4"],
           injection_configuration={
             'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':0.0}
+            'params':{'radius':0.3, 'offset_x':0.0, 'offset_y':0.0}
           },
           injection_current=-.5, # nA
           num_sizes=10, 

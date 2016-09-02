@@ -195,10 +195,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		diff_equal = numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2
 		diff_larger = numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5
 
-		# #and we want to compare the responses of full and inactivated
-		# smaller, smaller_pvalue = scipy.stats.wilcoxon( diff_smaller, zero_method="zsplit" )
-		# equal, equal_pvalue = scipy.stats.wilcoxon( diff_equal, zero_method="zsplit" )
-		# larger, larger_pvalue = scipy.stats.wilcoxon( diff_larger, zero_method="zsplit" )
+		# and we want to compare the responses of full and inactivated
 		smaller, smaller_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3, numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3 )
 		equal, equal_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2, numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2 )
 		larger, larger_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5, numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5 )
@@ -267,7 +264,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 
 
 
-def perform_comparison_size_inputs( sheet, reference_position, inactivated_position, step, sizes, folder_full, folder_inactive ):
+def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -276,104 +273,118 @@ def perform_comparison_size_inputs( sheet, reference_position, inactivated_posit
 	data_store_inac.print_content(full_recordings=False)
 
 	print "Checking data..."
-	# Full
-	dsv1 = queries.param_filter_query( data_store_full, identifier='PerNeuronValue', sheet_name=sheet )
-	# dsv.print_content(full_recordings=False)
-	pnvs1 = [ dsv1.get_analysis_result() ]
-	# get stimuli
-	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
-
-	# Inactivated
-	dsv2 = queries.param_filter_query( data_store_inac, identifier='PerNeuronValue', sheet_name=sheet )
-	pnvs2 = [ dsv2.get_analysis_result() ]
-	# get stimuli
-	st2 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs2[-1]]
-
-	# rings analysis
-	neurons_full = []
-	neurons_inac = []
-	rowplots = 0
-	max_size = 0.6
 
 	analog_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
 	print analog_ids1
-	# sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=analog_ids1)
-
 	analog_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
 	print analog_ids2
 
 	assert len(analog_ids1) == len(analog_ids2) , "ERROR: the number of recorded neurons is different"
 	assert set(analog_ids1) == set(analog_ids2) , "ERROR: the neurons in the two arrays are not the same"
 
-	for i,idd in enumerate(analog_ids1):
-		diff_e_full_inac = []
-		diff_i_full_inac = []
+	num_sizes = len( sizes )
+
+	for _,idd in enumerate(analog_ids1):
 
 		# get trial averaged gsyn for each stimulus condition
 		# then subtract full - inactive for each stimulus condition (size)
 		# then summarize the time differences in one number, to have one point for each size
 
 		# Full
-		segs = sorted( param_filter_query(data_store_full, sheet_name=sheet).get_segments(), key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial )
-		print idd # 
+		segs = sorted( 
+			param_filter_query(data_store_full, st_name='DriftingSinusoidalGratingDisk', sheet_name=sheet).get_segments(), 
+			key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
+		)
+		print "full idd", idd # 
+		# print len(segs), "/", num_sizes
+		trials = len(segs) / num_sizes
+		# print trials
 		full_gsyn_es = [s.get_esyn(idd) for s in segs]
 		full_gsyn_is = [s.get_isyn(idd) for s in segs]
-		print len(full_gsyn_es) # 61
-
-		mean_full_gsyn_e = numpy.zeros(numpy.shape(full_gsyn_es[0]))
-		mean_full_gsyn_i = numpy.zeros(numpy.shape(full_gsyn_is[0]))
+		# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_sizes
+		# print "shape gsyn_e/i", full_gsyn_es[0].shape
+		# mean input over trials
+		mean_full_gsyn_e = numpy.zeros((num_sizes, full_gsyn_es[0].shape[0])) # init
+		mean_full_gsyn_i = numpy.zeros((num_sizes, full_gsyn_es[0].shape[0]))
+		# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
 		sampling_period = full_gsyn_es[0].sampling_period
 		t_stop = float(full_gsyn_es[0].t_stop - sampling_period)
 		t_start = float(full_gsyn_es[0].t_start)
 		time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
-
-		for e, i in zip(full_gsyn_es, full_gsyn_is):
+		# sum by size
+		t = 0
+		for e,i in zip(full_gsyn_es, full_gsyn_is):
+			s = int(t/trials)
 			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
 			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
-			mean_full_gsyn_e = mean_full_gsyn_e + numpy.array(e.tolist())
-			mean_full_gsyn_i = mean_full_gsyn_i + numpy.array(i.tolist())
-
-		mean_full_gsyn_e = mean_full_gsyn_e / len(full_gsyn_es)
-		mean_full_gsyn_i = mean_full_gsyn_i / len(full_gsyn_is)
-		print "mean_full_gsyn_e", len(mean_full_gsyn_e), mean_full_gsyn_e
-		print "mean_full_gsyn_i", len(mean_full_gsyn_i), mean_full_gsyn_i
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
+			t = t+1
+		# average by trials
+		for s in range(num_sizes):
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
+		# print "mean_full_gsyn_e", len(mean_full_gsyn_e), mean_full_gsyn_e
+		# print "mean_full_gsyn_i", len(mean_full_gsyn_i), mean_full_gsyn_i
 
 		# Inactivated
-		segs = sorted( param_filter_query(data_store_inac, sheet_name=sheet).get_segments(), key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial )
-		print idd # 
+		segs = sorted( 
+			param_filter_query(data_store_inac, st_name='DriftingSinusoidalGratingDisk', sheet_name=sheet).get_segments(), 
+			key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
+		)
+		print "inactivation idd", idd # 
+		# print len(segs), "/", num_sizes
+		trials = len(segs) / num_sizes
+		# print trials
 		inac_gsyn_es = [s.get_esyn(idd) for s in segs]
 		inac_gsyn_is = [s.get_isyn(idd) for s in segs]
-		print len(inac_gsyn_es) # 41
-
-		mean_inac_gsyn_e = numpy.zeros(numpy.shape(inac_gsyn_es[0]))
-		mean_inac_gsyn_i = numpy.zeros(numpy.shape(inac_gsyn_is[0]))
+		# print "len full_gsyn_e/i", len(inac_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_sizes
+		# print "shape gsyn_e/i", inac_gsyn_es[0].shape
+		# mean input over trials
+		mean_inac_gsyn_e = numpy.zeros((num_sizes, inac_gsyn_es[0].shape[0])) # init
+		mean_inac_gsyn_i = numpy.zeros((num_sizes, inac_gsyn_es[0].shape[0]))
+		# print "shape mean_inac_gsyn_e/i", mean_inac_gsyn_e.shape
 		sampling_period = inac_gsyn_es[0].sampling_period
 		t_stop = float(inac_gsyn_es[0].t_stop - sampling_period)
 		t_start = float(inac_gsyn_es[0].t_start)
 		time_axis = numpy.arange(0, len(inac_gsyn_es[0]), 1) / float(len(inac_gsyn_es[0])) * abs(t_start-t_stop) + t_start
-
-		for e, i in zip(inac_gsyn_es, inac_gsyn_is):
+		# sum by size
+		t = 0
+		for e,i in zip(inac_gsyn_es, inac_gsyn_is):
+			s = int(t/trials)
 			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
 			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
-			mean_inac_gsyn_e = mean_inac_gsyn_e + numpy.array(e.tolist())
-			mean_inac_gsyn_i = mean_inac_gsyn_i + numpy.array(i.tolist())
+			mean_inac_gsyn_e[s] = mean_inac_gsyn_e[s] + numpy.array(e.tolist())
+			mean_inac_gsyn_i[s] = mean_inac_gsyn_i[s] + numpy.array(i.tolist())
+			t = t+1
+		# average by trials
+		for s in range(num_sizes):
+			mean_inac_gsyn_e[s] = mean_inac_gsyn_e[s] / trials
+			mean_inac_gsyn_i[s] = mean_inac_gsyn_i[s] / trials
+		# print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e
+		# print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i
 
-		mean_inac_gsyn_e = mean_inac_gsyn_e / len(inac_gsyn_es)
-		mean_inac_gsyn_i = mean_inac_gsyn_i / len(inac_gsyn_is)
-		print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e
-		print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i
+		ttest_sizes_e = []
+		ttest_sizes_e_err = []
+		ttest_sizes_i = []
+		ttest_sizes_i_err = []
+		for s in range(num_sizes):
+			ttest_sizes_e.append( scipy.stats.ttest_rel( mean_full_gsyn_e[s], mean_inac_gsyn_e[s] )[0] )
+			ttest_sizes_e_err.append( scipy.stats.sem(mean_full_gsyn_e[s] - mean_inac_gsyn_e[s]) )
+			ttest_sizes_i.append( scipy.stats.ttest_rel( mean_full_gsyn_i[s], mean_inac_gsyn_i[s] )[0] )
+			ttest_sizes_i_err.append( scipy.stats.sem(mean_full_gsyn_i[s] - mean_inac_gsyn_i[s]) )
+		# 
+		plt.title("full - inactivated conductances (ttest)")
+		plt.ylabel("percentage input change", fontsize=10)
+		plt.xlabel("sizes", fontsize=10)
+		plt.xticks(sizes, (0.1, '', '', '', '', 1, '', 2, 4, 6))
+		plt.errorbar(sizes, ttest_sizes_e, yerr=ttest_sizes_e_err, color='r', linewidth=2)
+		plt.errorbar(sizes, ttest_sizes_i, yerr=ttest_sizes_i_err, color='b', linewidth=2)
+		plt.savefig( folder_inactive+"/TrialAveragedInputComparison_"+sheet+".png", dpi=100 )
+		plt.close()
 
-		# trial averaged syn 
-		diff_e_full_inac = mean_full_gsyn_e - mean_inac_gsyn_e
-		diff_i_full_inac = mean_full_gsyn_i - mean_inac_gsyn_i
-		print "diff_e_full_inac", len(diff_e_full_inac), diff_e_full_inac
-		print "diff_i_full_inac", len(diff_i_full_inac), diff_i_full_inac
 
-		# BUT IT MUST BE DIVIDED BY STIMULUS SIZE !!!!!!!!!!!!
 
-		# plt.plot(diff_e_full_inac)
-		# plt.plot(diff_i_full_inac)
-		# plt.show()
 
 
 ###################################################
@@ -390,6 +401,7 @@ full_list = [
 
 inac_large_list = [ 
 	# "ThalamoCorticalModel_data_size_____inactivated2"
+	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
 	"CombinationParamSearch_size_V1_2sites_inhibition_large13",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
@@ -397,6 +409,10 @@ inac_large_list = [
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	]
 
+
+sheets = ['X_ON', 'X_OFF', 'PGN'] #, 'V1_Exc_L4']
+steps = [.2, .4]
+sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 for i,l in enumerate(full_list):
 	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
@@ -413,27 +429,27 @@ for i,l in enumerate(full_list):
 	for i,f in enumerate(full):
 		print i
 
-		# perform_comparison_size_tuning( 
-		# 	sheet='X_ON', 
-		# 	reference_position=[[0.0], [0.0], [0.0]],
-		# 	inactivated_position=0, # !!!!!!!!!!!!!!
-		# 	# inactivated_position=[[1.6], [0.0], [0.0]], # !!!!!!!!!!!!!!
-		# 	step=.1,
-		# 	sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-		# 	folder_full=f, 
-		# 	folder_inactive=large[i]
-		# 	)
+		for s in sheets:
 
-		perform_comparison_size_inputs( 
-			sheet='X_ON', 
-			reference_position=[[0.0], [0.0], [0.0]],
-			inactivated_position=0, # !!!!!!!!!!!!!!
-			# inactivated_position=[[1.6], [0.0], [0.0]], # !!!!!!!!!!!!!!
-			step=.4,
-			sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-			folder_full=f, 
-			folder_inactive=large[i]
-			)
+			perform_comparison_size_inputs( 
+				sheet=s,
+				sizes = sizes,
+				folder_full=f, 
+				folder_inactive=large[i]
+				)
+
+			# for step in steps:
+
+			# 	perform_comparison_size_tuning( 
+			# 		sheet=s, 
+			# 		reference_position=[[0.0], [0.0], [0.0]],
+			# 		inactivated_position=0, # !!!!!!!!!!!!!!
+			# 		# inactivated_position=[[1.6], [0.0], [0.0]], # !!!!!!!!!!!!!!
+			# 		step=step,
+			# 		sizes = sizes,
+			# 		folder_full=f, 
+			# 		folder_inactive=large[i]
+			# 		)
 
 
 
