@@ -6,6 +6,7 @@ import mozaik
 import mozaik.controller
 from parameters import ParameterSet
 
+import gc
 import numpy
 import scipy.stats
 import pylab
@@ -23,21 +24,35 @@ from mozaik.controller import Global
 
 
 
-def select_ids_by_position(position, radius, sheet_ids, positions):
+def select_ids_by_position(position, radius, sheet_ids, positions, box=None):
 	radius_ids = []
 	distances = []
 	min_radius = radius[0] # over: 0. # non: 1.
 	max_radius = radius[1] # over: .7 # non: 3.
 
+	if box:
+		from matplotlib import path
+		p = path.Path(box)  # [(0,0), (0, 1), (1, 1), (1, 0)] square with bottom left corner at the origin
+
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
 		# print a, " - ", position
 		l = numpy.linalg.norm(a - position)
-		# print "distance",l
-		if l>min_radius and l<max_radius:
-			# print "taken"
-			radius_ids.append(i[0])
-			distances.append(l)
+
+		if hasattr(box, "__len__"):
+			# print (positions[0][i][0],positions[1][i][0])
+			isin = p.contains_points([(positions[0][i][0],positions[1][i][0])])[0]
+			if isin:
+				# print a
+				radius_ids.append(i[0])
+				distances.append(l)
+
+		else:
+			# print "distance",l
+			if l>min_radius and l<max_radius:
+				# print "taken"
+				radius_ids.append(i[0])
+				distances.append(l)
 
 	# sort by distance
 	# print radius_ids
@@ -46,7 +61,9 @@ def select_ids_by_position(position, radius, sheet_ids, positions):
 	# return radius_ids
 
 
-def perform_comparison_size_tuning( sheet, reference_position, inactivated_position, step, sizes, folder_full, folder_inactive ):
+
+
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, inactivated_box=None ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -77,13 +94,13 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 	slice_ranges = numpy.arange(step, max_size+step, step)
 	for col,cur_range in enumerate(slice_ranges):
 		radius = [cur_range-step,cur_range]
-
+		print col
 		# get the list of all recorded neurons in X_ON
 		# Full
 		spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions1 = data_store_full.get_neuron_postions()[sheet]
 		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1)
+		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1, inactivated_box)
 		neurons1 = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids1)
 		if len(neurons1) > rowplots:
 			rowplots = len(neurons1)
@@ -93,7 +110,7 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions2 = data_store_inac.get_neuron_postions()[sheet]
 		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2)
+		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2, inactivated_box)
 		# if we are plotting the effect of non-overlapping cells, 
 		# we want to plot the recorded receiving cells response sorted by distance from the inactivated site 
 		# (but after having selected them by distance from the center anyway)
@@ -105,20 +122,29 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		neurons_inac.append(neurons2)
 
 		print "radius_ids", radius_ids2
+		print "neurons_full", neurons_full
+		print "neurons_inac", neurons_inac
 
 		assert len(neurons_full[col]) == len(neurons_inac[col]) , "ERROR: the number of recorded neurons is different"
 		assert set(neurons_full[col]) == set(neurons_inac[col]) , "ERROR: the neurons in the two arrays are not the same"
+
+	# neurons_full = [numpy.array([2912, 3205, 1867, 2731, 2248])]
+	# neurons_inac = [numpy.array([2912, 3205, 1867, 2731, 2248])]
+	# neurons_full =[numpy.array([10921, 10024, 13851,  9855, 11648, 13277])]
+	# neurons_inac =[numpy.array([10921, 10024, 13851,  9855, 11648, 13277])]
 
 	# subplot figure creation
 	print 'rowplots', rowplots
 	print "Starting plotting ..."
 	print len(slice_ranges), slice_ranges
 	fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
+	# fig, axes = plt.subplots(nrows=2, ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
 	print axes.shape
 
 	p_significance = .02
 	for col,cur_range in enumerate(slice_ranges):
 		radius = [cur_range-step,cur_range]
+		print col
 		interval = str(radius[0]) +" - "+ str(radius[1]) +" deg radius"
 		print interval
 		axes[col,0].set_ylabel(interval+"\n\nResponse change (%)")
@@ -176,8 +202,8 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		larger_pvalue = 0.
 
 		# -------------------------------------
-		# NON-PARAMETRIC TWO-TAILED TEST
-		# We want to have a summary statistical measure of the population of cells with and without inactivation.
+		# NON-PARAMETRIC TWO-TAILED TEST ON THE DIFFERENCE BETWEEN INACTIVATED AND CONTROL
+		# We want to have a summary measure of the population of cells with and without inactivation.
 		# Our null-hypothesis is that the inactivation does not change the activity of cells.
 		# A different result will tell us that the inactivation DOES something.
 		# Therefore our null-hypothesis is the result obtained in the intact system.
@@ -191,34 +217,37 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		# We repeat for each group
 
 		# average of all trial-averaged response for each cell for grouped stimulus size
-		diff_smaller = numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3 - numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3
-		diff_equal = numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2
-		diff_larger = numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5
+		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3 - numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3) / (numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3)) * 100
+		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2)) * 100
+		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5) / (numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5)) * 100
+		# print "diff_smaller", diff_smaller
+		# average of all cells
+		smaller = sum(diff_smaller) / num_cells
+		equal = sum(diff_equal) / num_cells
+		larger = sum(diff_larger) / num_cells
 
+		# Check using scipy
 		# and we want to compare the responses of full and inactivated
-		smaller, smaller_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3, numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3 )
-		equal, equal_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2, numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2 )
-		larger, larger_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5, numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5 )
+		# smaller, smaller_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3, numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3 )
+		# equal, equal_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2, numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2 )
+		# larger, larger_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5, numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5 )
+		# print "smaller, smaller_pvalue:", smaller, smaller_pvalue
+		# print "equal, equal_pvalue:", equal, equal_pvalue
+		# print "larger, larger_pvalue:", larger, larger_pvalue
 
-		print "smaller, smaller_pvalue:", smaller, smaller_pvalue
-		print "equal, equal_pvalue:", equal, equal_pvalue
-		print "larger, larger_pvalue:", larger, larger_pvalue
-		diff_full_inac.append( smaller / 100 ) # percentage
-		diff_full_inac.append( equal / 100 )
-		diff_full_inac.append( larger / 100 )
+		diff_full_inac.append( smaller )
+		diff_full_inac.append( equal )
+		diff_full_inac.append( larger )
 
 		# -------------------------------------
-		# Standard Error Mean
+		# Standard Error Mean calculated on the full sequence
 		sem_full_inac.append( scipy.stats.sem(diff_smaller) )
 		sem_full_inac.append( scipy.stats.sem(diff_equal) )
 		sem_full_inac.append( scipy.stats.sem(diff_larger) )
-		# sem_full_inac.append( numpy.std(diff_smaller) / numpy.sqrt(num_cells) )
-		# sem_full_inac.append( numpy.std(diff_equal) / numpy.sqrt(num_cells) ) 
-		# sem_full_inac.append( numpy.std(diff_larger) / numpy.sqrt(num_cells) ) 
 
 		# print diff_full_inac
 		# print sem_full_inac
-		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8, color='r', yerr=sem_full_inac)
+		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8, color='r')
 		axes[col,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
 		for ba in barlist:
 			ba.set_color('white')
@@ -243,8 +272,8 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 
 	for col,_ in enumerate(slice_ranges):
 		# axes[col,0].set_ylim([-.8,.8])
-		axes[col,0].set_ylim([-.6,.6])
-		axes[col,0].set_yticks([-.6, -.4, -.2, 0., .2, .4, .6])
+		axes[col,0].set_ylim([-60,60])
+		axes[col,0].set_yticks([-60, -40, -20, 0., 20, 40, 60])
 		axes[col,0].set_yticklabels([-60, -40, -20, 0, 20, 40, 60])
 		axes[col,0].set_xlim([0,4])
 		axes[col,0].set_xticks([.9,1.9,2.9])
@@ -254,17 +283,34 @@ def perform_comparison_size_tuning( sheet, reference_position, inactivated_posit
 		axes[col,0].spines['bottom'].set_visible(False)
 
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+".png", dpi=100 )
+	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_square.png", dpi=100 )
 	# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
+	fig.clf()
 	plt.close()
+	# garbage
+	gc.collect()
 
 
 
 
 
+def perform_selectivity_comparison():
+	# What is the added selectivity in having a loop?
+	# Selectivity for what? For the stimulus variation (e.g. size).
+	# null-hypothesis: "No difference in size selectivity between open- and closed-loop"
+	# as in YuHorevRubinDerdikmanHaidarliuAhissar2015 figure 6.
+	# simple time-histogram difference, and Kruskal-Wallis non-parametric analysis of variance
+
+	#PSTH(param_filter_query(data_store),ParameterSet({'bin_length' : 2.0 })).analyse()
+	#queries.param_filter_query(self.datastore,st_name='FullfieldDriftingSinusoidalGrating',st_contrast=100,st_orientation=col,sheet_name=self.parameters.sheet_name,analysis_algorithm='PSTH')
+
+	pass
 
 
-def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive ):
+
+
+
+def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, with_ppd=False ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -364,6 +410,28 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive )
 		# print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e
 		# print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i
 
+		# Point-to-Point difference 
+		if with_ppd:
+			diff_e_full_inac = mean_full_gsyn_e - mean_inac_gsyn_e
+			diff_i_full_inac = mean_full_gsyn_i - mean_inac_gsyn_i
+			# print "diff_e_full_inac", len(diff_e_full_inac), diff_e_full_inac
+			# print "diff_i_full_inac", len(diff_i_full_inac), diff_i_full_inac
+			fig, axes = plt.subplots(nrows=1, ncols=num_sizes, figsize=(10*num_sizes, 10))
+			print axes.shape
+			# http://paletton.com/#uid=7020Q0km5KqbrV8hkPPqCEHz+z+
+			for s in range(num_sizes):
+				axes[s].plot(mean_full_gsyn_e[s], color='#F93026')
+				axes[s].plot(mean_full_gsyn_i[s], color='#294BA8')
+				axes[s].plot(mean_inac_gsyn_e[s], color='#FF7C75')
+				axes[s].plot(mean_inac_gsyn_i[s], color='#7592E1')
+				axes[s].plot(diff_e_full_inac[s], color='#FFC64C')
+				axes[s].plot(diff_i_full_inac[s], color='#6CEA7B')
+				axes[s].set_title(str(sizes[s]))
+			plt.savefig( folder_inactive+"/TrialAveragedConductanceComparison_"+sheet+".png", dpi=100 )
+			# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
+			plt.close()
+
+		# T-Test
 		ttest_sizes_e = []
 		ttest_sizes_e_err = []
 		ttest_sizes_i = []
@@ -382,6 +450,9 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive )
 		plt.errorbar(sizes, ttest_sizes_i, yerr=ttest_sizes_i_err, color='b', linewidth=2)
 		plt.savefig( folder_inactive+"/TrialAveragedInputComparison_"+sheet+".png", dpi=100 )
 		plt.close()
+		# garbage
+		gc.collect()
+
 
 
 
@@ -391,10 +462,14 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive )
 # Execution
 import os
 
+sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
+
 full_list = [ 
 	# "ThalamoCorticalModel_data_size_____full2"
-	"CombinationParamSearch_size_V1_2sites_full13",
-	# "CombinationParamSearch_size_V1_full", 
+	# "CombinationParamSearch_size_V1_2sites_full13",
+	# "CombinationParamSearch_size_V1_2sites_full15",
+	# "CombinationParamSearch_size_V1_full",
+	"CombinationParamSearch_size_full_2",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
@@ -402,17 +477,18 @@ full_list = [
 inac_large_list = [ 
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
-	"CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
+	"CombinationParamSearch_size_inhibition_2",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping15",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	]
 
+sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+steps = [.3, .4]
 
-sheets = ['X_ON', 'X_OFF', 'PGN'] #, 'V1_Exc_L4']
-steps = [.2, .4]
-sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 for i,l in enumerate(full_list):
 	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
@@ -431,25 +507,24 @@ for i,l in enumerate(full_list):
 
 		for s in sheets:
 
-			perform_comparison_size_inputs( 
-				sheet=s,
-				sizes = sizes,
-				folder_full=f, 
-				folder_inactive=large[i]
-				)
+			# perform_comparison_size_inputs( 
+			# 	sheet=s,
+			# 	sizes = sizes,
+			# 	folder_full=f, 
+			# 	folder_inactive=large[i],
+			# 	with_ppd=True
+			# 	)
 
-			# for step in steps:
-
-			# 	perform_comparison_size_tuning( 
-			# 		sheet=s, 
-			# 		reference_position=[[0.0], [0.0], [0.0]],
-			# 		inactivated_position=0, # !!!!!!!!!!!!!!
-			# 		# inactivated_position=[[1.6], [0.0], [0.0]], # !!!!!!!!!!!!!!
-			# 		step=step,
-			# 		sizes = sizes,
-			# 		folder_full=f, 
-			# 		folder_inactive=large[i]
-			# 		)
+			for step in steps:
+				perform_comparison_size_tuning( 
+					sheet=s, 
+					reference_position=[[0.0], [0.0], [0.0]],
+					# inactivated_box=[(-.13,-.25), (-.13,0.), (.13,0.), (.13,-.25)], # is in degrees # first try without
+					step=step,
+					sizes = sizes,
+					folder_full=f, 
+					folder_inactive=large[i]
+					)
 
 
 

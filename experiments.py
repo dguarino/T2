@@ -180,7 +180,7 @@ def create_experiments_size_V1_inactivated_large_nonoverlapping(model):
           sheet_list=["V1_Exc_L4"],
           injection_configuration={
             'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.3, 'offset_x':0.0, 'offset_y':1000.0} # at 1.6 deg right (see or_map_6x6)
+            'params':{'radius':0.3, 'offset_x':0.0, 'offset_y':600.0} # at  (see or_map_6x6)
           },
           injection_current=-.5, # nA
           num_sizes=10, 

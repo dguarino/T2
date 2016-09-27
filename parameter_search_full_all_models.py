@@ -39,14 +39,14 @@ CombinationParameterSearch(
         # 'pgn.LGN_PGN_ConnectionOn.base_weight': [.001], # automatic (ref) assignment also to Off neurons
         # 'pgn.LGN_PGN_Connection.num_samples': [40], # 
         # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0003], # automatic (ref) assignment also to Off neurons
-        # 'pgn.PGN_PGN_Connection.base_weight': [.0002],
+        'pgn.PGN_PGN_Connection.base_weight': [.0005], 
         # 'pgn.PGN_PGN_Connection.num_samples': [40], 
 
         # 'l4_cortex_exc.AfferentConnection.base_weight' : [.0013, .0015], # .002 is too much (V1 oscillates)
 
         'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0004],        
         # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [100, 150], #200],
-        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [150, 200], # 60, 150, 200
+        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [60], # 60, 150, 200
 
         'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0008],
         # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [50, 80],

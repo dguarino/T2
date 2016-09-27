@@ -33,6 +33,8 @@ echo
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
 
 # SIZE
+# decorticated
+python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 # full closed loop model
 python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_small.py nest param/defaults_mea
@@ -47,12 +49,23 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverl
 # echo "starting PLOTTING"
 # echo 
 
+# PGN-PGN connectivity altered:
+# - CombinationParamSearch_size_full_2, ...
+# - CombinationParamSearch_size_3, ..._full_3
+
+
 # python parameter_search_analysis.py 20160830-153007[param.defaults_mea]CombinationParamSearch{4}
 
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full14
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_small14
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large14
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13
+# python parameter_search_analysis.py CombinationParamSearch_size_full_2
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_2
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_nonoverlapping_2
+
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full13
+
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full16
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_small 14
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large16
+# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16 #!!!!!!!!!!!!!!!!!!!
 
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more

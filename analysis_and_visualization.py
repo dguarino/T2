@@ -163,6 +163,16 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
     if atype == 'cortical_or_conn':
         perform_analysis_and_visualization_cortical_or_conn( data_store )
 
+    if atype == 'cortical_map':
+        dsv_map = param_filter_query(data_store, sheet_name=['V1_Exc_L4'], value_name='LGNAfferentOrientation')   
+        # dsv_map.print_content(full_ADS=True)
+        PerNeuronValuePlot( 
+            dsv_map, 
+            ParameterSet({'cortical_view' : True}),
+            plot_file_name='Map.png'
+        ).plot({'*.colorbar' : True})
+
+
     ##############
     # PLOTTING
     activity_plot_param =    {

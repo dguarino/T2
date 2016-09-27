@@ -24,6 +24,7 @@ data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_director
 # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
 
 # # Simple Analysis (just one group)
+# perform_analysis_and_visualization( data_store, 'cortical_map', withPGN, withV1 )
 perform_analysis_and_visualization_radius( data_store, 'size_radius', [[.0],[.0],[.0]], [.0,.5], withPGN, withV1 )
 # perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [.0,.5], withPGN, withV1 )
 
