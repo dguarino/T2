@@ -63,6 +63,76 @@ def select_ids_by_position(position, radius, sheet_ids, positions, box=None):
 
 
 
+def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive ):
+	print folder_full
+	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
+	data_store_full.print_content(full_recordings=False)
+	print folder_inactive
+	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
+	data_store_inac.print_content(full_recordings=False)
+
+	# full
+	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	dsv = param_filter_query( data_store_full, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+	PlotTuningCurve(
+		dsv,
+		ParameterSet({
+			'polar': False,
+			'pool': False,
+			'centered': False,
+			'percent': True,
+			'mean': True,
+			'parameter_name' : 'radius', 
+			# 'neurons': list(spike_ids1[11:12]), 
+			'neurons': list(spike_ids1), 
+			'sheet_name' : sheet
+		}), 
+		fig_param={'dpi' : 100,'figsize': (8,8)}, 
+		# plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids1[11:12])+".png"
+		plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
+	).plot({
+		'*.y_lim':(0,100), 
+		'*.y_label': "Response (%)",
+		# '*.y_ticks':[10, 20, 30, 40, 50], 
+		'*.x_ticks':[0.1, 1, 2, 4, 6], 
+		'*.x_scale':'linear',
+		#'*.x_scale':'log', '*.x_scale_base':2,
+		'*.fontsize':24
+	})
+
+	# inactivated
+	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	print spike_ids2
+	dsv = param_filter_query( data_store_inac, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+	PlotTuningCurve(
+		dsv,
+		ParameterSet({
+			'polar': False,
+			'pool': False,
+			'centered': False,
+			'percent': True,
+			'mean': True,
+			'parameter_name' : 'radius', 
+			'neurons': list(spike_ids2), 
+			# 'neurons': list(spike_ids2[11:12]), 
+			'sheet_name' : sheet
+		}), 
+		fig_param={'dpi' : 100,'figsize': (8,8)}, 
+		# plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids2[11:12])+".png"
+		plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
+	).plot({
+		'*.y_lim':(0,100), 
+		'*.y_label': "Response (%)",
+		# '*.y_ticks':[10, 20, 30, 40, 50], 
+		'*.x_ticks':[0.1, 1, 2, 4, 6], 
+		'*.x_scale':'linear',
+		#'*.x_scale':'log', '*.x_scale_base':2,
+		'*.fontsize':24
+	})
+
+
+
+
 def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, inactivated_box=None ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
@@ -192,6 +262,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 			axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
 			axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
 			axes[col,j+1].set_title(str(nid), fontsize=10)
+			axes[col,j+1].set_xscale("log")
 
 		# Population histogram
 		diff_full_inac = []
@@ -266,7 +337,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 	fig.text(0.5, 0.04, 'cells', ha='center', va='center')
 	fig.text(0.06, 0.5, 'ranges', ha='center', va='center', rotation='vertical')
 	for ax in axes.flatten():
-		ax.set_ylim([0,90])
+		ax.set_ylim([0,60])
 		ax.set_xticks(sizes)
 		ax.set_xticklabels([0.1, '', '', '', '', 1, '', 2, 4, 6])
 
@@ -283,7 +354,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		axes[col,0].spines['bottom'].set_visible(False)
 
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_square.png", dpi=100 )
+	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_log.png", dpi=100 )
 	# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
 	fig.clf()
 	plt.close()
@@ -442,8 +513,8 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 			ttest_sizes_i.append( scipy.stats.ttest_rel( mean_full_gsyn_i[s], mean_inac_gsyn_i[s] )[0] )
 			ttest_sizes_i_err.append( scipy.stats.sem(mean_full_gsyn_i[s] - mean_inac_gsyn_i[s]) )
 		# 
-		plt.title("full - inactivated conductances (ttest)")
-		plt.ylabel("percentage input change", fontsize=10)
+		plt.title("full - inactivated conductances")
+		plt.ylabel("input change", fontsize=10)
 		plt.xlabel("sizes", fontsize=10)
 		plt.xticks(sizes, (0.1, '', '', '', '', 1, '', 2, 4, 6))
 		plt.errorbar(sizes, ttest_sizes_e, yerr=ttest_sizes_e_err, color='r', linewidth=2)
@@ -466,10 +537,10 @@ sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 full_list = [ 
 	# "ThalamoCorticalModel_data_size_____full2"
-	# "CombinationParamSearch_size_V1_2sites_full13",
+	"CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_2sites_full15",
 	# "CombinationParamSearch_size_V1_full",
-	"CombinationParamSearch_size_full_2",
+	# "CombinationParamSearch_size_full_2",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
@@ -477,10 +548,11 @@ full_list = [
 inac_large_list = [ 
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
+	"ThalamoCorticalModel_data_size_____",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	"CombinationParamSearch_size_inhibition_2",
+	# "CombinationParamSearch_size_inhibition_2",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping15",
+	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
@@ -516,15 +588,24 @@ for i,l in enumerate(full_list):
 			# 	)
 
 			for step in steps:
-				perform_comparison_size_tuning( 
+
+				perform_percent_tuning( 
 					sheet=s, 
-					reference_position=[[0.0], [0.0], [0.0]],
-					# inactivated_box=[(-.13,-.25), (-.13,0.), (.13,0.), (.13,-.25)], # is in degrees # first try without
-					step=step,
-					sizes = sizes,
+			 		reference_position=[[0.0], [0.0], [0.0]],
+					step=step, 
+					sizes = sizes, 
 					folder_full=f, 
-					folder_inactive=large[i]
-					)
+					folder_inactive=large[i] )
+
+			# 	perform_comparison_size_tuning( 
+			# 		sheet=s, 
+			# 		reference_position=[[0.0], [0.0], [0.0]],
+			# 		# inactivated_box=[(-.13,-.25), (-.13,0.), (.13,0.), (.13,-.25)], # is in degrees # first try without
+			# 		step=step,
+			# 		sizes = sizes,
+			# 		folder_full=f, 
+			# 		folder_inactive=large[i]
+			# 		)
 
 
 
