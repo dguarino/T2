@@ -24,41 +24,27 @@ from mozaik.controller import Global
 
 
 
-def select_ids_by_position(position, radius, sheet_ids, positions, box=None):
+def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False):
 	radius_ids = []
 	distances = []
 	min_radius = radius[0] # over: 0. # non: 1.
 	max_radius = radius[1] # over: .7 # non: 3.
-
-	if box:
-		from matplotlib import path
-		p = path.Path(box)  # [(0,0), (0, 1), (1, 1), (1, 0)] square with bottom left corner at the origin
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
 		# print a, " - ", position
 		l = numpy.linalg.norm(a - position)
 
-		if hasattr(box, "__len__"):
-			# print (positions[0][i][0],positions[1][i][0])
-			isin = p.contains_points([(positions[0][i][0],positions[1][i][0])])[0]
-			if isin:
-				# print a
-				radius_ids.append(i[0])
-				distances.append(l)
-
-		else:
-			# print "distance",l
-			if l>min_radius and l<max_radius:
-				# print "taken"
-				radius_ids.append(i[0])
-				distances.append(l)
+		# print "distance",l
+		if l>min_radius and l<max_radius:
+			# print "taken"
+			radius_ids.append(i[0])
+			distances.append(l)
 
 	# sort by distance
 	# print radius_ids
 	# print distances
-	return [x for (y,x) in sorted(zip(distances,radius_ids), key=lambda pair: pair[0])]
-	# return radius_ids
+	return [x for (y,x) in sorted(zip(distances,radius_ids), key=lambda pair:pair[0], reverse=reverse)]
 
 
 
@@ -133,7 +119,7 @@ def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full,
 
 
 
-def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, inactivated_box=None ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -170,7 +156,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions1 = data_store_full.get_neuron_postions()[sheet]
 		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1, inactivated_box)
+		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1, reverse)
 		neurons1 = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids1)
 		if len(neurons1) > rowplots:
 			rowplots = len(neurons1)
@@ -180,14 +166,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions2 = data_store_inac.get_neuron_postions()[sheet]
 		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2, inactivated_box)
-		# if we are plotting the effect of non-overlapping cells, 
-		# we want to plot the recorded receiving cells response sorted by distance from the inactivated site 
-		# (but after having selected them by distance from the center anyway)
-		# so re-select them (not for real but just to use the function) from the inactivated_position
-		# if inactivated_position != 0:
-		# 	radius_ids2 = select_ids_by_position(inactivated_position, radius, sheet_ids2, positions2)
-
+		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2, reverse)
 		neurons2 = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=radius_ids2)
 		neurons_inac.append(neurons2)
 
@@ -198,6 +177,8 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		assert len(neurons_full[col]) == len(neurons_inac[col]) , "ERROR: the number of recorded neurons is different"
 		assert set(neurons_full[col]) == set(neurons_inac[col]) , "ERROR: the neurons in the two arrays are not the same"
 
+	# to analyse old simulation it is necessary to choose corresponding ids,
+	# do it by hand, running this script several times and noting them down here:
 	# neurons_full = [numpy.array([2912, 3205, 1867, 2731, 2248])]
 	# neurons_inac = [numpy.array([2912, 3205, 1867, 2731, 2248])]
 	# neurons_full =[numpy.array([10921, 10024, 13851,  9855, 11648, 13277])]
@@ -478,8 +459,32 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 		for s in range(num_sizes):
 			mean_inac_gsyn_e[s] = mean_inac_gsyn_e[s] / trials
 			mean_inac_gsyn_i[s] = mean_inac_gsyn_i[s] / trials
-		# print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e
-		# print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i
+		# print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e.shape
+		# print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i.shape
+
+		# PSP Area response plot (as in LindstromWrobel2011)
+		max_full_gsyn_e = numpy.amax(mean_full_gsyn_e, axis=1)
+		max_full_gsyn_i = numpy.amax(mean_full_gsyn_i, axis=1)
+		norm_full_gsyn_e = (mean_full_gsyn_e.sum(axis=1) / 10291) / max_full_gsyn_e *100
+		norm_full_gsyn_i = (mean_full_gsyn_i.sum(axis=1) / 10291) / max_full_gsyn_i *100
+
+		max_inac_gsyn_e = numpy.amax(mean_inac_gsyn_e, axis=1)
+		max_inac_gsyn_i = numpy.amax(mean_inac_gsyn_i, axis=1)
+		norm_inac_gsyn_e = (mean_inac_gsyn_e.sum(axis=1) / 10291) / max_full_gsyn_e *100
+		norm_inac_gsyn_i = (mean_inac_gsyn_i.sum(axis=1) / 10291) / max_full_gsyn_i *100
+
+		plt.figure()
+		plt.errorbar(sizes, norm_full_gsyn_e, color='red', linewidth=2)#, xerr=0.2, yerr=0.4)
+		plt.errorbar(sizes, norm_full_gsyn_i, color='blue', linewidth=2)#, xerr=0.2, yerr=0.4)
+		plt.errorbar(sizes, norm_inac_gsyn_e, color='purple', linewidth=2)#, xerr=0.2, yerr=0.4)
+		plt.errorbar(sizes, norm_inac_gsyn_i, color='cyan', linewidth=2)#, xerr=0.2, yerr=0.4)
+		plt.xscale("log")
+		plt.xticks(sizes, sizes)
+		plt.ylabel("PSP (%)", fontsize=10)
+		plt.xlabel("sizes", fontsize=10)
+		plt.title("PSP Area response plot "+sheet)
+		plt.savefig( folder_inactive+"/TrialAveragedPSP_"+sheet+".png", dpi=100 )
+		plt.close()
 
 		# Point-to-Point difference 
 		if with_ppd:
@@ -502,24 +507,6 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 			# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
 			plt.close()
 
-		# T-Test
-		ttest_sizes_e = []
-		ttest_sizes_e_err = []
-		ttest_sizes_i = []
-		ttest_sizes_i_err = []
-		for s in range(num_sizes):
-			ttest_sizes_e.append( scipy.stats.ttest_rel( mean_full_gsyn_e[s], mean_inac_gsyn_e[s] )[0] )
-			ttest_sizes_e_err.append( scipy.stats.sem(mean_full_gsyn_e[s] - mean_inac_gsyn_e[s]) )
-			ttest_sizes_i.append( scipy.stats.ttest_rel( mean_full_gsyn_i[s], mean_inac_gsyn_i[s] )[0] )
-			ttest_sizes_i_err.append( scipy.stats.sem(mean_full_gsyn_i[s] - mean_inac_gsyn_i[s]) )
-		# 
-		plt.title("full - inactivated conductances")
-		plt.ylabel("input change", fontsize=10)
-		plt.xlabel("sizes", fontsize=10)
-		plt.xticks(sizes, (0.1, '', '', '', '', 1, '', 2, 4, 6))
-		plt.errorbar(sizes, ttest_sizes_e, yerr=ttest_sizes_e_err, color='r', linewidth=2)
-		plt.errorbar(sizes, ttest_sizes_i, yerr=ttest_sizes_i_err, color='b', linewidth=2)
-		plt.savefig( folder_inactive+"/TrialAveragedInputComparison_"+sheet+".png", dpi=100 )
 		plt.close()
 		# garbage
 		gc.collect()
@@ -536,21 +523,26 @@ import os
 sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 full_list = [ 
+	# "CombinationParamSearch_higher_PGNPGN_active",
 	# "ThalamoCorticalModel_data_size_____full2"
-	"CombinationParamSearch_size_V1_2sites_full13",
+	# "CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_2sites_full15",
 	# "CombinationParamSearch_size_V1_full",
-	# "CombinationParamSearch_size_full_2",
+	"CombinationParamSearch_size_full_6",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
 
 inac_large_list = [ 
+	# "CombinationParamSearch_higher_PGNPGN_inactive",
+	# "CombinationParamSearch_higher_PGNPGN_overlapping",
+	# "CombinationParamSearch_higher_PGNPGN_nonoverlapping",
+	# "ThalamoCorticalModel_data_size_____",
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
-	"ThalamoCorticalModel_data_size_____",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	# "CombinationParamSearch_size_inhibition_2",
+	# "CombinationParamSearch_size_inhibition_6",
+	"CombinationParamSearch_size_inhibition_nonoverlapping_6",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
@@ -579,13 +571,13 @@ for i,l in enumerate(full_list):
 
 		for s in sheets:
 
-			# perform_comparison_size_inputs( 
-			# 	sheet=s,
-			# 	sizes = sizes,
-			# 	folder_full=f, 
-			# 	folder_inactive=large[i],
-			# 	with_ppd=True
-			# 	)
+			perform_comparison_size_inputs( 
+				sheet=s,
+				sizes = sizes,
+				folder_full=f, 
+				folder_inactive=large[i],
+				with_ppd=True
+				)
 
 			for step in steps:
 
@@ -597,15 +589,15 @@ for i,l in enumerate(full_list):
 					folder_full=f, 
 					folder_inactive=large[i] )
 
-			# 	perform_comparison_size_tuning( 
-			# 		sheet=s, 
-			# 		reference_position=[[0.0], [0.0], [0.0]],
-			# 		# inactivated_box=[(-.13,-.25), (-.13,0.), (.13,0.), (.13,-.25)], # is in degrees # first try without
-			# 		step=step,
-			# 		sizes = sizes,
-			# 		folder_full=f, 
-			# 		folder_inactive=large[i]
-			# 		)
+				perform_comparison_size_tuning( 
+					sheet=s, 
+					reference_position=[[0.0], [0.0], [0.0]],
+					reverse=True, # False if overlapping, True if non-overlapping
+					step=step,
+					sizes = sizes,
+					folder_full=f, 
+					folder_inactive=large[i]
+					)
 
 
 

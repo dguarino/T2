@@ -209,6 +209,16 @@ class ThalamoCorticalModel(Model):
                     self.parameters.l4_cortex_exc.EfferentConnection_LGN
                 ).connect()
 
+                # GaborConnector(
+                #     self,
+                #     self.input_layer.sheets['X_ON'],
+                #     self.input_layer.sheets['X_OFF'],
+                #     cortex_exc_l4,                                      # source
+                #     self.parameters.l4_cortex_exc.EfferentConnection,   # parameters
+                #     'V1EffConnection'                                   # name
+                # )
+
+
             if withFeedback_CxPGN and withPGN:
                 ModularSamplingProbabilisticConnector(
                     self,
