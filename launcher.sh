@@ -41,8 +41,8 @@ echo
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 # full closed loop model
 python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_large_nonoverlapping.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 
 

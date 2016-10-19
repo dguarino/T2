@@ -83,8 +83,8 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0, # µS 0.003-5, UlrichHuguenard1996
-        'num_samples' : 40,
+        'base_weight': 0.0001, # µS 0.003-5, UlrichHuguenard1996
+        'num_samples' : 20,
     },
 
     # to LGN

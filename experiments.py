@@ -29,7 +29,7 @@ def create_experiments_luminance(model):
           # luminances=[.0, .00001, .0001, .001, .01, .1, 1., 10., 100.], # as in BarlowLevick1969, SakmannCreutzfeldt1969
           luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
           step_duration=2*147*7,
-          num_trials=2
+          num_trials=6
       )
   ]
 
@@ -50,7 +50,7 @@ def create_experiments_contrast(model):
           grating_duration = 2*147*7,
           contrasts = [0, 10, 25, 40, 75, 100], # Bonin Mante Carandini 2005
           # contrasts = [0, 2, 4, 8, 18, 36, 50, 100], # KaplanPurpuraShapley1987
-          num_trials=2
+          num_trials=6
       )
   ]
 
@@ -73,7 +73,7 @@ def create_experiments_spatial(model):
           grating_duration=2*147*7,
           frame_duration=7,
           # square=True,
-          num_trials=5
+          num_trials=6
       )
   ]
 
@@ -107,7 +107,7 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=10, 
+          num_sizes=20, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #
@@ -120,32 +120,7 @@ def create_experiments_size(model):
       )
   ]
 
-
-def create_experiments_size_V1_inactivated_small(model):
-  return [
-      NoStimulation( model, duration=147*7 ),
-      # SIZE TUNING
-      # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
-      MeasureSizeTuningWithInactivation(
-          model, 
-          sheet_list=["V1_Exc_L4"],
-          injection_configuration={
-            'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.15, 'offset_x':0.0, 'offset_y':0.0}
-          },
-          injection_current=-.5, # nA
-          num_sizes=10, 
-          max_size=6.0, # max radius
-          orientation=numpy.pi/2, 
-          spatial_frequency=0.5, #
-          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
-          grating_duration=1*147*7,
-          contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=6,
-          log_spacing=True
-      )
-  ]
-def create_experiments_size_V1_inactivated_large(model):
+def create_experiments_size_V1_inactivated_overlapping(model):
   return [
       NoStimulation( model, duration=147*7 ),
       # SIZE TUNING
@@ -158,7 +133,7 @@ def create_experiments_size_V1_inactivated_large(model):
             'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':0.0}
           },
           injection_current=-.5, # nA
-          num_sizes=10, 
+          num_sizes=20, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #
@@ -170,7 +145,7 @@ def create_experiments_size_V1_inactivated_large(model):
       )
   ]
 
-def create_experiments_size_V1_inactivated_large_nonoverlapping(model):
+def create_experiments_size_V1_inactivated_nonoverlapping(model):
   return [
       NoStimulation( model, duration=147*7 ),
       # SIZE TUNING
@@ -180,10 +155,10 @@ def create_experiments_size_V1_inactivated_large_nonoverlapping(model):
           sheet_list=["V1_Exc_L4"],
           injection_configuration={
             'component':'mozaik.sheets.population_selector.RCSpace', 
-            'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':600.0} # at  (see or_map_6x6)
+            'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':600.0} 
           },
           injection_current=-.5, # nA
-          num_sizes=10, 
+          num_sizes=20, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #

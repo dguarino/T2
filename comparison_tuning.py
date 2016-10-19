@@ -230,7 +230,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		x_full = tc_dict1[0].values()[0][0]
 		x_inac = tc_dict2[0].values()[0][0]
 		# each cell couple 
-		print tc_dict1[0].values()[0][1].shape
+		print tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
 		axes[col,1].set_ylabel("Response (spikes/sec)", fontsize=10)
 		for j,nid in enumerate(neurons_full[col]):
 			# print col,j,nid
@@ -264,16 +264,24 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# We want to group them in three: smaller than optimal, optimal, larger than optimal
 		# We do the mean response for each cell for the grouped stimuli
 		#    i.e. sum the responses for each cell across stimuli in the group, divided by the number of stimuli in the group
-		# We pass the resulting array to the wilcoxon (non-parametric two-tailed test)
-		# and we get the value for one group.
 		# We repeat for each group
 
 		# average of all trial-averaged response for each cell for grouped stimulus size
 		# we want the difference / normalized by the highest value * expressed as percentage
-		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3 - numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3) / (numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3)) * 100
-		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
-		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2)) * 100
-		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5) / (numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5)) * 100
+		# print num_cells
+		# print "inac",numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0)
+		# print "full",numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)
+		# print "diff",(numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))
+		# print "diff_norm",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)))
+		# print "diff_norm_perc",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
+
+		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][1:3], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)/2)) * 100
+		# diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2)) * 100
+		# diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5) / (numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5)) * 100
+		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][1:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)) * 100
+		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][3:4], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][3:4], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][3:4], axis=0)) * 100
+		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][4:5], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][4:5], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][4:5], axis=0)) * 100
+		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][6:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][6:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][6:], axis=0)) * 100
 		# print "diff_smaller", diff_smaller
 		# average of all cells
 		smaller = sum(diff_smaller) / num_cells
@@ -301,7 +309,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 		# print diff_full_inac
 		# print sem_full_inac
-		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8, color='r')
+		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8)
 		axes[col,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
 		for ba in barlist:
 			ba.set_color('white')
@@ -337,7 +345,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		axes[col,0].spines['bottom'].set_visible(False)
 
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_log.png", dpi=100 )
+	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_log_jones.png", dpi=100 )
 	# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
 	fig.clf()
 	plt.close()
@@ -522,8 +530,8 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 # Execution
 import os
 
-#            smaller          equal               larger
-#          0     1     2  |  3     4  |  5     6     7     8     9
+#                         smaller equal           larger
+#          0     1     2  |  3  |  4  |  5     6     7     8     9
 sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 full_list = [ 
@@ -532,7 +540,7 @@ full_list = [
 	# "CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_2sites_full15",
 	# "CombinationParamSearch_size_V1_full",
-	"CombinationParamSearch_size_full_10",
+	"CombinationParamSearch_size_full_7",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
@@ -545,8 +553,8 @@ inac_large_list = [
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	"CombinationParamSearch_size_inhibition_10",
-	# "CombinationParamSearch_size_inhibition_nonoverlapping_10",
+	# "CombinationParamSearch_size_inhibition_7",
+	"CombinationParamSearch_size_inhibition_nonoverlapping_7",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
@@ -575,24 +583,24 @@ for i,l in enumerate(full_list):
 
 		for s in sheets:
 
-			perform_comparison_size_inputs( 
-				sheet=s,
-				sizes = sizes,
-				folder_full=f, 
-				folder_inactive=large[i],
-				with_ppd=True
-				)
+			# perform_comparison_size_inputs( 
+			# 	sheet=s,
+			# 	sizes = sizes,
+			# 	folder_full=f, 
+			# 	folder_inactive=large[i],
+			# 	with_ppd=True
+			# 	)
 
 			for step in steps:
 
-				perform_percent_tuning( 
-					sheet=s, 
-			 		reference_position=[[0.0], [0.0], [0.0]],
-					step=step, 
-					sizes = sizes, 
-					folder_full=f, 
-					folder_inactive=large[i] 
-				)
+				# perform_percent_tuning( 
+				# 	sheet=s, 
+				#   reference_position=[[0.0], [0.0], [0.0]],
+				# 	step=step, 
+				# 	sizes = sizes, 
+				# 	folder_full=f, 
+				# 	folder_inactive=large[i] 
+				# )
 
 				perform_comparison_size_tuning( 
 					sheet=s, 
