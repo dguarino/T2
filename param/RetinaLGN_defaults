@@ -97,7 +97,7 @@
         ############################################
         # LGN
         'magnification_factor': 200.0, # μm/degree
-        'retino_thalamic_weight': 0.01, # µS 
+        'retino_thalamic_weight': 0.006, # µS 
         'LGN_cell_params': {
             'model' : 'IF_cond_exp',
             'params' : {
