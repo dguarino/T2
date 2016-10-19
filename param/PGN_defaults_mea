@@ -53,7 +53,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 40.0,  # (2σ of a total 200) μm decay distance from the innervation point
+                    'arborization_constant': 75.0,  # (2σ of a total 200) μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -61,7 +61,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1', 
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.001, # µS, LiuBoleaGolshaniJones2001
+        'base_weight': 0.0008, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
     'LGN_PGN_ConnectionOff': ref('pgn.LGN_PGN_ConnectionOn'),
@@ -83,7 +83,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0005, # µS 0.003-5, UlrichHuguenard1996
+        'base_weight': 0.0, # µS 0.003-5, UlrichHuguenard1996
         'num_samples' : 40,
     },
 
@@ -104,7 +104,7 @@
         'delay_functions' : {},
         'weight_expression' : 'f1',
         'delay_expression' : '1', # Lindstrom1982, FunkeEysel1998, RogalaWaleszczykLeskiWrobelWojcik2013
-        'base_weight': 0.0003, # µS SanchezMcCormick1997, LamSherman2011
+        'base_weight': 0.0005, # µS SanchezMcCormick1997, LamSherman2011
         'num_samples' : 110,
     },
     'PGN_LGN_ConnectionOff': ref('pgn.PGN_LGN_ConnectionOn'),

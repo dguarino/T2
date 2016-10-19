@@ -269,7 +269,9 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# We repeat for each group
 
 		# average of all trial-averaged response for each cell for grouped stimulus size
+		# we want the difference / normalized by the highest value * expressed as percentage
 		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3 - numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3) / (numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3)) * 100
+		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
 		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2)) * 100
 		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5) / (numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5)) * 100
 		# print "diff_smaller", diff_smaller
@@ -520,6 +522,8 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 # Execution
 import os
 
+#            smaller          equal               larger
+#          0     1     2  |  3     4  |  5     6     7     8     9
 sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 full_list = [ 
@@ -528,7 +532,7 @@ full_list = [
 	# "CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_2sites_full15",
 	# "CombinationParamSearch_size_V1_full",
-	"CombinationParamSearch_size_full_6",
+	"CombinationParamSearch_size_full_10",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
@@ -541,8 +545,8 @@ inac_large_list = [
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	# "CombinationParamSearch_size_inhibition_6",
-	"CombinationParamSearch_size_inhibition_nonoverlapping_6",
+	"CombinationParamSearch_size_inhibition_10",
+	# "CombinationParamSearch_size_inhibition_nonoverlapping_10",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
@@ -587,7 +591,8 @@ for i,l in enumerate(full_list):
 					step=step, 
 					sizes = sizes, 
 					folder_full=f, 
-					folder_inactive=large[i] )
+					folder_inactive=large[i] 
+				)
 
 				perform_comparison_size_tuning( 
 					sheet=s, 
@@ -597,7 +602,7 @@ for i,l in enumerate(full_list):
 					sizes = sizes,
 					folder_full=f, 
 					folder_inactive=large[i]
-					)
+				)
 
 
 

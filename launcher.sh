@@ -57,9 +57,10 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_large.py nest 
 # python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_3
 
 # python parameter_search_analysis.py CombinationParamSearch_size_inactive_6
-# python parameter_search_analysis.py CombinationParamSearch_size_full_6
-# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_6
-# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_nonoverlapping_6
+
+# python parameter_search_analysis.py CombinationParamSearch_size_full_10
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_10
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_nonoverlapping_10
 
 # python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full13
 
