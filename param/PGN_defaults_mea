@@ -13,9 +13,9 @@
             'model' : 'IF_cond_exp',
             'params' : {
                 'v_thresh': -50.0,  # DestexheContrerasSteriadeSejnowskiHuguenard1996
-                'v_rest': -70.0,    # HuertasGroffSmith2005 # -78., # DestexheContrerasSteriadeSejnowskiHuguenard1996
+                'v_rest': -70.0,    # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'v_reset': -55.0,   # HuertasGroffSmith2005
-                'tau_refrac': 5.0,  # 0.5,  # !!!!!!!!!!!!!!!!!
+                'tau_refrac': 5.0,  # HuertasGroffSmith2005
                 'tau_m': 10.0,      # DestexheContrerasSteriadeSejnowskiHuguenard1996
                 'cm': 0.2,          # 
                 'e_rev_E': 0.0,     # HuertasGroffSmith2005
@@ -53,7 +53,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 75.0,  # (2σ of a total 200) μm decay distance from the innervation point
+                    'arborization_constant': 75.0,  # (2σ) μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -75,7 +75,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 70.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 70.0,  # (2σ) μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 
@@ -96,7 +96,7 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 150.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 150.0,  # (2σ) μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 

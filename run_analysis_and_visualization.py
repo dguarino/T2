@@ -14,7 +14,7 @@ Global.root_directory = sys.argv[1]+'/'
 
 
 withPGN = True  # 
-withV1 = True  # open-loop
+withV1 = True  # False for open-loop
 
 
 setup_logging()

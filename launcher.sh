@@ -39,10 +39,10 @@ echo
 # python parameter_search_PGNLGN_3.py run_size.py nest param/defaults_mea
 
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
-# full closed loop model
-python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+# # full closed loop model
+# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 
 
@@ -56,31 +56,11 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py
 # python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_2
 # python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_3
 
-# python parameter_search_analysis.py CombinationParamSearch_size_inactive_6
+# python parameter_search_analysis.py CombinationParamSearch_size_decorticated_8
 
-# python parameter_search_analysis.py CombinationParamSearch_size_full_10
-# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_10
-# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_nonoverlapping_10
-
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full13
-
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_full16
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_small 14
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large16
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16 #!!!!!!!!!!!!!!!!!!!
-
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_full
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more2
-# # python parameter_search_analysis.py CombinationParamSearch_size_V1_full_more3
-
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more
-# # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_large_more2
-
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small
-# python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more
-# # python parameter_search_analysis.py CombinationParamSearch_size_V1_inhibition_small_more2
+# python parameter_search_analysis.py CombinationParamSearch_size_full_8
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_8
+# python parameter_search_analysis.py CombinationParamSearch_size_inhibition_nonoverlapping_8
 
 
 # python comparison_tuning.py
@@ -90,24 +70,24 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py
 ################################################
 # EXPERIMENTS Closed Loop 1 (LGN+PGN)
 
-# echo "starting Luminance"
-# echo 
-# mpirun python run_luminance.py nest 8 param/defaults 'data_luminance'
+echo "starting Luminance"
+echo 
+mpirun python run_luminance.py nest 8 param/defaults 'data_luminance'
 
 
-# echo "starting Spatial"
-# echo 
-# mpirun python run_spatial.py nest 8 param/defaults 'data_spatial'
+echo "starting Spatial"
+echo 
+mpirun python run_spatial.py nest 8 param/defaults 'data_spatial'
 
 
-# echo "starting Temporal"
-# echo 
-# mpirun python run_temporal.py nest 8 param/defaults 'data_temporal'
+echo "starting Temporal"
+echo 
+mpirun python run_temporal.py nest 8 param/defaults 'data_temporal'
 
 
-# echo "starting Contrast"
-# echo 
-# mpirun python run_contrast.py nest 8 param/defaults 'data_contrast'
+echo "starting Contrast"
+echo 
+mpirun python run_contrast.py nest 8 param/defaults 'data_contrast'
 
 
 # echo "starting Size"

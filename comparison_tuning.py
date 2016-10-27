@@ -119,7 +119,7 @@ def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full,
 
 
 
-def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ssmaller=3, Sequal=4, SequalStop=5, Slarger=6 ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -134,6 +134,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 	pnvs1 = [ dsv1.get_analysis_result() ]
 	# get stimuli
 	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
+	# print st1
 
 	# Inactivated
 	dsv2 = queries.param_filter_query( data_store_inac, identifier='PerNeuronValue', sheet_name=sheet )
@@ -230,7 +231,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		x_full = tc_dict1[0].values()[0][0]
 		x_inac = tc_dict2[0].values()[0][0]
 		# each cell couple 
-		print tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+		print "(stimulus conditions, cells):", tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
 		axes[col,1].set_ylabel("Response (spikes/sec)", fontsize=10)
 		for j,nid in enumerate(neurons_full[col]):
 			# print col,j,nid
@@ -279,9 +280,9 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2 - numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2) / (numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2)) * 100
 		# diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5 - numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5) / (numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5)) * 100
 		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][1:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][1:3], axis=0)) * 100
-		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][3:4], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][3:4], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][3:4], axis=0)) * 100
-		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][4:5], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][4:5], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][4:5], axis=0)) * 100
-		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][6:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][6:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][6:], axis=0)) * 100
+		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ssmaller:Sequal], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) * 100
+		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Sequal:SequalStop], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) * 100
+		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Slarger:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) * 100
 		# print "diff_smaller", diff_smaller
 		# average of all cells
 		smaller = sum(diff_smaller) / num_cells
@@ -330,7 +331,8 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 	for ax in axes.flatten():
 		ax.set_ylim([0,60])
 		ax.set_xticks(sizes)
-		ax.set_xticklabels([0.1, '', '', '', '', 1, '', 2, 4, 6])
+		# ax.set_xticklabels([0.1, '', '', '', '', 1, '', 2, 4, 6])
+		ax.set_xticklabels([0.1, '', '', '', '', '', '', '', '', '', '', 1, '', '', 2, '', '', '', 4, '', 6])
 
 	for col,_ in enumerate(slice_ranges):
 		# axes[col,0].set_ylim([-.8,.8])
@@ -530,9 +532,21 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 # Execution
 import os
 
-#                         smaller equal           larger
-#          0     1     2  |  3  |  4  |  5     6     7     8     9
-sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
+#                           smaller equal           larger
+#            0     1     2  |  3  |  4  |  5     6     7     8     9
+# sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
+# Ssmaller = 3
+# Sequal   = 4
+# Slarger  = 5 #6
+
+#                                         |  smaller    |       equal        |                    |   larger
+#         0      1      2      3      4      5      6      7      8      9      10     11     12     13     14     15     16     17     18     19
+sizes = [0.125, 0.152, 0.186, 0.226, 0.276, 0.337, 0.412, 0.502, 0.613, 0.748, 0.912, 1.113, 1.358, 1.657, 2.021, 2.466, 3.008, 3.670, 4.477, 5.462]
+Ssmaller = 5
+Sequal   = 7
+SequalStop  = 10
+Slarger  = 13
+
 
 full_list = [ 
 	# "CombinationParamSearch_higher_PGNPGN_active",
@@ -540,7 +554,7 @@ full_list = [
 	# "CombinationParamSearch_size_V1_2sites_full13",
 	# "CombinationParamSearch_size_V1_2sites_full15",
 	# "CombinationParamSearch_size_V1_full",
-	"CombinationParamSearch_size_full_7",
+	"CombinationParamSearch_size_full_8",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
 	]
@@ -553,8 +567,8 @@ inac_large_list = [
 	# "ThalamoCorticalModel_data_size_____inactivated2"
 	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	# "CombinationParamSearch_size_inhibition_7",
-	"CombinationParamSearch_size_inhibition_nonoverlapping_7",
+	# "CombinationParamSearch_size_inhibition_8",
+	"CombinationParamSearch_size_inhibition_nonoverlapping_8",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
 	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
 	# "CombinationParamSearch_size_V1_inhibition_large", 
@@ -609,7 +623,11 @@ for i,l in enumerate(full_list):
 					step=step,
 					sizes = sizes,
 					folder_full=f, 
-					folder_inactive=large[i]
+					folder_inactive=large[i],
+					Ssmaller = Ssmaller,
+					Sequal   = Sequal,
+					SequalStop= SequalStop,
+					Slarger  = Slarger
 				)
 
 
