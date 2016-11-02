@@ -46,11 +46,11 @@ CombinationParameterSearch(
 
         # 'l4_cortex_exc.AfferentConnection.base_weight' : [.0013], 
 
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0004],  
-        # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [100, 150], #200],
-        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [60], # 60, 150, 200
+        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001, .0002, .0005, .0006],  
+        # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [100, 150], # 250
+        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [200], # 60, 150, 200
 
-        'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # 
+        # 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # 
         # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [50, 80],
         'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [90], #
   	}

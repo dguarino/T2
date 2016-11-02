@@ -24,7 +24,7 @@ from mozaik.controller import Global
 
 
 
-def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False):
+def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False, box=[]):
 	radius_ids = []
 	distances = []
 	min_radius = radius[0] # over: 0. # non: 1.
@@ -32,17 +32,25 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
-		# print a, " - ", position
-		l = numpy.linalg.norm(a - position)
 
-		# print "distance",l
-		if l>min_radius and l<max_radius:
-			# print "taken"
-			radius_ids.append(i[0])
-			distances.append(l)
+		if len(box)>1:
+			if a[0]>=box[0][0] and a[0]<=box[0][1] and a[1]>=box[1][0] and a[1]<=box[1][1]:
+				# print box[0][0], a[0], box[0][1]
+				# print box[1][0], a[1], box[1][1]
+				radius_ids.append(i[0])
+				distances.append(0.0)
+		else:
+			#print a, " - ", position
+			l = numpy.linalg.norm(a - position)
+
+			# print "distance",l
+			if l>min_radius and l<max_radius:
+				# print "taken"
+				radius_ids.append(i[0])
+				distances.append(l)
 
 	# sort by distance
-	# print radius_ids
+	print len(radius_ids)
 	# print distances
 	return [x for (y,x) in sorted(zip(distances,radius_ids), key=lambda pair:pair[0], reverse=reverse)]
 
@@ -119,7 +127,7 @@ def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full,
 
 
 
-def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ssmaller=3, Sequal=4, SequalStop=5, Slarger=6 ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ssmaller=3, Sequal=4, SequalStop=5, Slarger=6, box=[] ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -156,8 +164,10 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# Full
 		spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions1 = data_store_full.get_neuron_postions()[sheet]
+		# print numpy.min(positions1), numpy.max(positions1) 
 		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1, reverse)
+		radius_ids1 = select_ids_by_position(reference_position, radius, sheet_ids1, positions1, reverse, box)
+		# 0/0
 		neurons1 = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids1)
 		if len(neurons1) > rowplots:
 			rowplots = len(neurons1)
@@ -167,7 +177,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 		positions2 = data_store_inac.get_neuron_postions()[sheet]
 		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2, reverse)
+		radius_ids2 = select_ids_by_position(reference_position, radius, sheet_ids2, positions2, reverse, box)
 		neurons2 = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=radius_ids2)
 		neurons_inac.append(neurons2)
 
@@ -347,13 +357,12 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		axes[col,0].spines['bottom'].set_visible(False)
 
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_position"+str(reference_position)+"_step"+str(step)+"_log_jones.png", dpi=100 )
+	plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_step"+str(step)+"_box"+str(box)+".png", dpi=100 )
 	# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
 	fig.clf()
 	plt.close()
 	# garbage
 	gc.collect()
-
 
 
 
@@ -369,7 +378,6 @@ def perform_selectivity_comparison():
 	#queries.param_filter_query(self.datastore,st_name='FullfieldDriftingSinusoidalGrating',st_contrast=100,st_orientation=col,sheet_name=self.parameters.sheet_name,analysis_algorithm='PSTH')
 
 	pass
-
 
 
 
@@ -577,8 +585,10 @@ inac_large_list = [
 	]
 
 sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
-steps = [.3, .4]
-
+steps = [.3]
+box = []
+box = [[-.2,.2],[.2,.4]]
+box = [[-.3,.3],[.0,.4]]
 
 for i,l in enumerate(full_list):
 	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
@@ -627,7 +637,8 @@ for i,l in enumerate(full_list):
 					Ssmaller = Ssmaller,
 					Sequal   = Sequal,
 					SequalStop= SequalStop,
-					Slarger  = Slarger
+					Slarger  = Slarger,
+					box = box
 				)
 
 

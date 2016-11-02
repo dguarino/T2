@@ -39,10 +39,11 @@ echo
 # python parameter_search_PGNLGN_3.py run_size.py nest param/defaults_mea
 
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
-# # full closed loop model
-# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+
+# full closed loop model
+python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 
 
@@ -70,24 +71,24 @@ echo
 ################################################
 # EXPERIMENTS Closed Loop 1 (LGN+PGN)
 
-echo "starting Luminance"
-echo 
-mpirun python run_luminance.py nest 8 param/defaults 'data_luminance'
+# echo "starting Luminance"
+# echo 
+# mpirun python run_luminance.py nest 8 param/defaults 'data_luminance'
 
 
-echo "starting Spatial"
-echo 
-mpirun python run_spatial.py nest 8 param/defaults 'data_spatial'
+# echo "starting Spatial"
+# echo 
+# mpirun python run_spatial.py nest 8 param/defaults 'data_spatial'
 
 
-echo "starting Temporal"
-echo 
-mpirun python run_temporal.py nest 8 param/defaults 'data_temporal'
+# echo "starting Temporal"
+# echo 
+# mpirun python run_temporal.py nest 8 param/defaults 'data_temporal'
 
 
-echo "starting Contrast"
-echo 
-mpirun python run_contrast.py nest 8 param/defaults 'data_contrast'
+# echo "starting Contrast"
+# echo 
+# mpirun python run_contrast.py nest 8 param/defaults 'data_contrast'
 
 
 # echo "starting Size"
