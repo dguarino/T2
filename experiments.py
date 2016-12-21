@@ -107,7 +107,7 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=20, 
+          num_sizes=10, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #
@@ -133,7 +133,7 @@ def create_experiments_size_V1_inactivated_overlapping(model):
             'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':0.0}
           },
           injection_current=-.5, # nA
-          num_sizes=20, 
+          num_sizes=10, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #
@@ -158,7 +158,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
             'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':600.0} 
           },
           injection_current=-.5, # nA
-          num_sizes=20, 
+          num_sizes=10, 
           max_size=6.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #

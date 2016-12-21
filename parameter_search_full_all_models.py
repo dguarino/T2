@@ -32,27 +32,28 @@ CombinationParameterSearch(
         # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [200000., 230000., 250000., 280000.],
         # 'lgn.params.gain_control.non_linear_gain.luminance_gain' : [0.001, 0.0001, 0.00001],
 
-        # 'lgn.params.retino_thalamic_weight' : [.006],
+        #'lgn.params.retino_thalamic_weight' : [.006, .008, .01],
 
         # 'pgn.params.cell.params.tau_refrac': [0.5],
         # 'pgn.params.cell.params.tau_m': [17.0]
 
-        # 'pgn.LGN_PGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [75],
-        # 'pgn.LGN_PGN_ConnectionOn.base_weight': [.0008], # automatic (ref) assignment also to Off neurons
+        # 'pgn.LGN_PGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [40, 75], #75 optimal for over/nonover
+        # 'pgn.LGN_PGN_ConnectionOn.base_weight': [.0012], # automatic (ref) assignment also to Off neurons
         # 'pgn.LGN_PGN_Connection.num_samples': [40], # 
-        # 'pgn.PGN_PGN_Connection.base_weight': [.0], 
+        'pgn.PGN_PGN_Connection.base_weight': [.0001, .0003], # .0001
         # 'pgn.PGN_PGN_Connection.num_samples': [40], 
+        # 'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [90, 150], #75 optimal for over/nonover
         # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0005], # automatic (ref) assignment also to Off neurons
 
         # 'l4_cortex_exc.AfferentConnection.base_weight' : [.0013], 
 
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001, .0002, .0005, .0006],  
-        # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [100, 150], # 250
-        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [200], # 60, 150, 200
+        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.00002, .0001, .0002], # .0004
+        'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [400, 600, 800], # 250
+        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [200], # 60
 
         # 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # 
         # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [50, 80],
-        'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [90], #
+        # 'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [90], #
   	}
 ).run_parameter_search()
 

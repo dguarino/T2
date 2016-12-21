@@ -86,10 +86,11 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_spatial_V1_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_spatial_V1_full_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-    data_store.save()
 
-# # Analysis and Plotting
-# if mpi_comm.rank == MPI_ROOT:
-#     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+    # Analysis and Plotting
+    if mpi_comm.rank == MPI_ROOT:
+        perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+
+    data_store.save()

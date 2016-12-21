@@ -10,7 +10,7 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model_V1 import ThalamoCorticalModel
+from model_V1_full import ThalamoCorticalModel
     
 from experiments import create_experiments_spontaneous
 from experiments import create_experiments_luminance
@@ -86,7 +86,7 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_contrast_V1_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_contrast_V1_full_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
     # Analysis and Plotting

@@ -197,9 +197,9 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    #'arborization_constant': 60.0,  # V1-LGN << PGN-LGN  # μm decay distance from the innervation point
+                    'arborization_constant': 60.0,  # V1-LGN << PGN-LGN  # μm decay distance from the innervation point
                     #'arborization_constant': 200.0,# V1-LGN >> PGN-LGN  # μm decay distance from the innervation point
-                    'arborization_constant': 150.0,# V1-LGN == PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 150.0,# V1-LGN == PGN-LGN  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 

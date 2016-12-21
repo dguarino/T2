@@ -89,19 +89,19 @@ else:
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
-    # # Analysis and Plotting
-    # if mpi_comm.rank == MPI_ROOT:
-    #     # perform_analysis_test( data_store )
-    #     # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    #     # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
-    #     # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    #     # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    #     perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-    #     # perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
-    #     # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
-    #     # import numpy
-    #     # step = .2
-    #     # for i in numpy.arange(step, 3.+step, step):
-    #     #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
+    # Analysis and Plotting
+    if mpi_comm.rank == MPI_ROOT:
+        # perform_analysis_test( data_store )
+        # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
+        perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+        # import numpy
+        # step = .2
+        # for i in numpy.arange(step, 3.+step, step):
+        #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
 
-    data_store.save()
+        data_store.save()

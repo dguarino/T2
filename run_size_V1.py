@@ -89,15 +89,16 @@ else:
     # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_____', 'store_stimuli' : False}),replace=True)
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_____LGN+PGN+V1_overlapping', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-    data_store.save()
 
-# Analysis and Plotting
-if mpi_comm.rank == MPI_ROOT:
-    # perform_analysis_test( data_store )
-    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-    perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+    # Analysis and Plotting
+    if mpi_comm.rank == MPI_ROOT:
+        # perform_analysis_test( data_store )
+        # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+        perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+
+    data_store.save()

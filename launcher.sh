@@ -20,30 +20,23 @@
 
 ################################################
 # PARAMETER SEARCH
-echo "starting PARAMETER SEARCH"
-echo 
-
-# python parameter_search.py run_size.py nest param/defaults_mea
-# python parameter_search.py run_spatial_V1.py nest param/defaults
-# python parameter_search.py run_size_V1.py nest param/defaults_mea
-# python parameter_search_full.py run_spatial_V1_full.py nest param/defaults
+# echo "starting PARAMETER SEARCH"
+# echo 
 
 # SPATIAL
 # full closed loop model
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
+# python parameter_search.py run_spatial_V1.py nest param/defaults
 
 # SIZE
 # decorticated
-# python parameter_search_PGNLGN_1.py run_size.py nest param/defaults_mea
-# python parameter_search_PGNLGN_2.py run_size.py nest param/defaults_mea
-# python parameter_search_PGNLGN_3.py run_size.py nest param/defaults_mea
-
+# python parameter_search.py run_size.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # full closed loop model
-python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 
 
@@ -100,14 +93,17 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py
 
 ################################################
 # EXPERIMENTS Closed loop 2 (LGN+PGN+V1)
-
+# with V1 but without feedback
 
 # echo "starting Size"
 # echo 
-# mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
+# # mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
+# # mpirun python run_size_V1_full.py nest 8 param/defaults_mea 'data_size_V1' 
+# #V1 Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
+# #V1 Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
 # mpirun python run_size_V1_full.py nest 8 param/defaults_mea 'data_size_V1' 
-#V1 Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
-#V1 Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
+# mpirun python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_V1_nonover' 
+# mpirun python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_V1_over' 
 
 
 # echo "starting Contrast"
@@ -128,4 +124,26 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py
 # echo "starting Temporal"
 # echo 
 # mpirun python run_temporal_V1.py nest 8 param/defaults 'data_temporal_V1'
+
+
+
+
+################################################
+# EXPERIMENTS Closed loop 3 (LGN+PGN+V1)
+# with V1 but with feedback
+
+
+echo "starting Contrast"
+echo 
+mpirun python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
+
+
+echo "starting Spatial"
+echo 
+mpirun python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
+
+
+echo "starting Temporal"
+echo 
+mpirun python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
 
