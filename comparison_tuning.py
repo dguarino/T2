@@ -68,6 +68,7 @@ def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full,
 	# full
 	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 	dsv = param_filter_query( data_store_full, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+
 	PlotTuningCurve(
 		dsv,
 		ParameterSet({
@@ -98,6 +99,7 @@ def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full,
 	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 	print spike_ids2
 	dsv = param_filter_query( data_store_inac, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+
 	PlotTuningCurve(
 		dsv,
 		ParameterSet({
@@ -197,11 +199,15 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 
 	# subplot figure creation
+	plotOnlyPop = False
 	print 'rowplots', rowplots
 	print "Starting plotting ..."
 	print "slice_ranges:", len(slice_ranges), slice_ranges
-	fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
-	# fig, axes = plt.subplots(nrows=2, ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
+	if len(slice_ranges) >1:
+		fig, axes = plt.subplots(nrows=len(slice_ranges), ncols=rowplots+1, figsize=(3*rowplots, 3*len(slice_ranges)), sharey=False)
+	else:
+		fig, axes = plt.subplots(nrows=2, ncols=2, sharey=False)
+		plotOnlyPop=True
 	print axes.shape
 
 	p_significance = .02
@@ -250,10 +256,11 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 			else:
 				y_full = tc_dict1[0].values()[0][1]
 				y_inac = tc_dict2[0].values()[0][1]
-			axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
-			axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
-			axes[col,j+1].set_title(str(nid), fontsize=10)
-			axes[col,j+1].set_xscale("log")
+			if not plotOnlyPop:
+				axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
+				axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
+				axes[col,j+1].set_title(str(nid), fontsize=10)
+				axes[col,j+1].set_xscale("log")
 
 		# Population histogram
 		diff_full_inac = []
@@ -537,16 +544,6 @@ import os
 #                           smaller equal           larger
 #            0     1     2  |  3  |  4  |  5     6     7     8     9
 sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
-# # OVER
-# Ssmaller = 2  
-# Sequal   = 3
-# SequalStop  = 5
-# Slarger  = 8
-# # NON_OVER
-Ssmaller = 3  
-Sequal   = 5
-SequalStop  = 7
-Slarger  = 8
 
 #                                         |  smaller    |       equal        |                    |   larger
 #          0      1      2      3      4      5      6      7      8      9      10     11     12     13     14     15     16     17     18     19
@@ -566,7 +563,7 @@ full_list = [
 	# "CombinationParamSearch_size_full_8",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
-	"new_set_full"
+	"CombinationParamSearch_full_larger21"
 	# "CombinationParamSearch_full[0.0008, 0.00085]"
 	# "CombinationParamSearch_full[0.0009]2"
 	# "CombinationParamSearch_full[0.0012, 0.0013]"
@@ -589,7 +586,8 @@ inac_large_list = [
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	# "new_set_over"
-	"new_set_nonover"
+	"CombinationParamSearch_nonover_larger21"
+	# "CombinationParamSearch_over_larger5"
 	# "CombinationParamSearch_nonover[0.0008, 0.00085]"
 	# "CombinationParamSearch_nonover[0.0009]2"
 	# "CombinationParamSearch_nonover[0.0012, 0.0013]"
@@ -597,11 +595,38 @@ inac_large_list = [
 	# "CombinationParamSearch_over[0.0012]"
 	]
 
-sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
-steps = [.3]
+# - arborization 60
+#box = []
+#box = [[-.2,.2],[.2,.4]]
+#box = [[-.3,.3],[.0,.4]]
+# # OVER
+# Ssmaller = 2  
+# Sequal   = 3
+# SequalStop  = 5
+# Slarger  = 8
+# # NON_OVER
+# Ssmaller = 3  
+# Sequal   = 5
+# SequalStop  = 7
+# Slarger  = 8
+
+# - arborization 200
 box = []
 # box = [[-.2,.2],[.2,.4]]
-box = [[-.3,.3],[.0,.4]]
+# box = [[-.3,.3],[.0,.4]]
+# OVER
+# Ssmaller = 2  
+# Sequal   = 4
+# SequalStop  = 6
+# Slarger  = 8
+# NON_OVER
+Ssmaller = 3  
+Sequal   = 5
+SequalStop = 6
+Slarger  = 6
+
+sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+steps = [.6]
 
 for i,l in enumerate(full_list):
 	# for parameter search

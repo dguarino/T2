@@ -64,7 +64,7 @@
         'base_weight': 0.0012, # µS, LiuBoleaGolshaniJones2001
         'num_samples' : 60, # estimated see evernote
     },
-    'LGN_PGN_ConnectionOff': ref('pgn.LGN_PGN_ConnectionOn'),
+    'LGN_PGN_ConnectionOff': ref('pgn.LGN_PGN_ConnectionOn'), 
     
     # lateral
     'PGN_PGN_Connection': {

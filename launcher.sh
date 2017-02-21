@@ -34,7 +34,7 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # full closed loop model
-# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
@@ -46,9 +46,9 @@
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_1
-# python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_2
-# python parameter_search_analysis.py CombinationParamSearch_inactive_PGNLGN_3
+# python parameter_search_analysis.py CombinationParamSearch_full_larger23
+# python parameter_search_analysis.py CombinationParamSearch_nonover_larger21
+# python parameter_search_analysis.py CombinationParamSearch_over_larger4
 
 # python parameter_search_analysis.py CombinationParamSearch_size_decorticated_8
 
@@ -133,17 +133,17 @@
 # with V1 but with feedback
 
 
-echo "starting Contrast"
-echo 
-mpirun python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
+# echo "starting Contrast"
+# echo 
+# mpirun python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
 
 
-echo "starting Spatial"
-echo 
-mpirun python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
+# echo "starting Spatial"
+# echo 
+# mpirun python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
 
 
-echo "starting Temporal"
-echo 
-mpirun python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
+# echo "starting Temporal"
+# echo 
+# mpirun python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
 

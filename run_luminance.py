@@ -46,7 +46,7 @@ withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
 # Model execution
-if True:
+if False:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spontaneous )
     data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_contrast )
@@ -95,3 +95,5 @@ else:
 if mpi_comm.rank == MPI_ROOT:
     # perform_analysis_test( data_store )
     perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+    
+    data_store.save()
