@@ -26,7 +26,7 @@ from mozaik.storage.datastore import PickledDataStore
 
 
 
-def perform_pairwise_comparison( sheet, folder_full, folder_inactive, parameter, indices, xlabel="", ylabel="" ):
+def perform_pairwise_comparison( sheet, folder_full, folder_inactive, parameter, indices, xlabel="", ylabel="", withRegression=True, withCorrCoef=True ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -87,7 +87,10 @@ def perform_pairwise_comparison( sheet, folder_full, folder_inactive, parameter,
 
 	# Plotting tuning curves
 	x_full = reduce( operator.getitem, indices, tc_dict1[0].values() )
-	x_inac = reduce( operator.getitem, indices, tc_dict1[0].values() ) + numpy.random.uniform(low=0.2, high=2., size=(len(neurons_full)) ) #!!!!!!!!!!!!! only for test
+	x_inac = reduce( operator.getitem, indices, tc_dict1[0].values() ) 
+	#!!!!!!!!!!!!! only for test
+	x_inac = x_inac + numpy.random.uniform(low=0.2, high=2., size=(len(neurons_full)) ) 
+	#!!!!!!!!!!!!! only for test
 
 	fig,ax = plt.subplots()
 	ax.scatter( x_full, x_inac, marker="D", facecolor="k", edgecolor="k", label=sheet )
@@ -104,16 +107,19 @@ def perform_pairwise_comparison( sheet, folder_full, folder_inactive, parameter,
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
 
-	# add regression line
-	m,b = numpy.polyfit(x_full,x_inac, 1)
-	x = numpy.arange(x0, x1)
-	ax.plot(x, m*x+b, 'k-')
+	if withRegression:
+		# add regression line
+		m,b = numpy.polyfit(x_full,x_inac, 1)
+		x = numpy.arange(x0, x1)
+		ax.plot(x, m*x+b, 'k-')
 
-	# add correlation coefficient
-	corr = numpy.corrcoef(x_full,x_inac)
+	if withCorrCoef:
+		# add correlation coefficient
+		corr = numpy.corrcoef(x_full,x_inac)
+		sheet = sheet + " r=" + '{:.3f}'.format(corr[0][1])
 
 	# text
-	ax.set_title( sheet + " r=" + '{:.3f}'.format(corr[0][1]) )
+	ax.set_title( sheet )
 	ax.set_xlabel( xlabel )
 	ax.set_ylabel( ylabel )
 	ax.legend( loc="lower right", shadow=False, scatterpoints=1 )
@@ -163,5 +169,7 @@ for i,l in enumerate(full_list):
 				parameter='background_luminance',
 				indices=[0,1,2], # data, trialaveraged, 3rd stimulus
 				xlabel="sponatneous activity before cooling (spikes/s)",
-				ylabel="sponatneous activity during cooling (spikes/s)"
+				ylabel="sponatneous activity during cooling (spikes/s)",
+				withRegression=True,
+				withCorrCoef=True
 			)

@@ -46,7 +46,7 @@ python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaul
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_full_larger23
+# python parameter_search_analysis.py CombinationParamSearch_full_larger24
 # python parameter_search_analysis.py CombinationParamSearch_nonover_larger21
 # python parameter_search_analysis.py CombinationParamSearch_over_larger4
 
