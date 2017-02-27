@@ -118,9 +118,10 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	# PLOTTING
 	width = bin_edges[1] - bin_edges[0]
 	center = (bin_edges[:-1] + bin_edges[1:]) / 2
-	plt.bar(center, hist, align='center', width=width, facecolor='white')
+	barlist = plt.bar(center, hist, align='center', width=width, facecolor='white')
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
+	barlist[0:5].set_color('k')
 	plt.axis([bin_edges[0], bin_edges[-1], 0, 30])
 	plt.xticks(bin_edges, (10,9,8,7,6,5,4,3,2,1))
 	plt.savefig( folder+"/suppression_index_"+sheet+".png", dpi=200 )
