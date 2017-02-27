@@ -3,6 +3,7 @@
 # assuming the same amount of recorded cells in the two conditions
 import sys
 import os
+import ast
 
 from functools import reduce # forward compatibility
 import operator
@@ -27,40 +28,106 @@ from mozaik.storage.datastore import PickledDataStore
 
 from mozaik.tools.mozaik_parametrized import colapse
 
+import neo
 
 
 
-def get_per_neuron_firing_rate( datastore, stimulus, sheet, start, end, selected_parameter, parameter_list ):
+# neo spiktrains have:
+# - fano factor
+# - isi
+
+
+
+def get_per_neuron_firing_rate( datastore, stimulus, sheet, start, end, stimulus_parameter, group_by ):
 	dsv = queries.param_filter_query( datastore, st_name=stimulus, sheet_name=sheet )
-	# get neo segment
-	segs = dsv.get_segments() # from datastore DataStoreView
+	# get neo segment, sorted by stimulu parameter chosen
+	segs = dsv.get_segments()
 	print "NEO segments: ",len(segs)
 
-	# cutout
-	# print segs[0].spiketrains[0]
-	for i,s in enumerate(segs):
-	    for j,t in enumerate(s.spiketrains):
-	        segs[i].spiketrains[j] = t.time_slice( start*qt.ms, end*qt.ms )
-	# print segs[0].spiketrains[0]
-
 	st = [ MozaikParametrized.idd(s) for s in dsv.get_stimuli() ]
-	# print "stimuli: ", len(st)
-	for i,s in enumerate(st):
-		# print s.name
-		st[i].duration = end-start
-	# print "st:", st
+	stimuli = []
+	for s in st:
+		param = getattr(s, stimulus_parameter)
+		if param not in stimuli:
+			stimuli.append(param)
+	stimuli = sorted(stimuli)
+	# print "Stimuli: ", len(stimuli), stimuli
 
-	# transform spike trains due to stimuly to mean_rates
-	mean_rates = [numpy.array(s.mean_rates()) for s in segs]
-	print "mean_rates: ",len(mean_rates)
+	spike_ids = sorted( segs[0].get_stored_spike_train_ids() )
+	# print "spike_ids:", len(spike_ids), spike_ids
+ 
+	qstart = (start * qt.ms).rescale(qt.s).magnitude
+	qend = (end * qt.ms).rescale(qt.s).magnitude
+	trials = len(st) / len(stimuli)
+	# print "trials:", trials
 
-	# join rates and stimuli
-	(mean_rates, s) = colapse(mean_rates, st, parameter_list=parameter_list)
-	stimuli = [getattr(i, selected_parameter) for i in s]
-	rates = numpy.array(mean_rates)
-	# print rates.shape #(stimulus, trial, cells)
+	# Compute Mean firing rate per cell (source_id) and chosen stimulus_parameter
+	mean_rates = numpy.zeros( (len(stimuli), len(spike_ids)) )
+	# print "mean_rates.shape:", mean_rates.shape
+	# for each segment (whose content is unsorted)
+	for g in segs:
 
-	return rates, stimuli
+		# get segment annotation
+		stim = ast.literal_eval( g.annotations['stimulus'] )
+		# get current stimulus parameter index among (sorted) stimuli
+		i = stimuli.index( stim[stimulus_parameter] )
+		# print i, "==", stim[stimulus_parameter] # check correct match all times
+
+		# for each cell spiketrain
+		for t in g.spiketrains:
+			# get current cell index among (sorted) spike_ids
+			j = spike_ids.index(t.annotations['source_id'])
+			# print j, "==", t.annotations['source_id'] # check correct match all times
+			# increment its spike count (cutout)
+			mean_rates[i][ j ] = mean_rates[i][ j ] + len(t.time_slice(start, end))/(qend-qstart)
+
+		# do the mean rate over trials
+		mean_rates[i] = mean_rates[i] / trials
+
+	return mean_rates, stimuli
+
+
+
+
+
+def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, group_by='trial' )
+	print rates.shape # (stimuli, cells)
+	print rates[0][10]
+	print stimuli
+
+	# END-INHIBITION as in MurphySillito1987:
+	# For each cell
+	# 1. find the peak response stimulus value
+	peaks = numpy.amax(rates, axis=0) # print peaks
+	# 2. compute average of plateau response (before-last 3: [1.55, 2.35, 3.59])
+	plateaus = numpy.mean( rates[6:9], axis=0) # print plateaus
+	# 3. compute the percentage difference from peak: (peak-plateau)/peak *100
+	ends = (peaks-plateaus)/peaks *100 # print ends
+	# 4. group cells by end-inhibition
+	hist, bin_edges = numpy.histogram( ends, bins=10 )
+	hist = hist[::-1] # reversed
+	bin_edges = bin_edges[::-1]
+	print hist
+	print bin_edges
+
+	# PLOTTING
+	width = bin_edges[1] - bin_edges[0]
+	center = (bin_edges[:-1] + bin_edges[1:]) / 2
+	plt.bar(center, hist, align='center', width=width, facecolor='white')
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.axis([bin_edges[0], bin_edges[-1], 0, 30])
+	plt.xticks(bin_edges, (10,9,8,7,6,5,4,3,2,1))
+	plt.savefig( folder+"/suppression_index_"+sheet+".png", dpi=200 )
+	plt.close()
+	# garbage
+	gc.collect()
+
 
 
 
@@ -70,7 +137,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, parameter_list=['trial'] )
+	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, group_by='trial' )
 	print rates
 
 	# compute per-trial mean rate over cells axis=2
@@ -130,7 +197,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 
 
-def perform_pairwise_comparison( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False ):
+def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False ):
 	print "folder_full: ",folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -147,8 +214,8 @@ def perform_pairwise_comparison( sheet, folder_full, folder_inactive, stimulus, 
 	# print sheet_ids2
 
 
-	x_full_rates, stimuli_full = get_per_neuron_firing_rate( data_store_full, stimulus, sheet, start, end, parameter, parameter_list=['trial'] )
-	x_inac_rates, stimuli_inac = get_per_neuron_firing_rate( data_store_inac, stimulus, sheet, start, end, parameter, parameter_list=['trial'] )
+	x_full_rates, stimuli_full = get_per_neuron_firing_rate( data_store_full, stimulus, sheet, start, end, parameter, group_by='trial' )
+	x_inac_rates, stimuli_inac = get_per_neuron_firing_rate( data_store_inac, stimulus, sheet, start, end, parameter, group_by='trial' )
 	# print x_full_rates.shape # (5, 6, 133) # (stimuli, trials, cells)
 
 	# compute mean rate over trials (axis=1) so to have per-cells trial-averaged stimuli
@@ -224,12 +291,11 @@ def perform_pairwise_comparison( sheet, folder_full, folder_inactive, stimulus, 
 	ax.set_ylabel( ylabel )
 	ax.legend( loc="lower right", shadow=False, scatterpoints=1 )
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedPairwiseComparison_"+stimulus+"_"+parameter+"_"+sheet+".png", dpi=200 )
+	plt.savefig( folder_inactive+"/TrialAveragedPairwiseScatter_"+parameter+"_"+sheet+".png", dpi=200 )
 	fig.clf()
 	plt.close()
 	# garbage
 	gc.collect()
-
 
 
 
@@ -247,15 +313,20 @@ full_list = [
 	# "ThalamoCorticalModel_data_temporal_____.0008"
 	# "ThalamoCorticalModel_data_temporal_V1_____.0008"
 
-	"ThalamoCorticalModel_data_spatial_V1_full_____"
+	# "ThalamoCorticalModel_data_spatial_V1_full_____"
 	# "ThalamoCorticalModel_data_spatial_____.0012"
 	# "ThalamoCorticalModel_data_spatial_Kimura_____"
+
+	"ThalamoCorticalModel_data_size_V1_full_____"
+	# "ThalamoCorticalModel_data_size_open_____"
 	]
 
 inac_list = [ 
 	# "ThalamoCorticalModel_data_luminance_____"
 
-	"ThalamoCorticalModel_data_spatial_Kimura_____"
+	# "ThalamoCorticalModel_data_spatial_Kimura_____"
+	# "ThalamoCorticalModel_data_spatial_____.0012"
+
 	]
 
 
@@ -331,13 +402,24 @@ for i,f in enumerate(full_list):
 		# 	percentile=False 
 		# )
 
+		# SIZE
+		perform_end_inhibition_barplot( 
+			sheet=s, 
+			folder=f, 
+			stimulus="DriftingSinusoidalGratingDisk",
+			parameter='radius',
+			start=100., 
+			end=1000., 
+			xlabel="Index of end-inhibition",
+			ylabel="Number of cells",
+		)
 
-
+		# PAIRWISE
 		for j,l in enumerate(inac_list):
 			print j
 
 			# # SPONTANEOUS ACTIVITY
-			# perform_pairwise_comparison( 
+			# perform_pairwise_scatterplot( 
 			# 	sheet=s, 
 			# 	folder_full=f, 
 			# 	folder_inactive=l,
@@ -353,20 +435,20 @@ for i,f in enumerate(full_list):
 			# 	withCentroid=False
 			# )
 
-			# SPATIAL FREQUENCY
-			perform_pairwise_comparison( 
-				sheet=s, 
-				folder_full=f, 
-				folder_inactive=l,
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				stimulus_band=0,
-				parameter='spatial_frequency',
-				start=100., 
-				end=10000., 
-				xlabel="Control",
-				ylabel="PGN Inactivated",
-				withRegression=False,
-				withCorrCoef=False,
-				withCentroid=True,
-				withLowPassIndex=True
-			)
+			# # SPATIAL FREQUENCY
+			# perform_pairwise_scatterplot( 
+			# 	sheet=s, 
+			# 	folder_full=f, 
+			# 	folder_inactive=l,
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	stimulus_band=1, # 0, 1
+			# 	parameter='spatial_frequency',
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Control",
+			# 	ylabel="PGN Inactivated",
+			# 	withRegression=False,
+			# 	withCorrCoef=False,
+			# 	withCentroid=True,
+			# 	withLowPassIndex=True
+			# )

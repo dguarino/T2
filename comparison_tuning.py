@@ -368,15 +368,9 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 
 
-def perform_selectivity_comparison():
-	# What is the added selectivity in having a loop?
-	# Selectivity for what? For the stimulus variation (e.g. size).
-	# null-hypothesis: "No difference in size selectivity between open- and closed-loop"
-	# as in YuHorevRubinDerdikmanHaidarliuAhissar2015 figure 6.
-	# simple time-histogram difference, and Kruskal-Wallis non-parametric analysis of variance
-
-	#PSTH(param_filter_query(data_store),ParameterSet({'bin_length' : 2.0 })).analyse()
-	#queries.param_filter_query(self.datastore,st_name='FullfieldDriftingSinusoidalGrating',st_contrast=100,st_orientation=col,sheet_name=self.parameters.sheet_name,analysis_algorithm='PSTH')
+def perform_time_course_fano_factor_comparison():
+	# What is the added value in having a loop?
+	# Compare it with Churchland_etal_2010
 
 	pass
 

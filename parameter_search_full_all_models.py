@@ -45,9 +45,9 @@ CombinationParameterSearch(
         # 'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [90, 150], #150 optimal for over/nonover
         # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0005], # automatic (ref) assignment also to Off neurons
 
-        'l4_cortex_exc.AfferentConnection.base_weight' : [.0012],
+        'l4_cortex_exc.AfferentConnection.base_weight' : [.0013],
 
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0002], # model A of feedback: .0004
+        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001, .0002], # model A of feedback: .0004
         'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [400], # model A of feedback: 250,
         'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [150], # model A of feedback: 60
 
