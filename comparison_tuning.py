@@ -557,7 +557,7 @@ full_list = [
 	# "CombinationParamSearch_size_full_8",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
-	"CombinationParamSearch_full_larger21"
+	"CombinationParamSearch_full_larger26"
 	# "CombinationParamSearch_full[0.0008, 0.00085]"
 	# "CombinationParamSearch_full[0.0009]2"
 	# "CombinationParamSearch_full[0.0012, 0.0013]"
@@ -580,7 +580,7 @@ inac_large_list = [
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	# "new_set_over"
-	"CombinationParamSearch_nonover_larger21"
+	"CombinationParamSearch_nonover_larger26"
 	# "CombinationParamSearch_over_larger5"
 	# "CombinationParamSearch_nonover[0.0008, 0.00085]"
 	# "CombinationParamSearch_nonover[0.0009]2"
@@ -606,8 +606,8 @@ inac_large_list = [
 
 # - arborization 200
 box = []
-# box = [[-.2,.2],[.2,.4]]
-# box = [[-.3,.3],[.0,.4]]
+box = [[-.2,.2],[.2,.4]]
+box = [[-.3,.3],[.0,.4]]
 # OVER
 # Ssmaller = 2  
 # Sequal   = 4

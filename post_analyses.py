@@ -114,15 +114,24 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	bin_edges = bin_edges[::-1]
 	print hist
 	print bin_edges
+	print ends.mean()
 
 	# PLOTTING
 	width = bin_edges[1] - bin_edges[0]
 	center = (bin_edges[:-1] + bin_edges[1:]) / 2
-	barlist = plt.bar(center, hist, align='center', width=width, facecolor='white')
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	barlist[0:5].set_color('k')
-	plt.axis([bin_edges[0], bin_edges[-1], 0, 30])
+	fig,ax = plt.subplots()
+	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white')
+	ax.plot((ends.mean(), ends.mean()), (0,30), 'k:', linewidth=2)
+	ax.set_xlabel(xlabel)
+	ax.set_ylabel(ylabel)
+	barlist[0].set_color('k')
+	barlist[1].set_color('k')
+	barlist[2].set_color('k')
+	barlist[3].set_color('k')
+	barlist[4].set_color('k')
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.axis([bin_edges[0], bin_edges[-1], 0, 30])
 	plt.xticks(bin_edges, (10,9,8,7,6,5,4,3,2,1))
 	plt.savefig( folder+"/suppression_index_"+sheet+".png", dpi=200 )
 	plt.close()
@@ -318,8 +327,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_spatial_____.0012"
 	# "ThalamoCorticalModel_data_spatial_Kimura_____"
 
-	"ThalamoCorticalModel_data_size_V1_full_____"
-	# "ThalamoCorticalModel_data_size_open_____"
+	# "ThalamoCorticalModel_data_size_V1_full_____"
+	"ThalamoCorticalModel_data_size_open_____"
 	]
 
 inac_list = [ 

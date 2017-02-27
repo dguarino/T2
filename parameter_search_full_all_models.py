@@ -38,7 +38,7 @@ CombinationParameterSearch(
         # 'pgn.params.cell.params.tau_m': [17.0]
 
         # 'pgn.LGN_PGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [40, 75], # optimal for over/nonover
-        'pgn.LGN_PGN_ConnectionOn.base_weight': [.0005, .0007], #[.0009, .001], # model A of feedback: .0012
+        'pgn.LGN_PGN_ConnectionOn.base_weight': [.0007], #[.0009, .001], # model A of feedback: .0012
         # 'pgn.LGN_PGN_Connection.num_samples': [40], # 
         'pgn.PGN_PGN_Connection.base_weight': [.0001], #[.0008], # model A of feedback: .0001 
         # 'pgn.PGN_PGN_Connection.num_samples': [40], 
@@ -47,7 +47,7 @@ CombinationParameterSearch(
 
         'l4_cortex_exc.AfferentConnection.base_weight' : [.0013],
 
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001, .0002], # model A of feedback: .0004
+        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0003], # model A of feedback: .0004
         'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [400], # model A of feedback: 250,
         'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [150], # model A of feedback: 60
 
