@@ -46,8 +46,8 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_full_larger26
-# python parameter_search_analysis.py CombinationParamSearch_nonover_larger26
+# python parameter_search_analysis.py CombinationParamSearch_full_larger27
+# python parameter_search_analysis.py CombinationParamSearch_nonover_larger27
 # python parameter_search_analysis.py CombinationParamSearch_over_larger4
 
 # python parameter_search_analysis.py CombinationParamSearch_size_decorticated_8

@@ -97,7 +97,7 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 
 	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, group_by='trial' )
 	print rates.shape # (stimuli, cells)
-	print rates[0][10]
+	#print rates[0][10]
 	print stimuli
 
 	# END-INHIBITION as in MurphySillito1987:
@@ -110,18 +110,19 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	ends = (peaks-plateaus)/peaks *100 # print ends
 	# 4. group cells by end-inhibition
 	hist, bin_edges = numpy.histogram( ends, bins=10 )
+	mean = ends.mean()
+	print mean
 	hist = hist[::-1] # reversed
 	bin_edges = bin_edges[::-1]
 	print hist
 	print bin_edges
-	print ends.mean()
 
 	# PLOTTING
 	width = bin_edges[1] - bin_edges[0]
 	center = (bin_edges[:-1] + bin_edges[1:]) / 2
 	fig,ax = plt.subplots()
 	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white')
-	ax.plot((ends.mean(), ends.mean()), (0,30), 'k:', linewidth=2)
+	ax.plot((mean, mean), (0,30), 'k:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	barlist[0].set_color('k')
@@ -341,7 +342,7 @@ inac_list = [
 
 
 
-sheets = ['X_ON'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+sheets = ['X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 
 
 
