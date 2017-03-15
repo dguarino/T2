@@ -27,16 +27,18 @@ from mozaik.controller import Global
 def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False, box=[]):
 	radius_ids = []
 	distances = []
-	min_radius = radius[0] # over: 0. # non: 1.
-	max_radius = radius[1] # over: .7 # non: 3.
+	min_radius = radius[0]
+	max_radius = radius[1]
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
 
 		if len(box)>1:
-			if a[0]>=box[0][0] and a[0]<=box[0][1] and a[1]>=box[1][0] and a[1]<=box[1][1]:
-				# print box[0][0], a[0], box[0][1]
-				# print box[1][0], a[1], box[1][1]
+			# Ex box: [ [-.3,.0], [.3,-.4] ]
+			# Ex a: [ [-0.10769224], [ 0.16841423], [ 0. ] ]
+			# print box[0][0], a[0], box[1][0]
+			# print box[0][1], a[1], box[1][1]
+			if a[0]>=box[0][0] and a[0]<=box[1][0] and a[1]>=box[0][1] and a[1]<=box[1][1]:
 				radius_ids.append(i[0])
 				distances.append(0.0)
 		else:
@@ -44,7 +46,7 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 			l = numpy.linalg.norm(a - position)
 
 			# print "distance",l
-			if l>min_radius and l<max_radius:
+			if abs(l)>min_radius and abs(l)<max_radius:
 				# print "taken"
 				radius_ids.append(i[0])
 				distances.append(l)
@@ -57,79 +59,7 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 
 
 
-def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive ):
-	print folder_full
-	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
-	data_store_full.print_content(full_recordings=False)
-	print folder_inactive
-	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
-	data_store_inac.print_content(full_recordings=False)
-
-	# full
-	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	dsv = param_filter_query( data_store_full, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
-
-	PlotTuningCurve(
-		dsv,
-		ParameterSet({
-			'polar': False,
-			'pool': False,
-			'centered': False,
-			'percent': True,
-			'mean': True,
-			'parameter_name' : 'radius', 
-			# 'neurons': list(spike_ids1[11:12]), 
-			'neurons': list(spike_ids1), 
-			'sheet_name' : sheet
-		}), 
-		fig_param={'dpi' : 100,'figsize': (8,8)}, 
-		# plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids1[11:12])+".png"
-		plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
-	).plot({
-		'*.y_lim':(0,100), 
-		'*.y_label': "Response (%)",
-		# '*.y_ticks':[10, 20, 30, 40, 50], 
-		'*.x_ticks':[0.1, 1, 2, 4, 6], 
-		'*.x_scale':'linear',
-		#'*.x_scale':'log', '*.x_scale_base':2,
-		'*.fontsize':24
-	})
-
-	# inactivated
-	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	print spike_ids2
-	dsv = param_filter_query( data_store_inac, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
-
-	PlotTuningCurve(
-		dsv,
-		ParameterSet({
-			'polar': False,
-			'pool': False,
-			'centered': False,
-			'percent': True,
-			'mean': True,
-			'parameter_name' : 'radius', 
-			'neurons': list(spike_ids2), 
-			# 'neurons': list(spike_ids2[11:12]), 
-			'sheet_name' : sheet
-		}), 
-		fig_param={'dpi' : 100,'figsize': (8,8)}, 
-		# plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids2[11:12])+".png"
-		plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
-	).plot({
-		'*.y_lim':(0,100), 
-		'*.y_label': "Response (%)",
-		# '*.y_ticks':[10, 20, 30, 40, 50], 
-		'*.x_ticks':[0.1, 1, 2, 4, 6], 
-		'*.x_scale':'linear',
-		#'*.x_scale':'log', '*.x_scale_base':2,
-		'*.fontsize':24
-	})
-
-
-
-
-def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ssmaller=3, Sequal=4, SequalStop=5, Slarger=6, box=[] ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ismaller=[2,3], Iequal=[4,5], Ilarger=[6,8], box=[] ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -196,7 +126,6 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		print "neurons_inac:", len(neurons_inac[col]), neurons_inac[col]
 
 		assert len(neurons_full[col]) > 0 , "ERROR: the number of recorded neurons is 0"
-
 
 	# subplot figure creation
 	plotOnlyPop = False
@@ -291,9 +220,14 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# print "diff",(numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))
 		# print "diff_norm",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)))
 		# print "diff_norm_perc",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
-		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ssmaller:Sequal], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) * 100
-		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Sequal:SequalStop], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) * 100
-		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Slarger:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) * 100
+
+		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ssmaller:Sequal], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) * 100
+		# diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Sequal:SequalStop], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) * 100
+		# diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Slarger:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) * 100
+
+		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0)) * 100
+		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0)) * 100
+		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0)) * 100
 		# print "diff_smaller", diff_smaller
 		# average of all cells
 		smaller = sum(diff_smaller) / num_cells
@@ -364,6 +298,78 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 	plt.close()
 	# garbage
 	gc.collect()
+
+
+
+
+def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive ):
+	print folder_full
+	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
+	data_store_full.print_content(full_recordings=False)
+	print folder_inactive
+	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
+	data_store_inac.print_content(full_recordings=False)
+
+	# full
+	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	dsv = param_filter_query( data_store_full, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+
+	PlotTuningCurve(
+		dsv,
+		ParameterSet({
+			'polar': False,
+			'pool': False,
+			'centered': False,
+			'percent': True,
+			'mean': True,
+			'parameter_name' : 'radius', 
+			# 'neurons': list(spike_ids1[11:12]), 
+			'neurons': list(spike_ids1), 
+			'sheet_name' : sheet
+		}), 
+		fig_param={'dpi' : 100,'figsize': (8,8)}, 
+		# plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids1[11:12])+".png"
+		plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
+	).plot({
+		'*.y_lim':(0,100), 
+		'*.y_label': "Response (%)",
+		# '*.y_ticks':[10, 20, 30, 40, 50], 
+		'*.x_ticks':[0.1, 1, 2, 4, 6], 
+		'*.x_scale':'linear',
+		#'*.x_scale':'log', '*.x_scale_base':2,
+		'*.fontsize':24
+	})
+
+	# inactivated
+	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	print spike_ids2
+	dsv = param_filter_query( data_store_inac, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
+
+	PlotTuningCurve(
+		dsv,
+		ParameterSet({
+			'polar': False,
+			'pool': False,
+			'centered': False,
+			'percent': True,
+			'mean': True,
+			'parameter_name' : 'radius', 
+			'neurons': list(spike_ids2), 
+			# 'neurons': list(spike_ids2[11:12]), 
+			'sheet_name' : sheet
+		}), 
+		fig_param={'dpi' : 100,'figsize': (8,8)}, 
+		# plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids2[11:12])+".png"
+		plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
+	).plot({
+		'*.y_lim':(0,100), 
+		'*.y_label': "Response (%)",
+		# '*.y_ticks':[10, 20, 30, 40, 50], 
+		'*.x_ticks':[0.1, 1, 2, 4, 6], 
+		'*.x_scale':'linear',
+		#'*.x_scale':'log', '*.x_scale_base':2,
+		'*.fontsize':24
+	})
 
 
 
@@ -535,8 +541,12 @@ def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, 
 # Execution
 import os
 
-#                           smaller equal           larger
-#            0     1     2  |  3  |  4  |  5     6     7     8     9
+# How the choice of smaller, equal, and larger is made:
+# - Smaller: [ smaller0 : smaller1 ]
+# - Equal:   [  equal0  :  equal1  ]
+# - Larger:  [  larger0 : larger1  ]
+
+#            0     1     2     3     4     5     6     7     8     9
 sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 #                                         |  smaller    |       equal        |                    |   larger
@@ -557,7 +567,7 @@ full_list = [
 	# "CombinationParamSearch_size_full_8",
 	# "CombinationParamSearch_size_V1_full_more", 
 	# "CombinationParamSearch_size_V1_full_more2" 
-	"CombinationParamSearch_full_larger27"
+	"CombinationParamSearch_50_150_full"
 	# "CombinationParamSearch_full[0.0008, 0.00085]"
 	# "CombinationParamSearch_full[0.0009]2"
 	# "CombinationParamSearch_full[0.0012, 0.0013]"
@@ -580,7 +590,7 @@ inac_large_list = [
 	# "CombinationParamSearch_size_V1_inhibition_large_more", 
 	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
 	# "new_set_over"
-	"CombinationParamSearch_nonover_larger27"
+	"CombinationParamSearch_50_150_nonover"
 	# "CombinationParamSearch_over_larger5"
 	# "CombinationParamSearch_nonover[0.0008, 0.00085]"
 	# "CombinationParamSearch_nonover[0.0009]2"
@@ -590,34 +600,22 @@ inac_large_list = [
 	]
 
 # - arborization 60
-#box = []
-#box = [[-.2,.2],[.2,.4]]
-#box = [[-.3,.3],[.0,.4]]
-# # OVER
-# Ssmaller = 2  
-# Sequal   = 3
-# SequalStop  = 5
-# Slarger  = 8
-# # NON_OVER
-# Ssmaller = 3  
-# Sequal   = 5
-# SequalStop  = 7
-# Slarger  = 8
-
-# - arborization 200
 box = []
-# box = [[-.2,.2],[.2,.4]]
+# box = [ lowerleft, upperright ]
+box = [[-.2,.2],[.2,.4]]
 # box = [[-.3,.3],[.0,.4]]
-# OVER
-# Ssmaller = 2  
-# Sequal   = 4
-# SequalStop  = 6
-# Slarger  = 8
+# box = [ [-.3,-.6], [.3,-.3] ]
+# box = [ [-.3,.1], [.3,.3] ]
+# # OVER
+Ismaller = [2,4]
+Iequal   = [4,6]
+Ilarger  = [7,9]
 # NON_OVER
-Ssmaller = 3  
-Sequal   = 5
-SequalStop = 6
-Slarger  = 6
+# Ismaller = 2  
+# Iequal   = 5
+# Iequal  = 7
+# Ilarger  = 8
+
 
 sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 steps = [.3]
@@ -666,10 +664,9 @@ for i,l in enumerate(full_list):
 					sizes = sizes,
 					folder_full=f, 
 					folder_inactive=large[i],
-					Ssmaller = Ssmaller,
-					Sequal   = Sequal,
-					SequalStop= SequalStop,
-					Slarger  = Slarger,
+					Ismaller = Ismaller,
+					Iequal   = Iequal,
+					Ilarger  = Ilarger,
 					box = box
 				)
 

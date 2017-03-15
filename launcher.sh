@@ -34,9 +34,14 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # full closed loop model
-python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+
+# python parameter_search_50_150.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_50_150.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_75_100.py run_size_V1_full.py nest param/defaults_mea
+# python parameter_search_75_100.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 
 
 
@@ -46,9 +51,12 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_full_larger27
-# python parameter_search_analysis.py CombinationParamSearch_nonover_larger27
-# python parameter_search_analysis.py CombinationParamSearch_over_larger4
+# python parameter_search_analysis.py CombinationParamSearch_50_150_full
+# python parameter_search_analysis.py CombinationParamSearch_50_150_nonover
+
+# python parameter_search_analysis.py CombinationParamSearch_full_3sigma_1
+# python parameter_search_analysis.py CombinationParamSearch_nonover_3sigma_1
+# python parameter_search_analysis.py CombinationParamSearch_over_3sigma_1
 
 # python parameter_search_analysis.py CombinationParamSearch_size_decorticated_8
 
@@ -65,85 +73,95 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping
 # EXPERIMENTS Closed Loop 1 (LGN+PGN)
 
 # echo "starting Luminance"
-# echo 
-# mpirun python run_luminance.py nest 8 param/defaults 'data_luminance'
+# echo
+# mpirun -np 1 python run_luminance_open.py nest 8 param/defaults 'data_luminance_open'
 
 
 # echo "starting Spatial"
-# echo 
-# mpirun python run_spatial.py nest 8 param/defaults 'data_spatial'
+# echo
+# mpirun -np 1 python run_spatial_open.py nest 8 param/defaults 'data_spatial_open'
 
 
 # echo "starting Temporal"
-# echo 
-# mpirun python run_temporal.py nest 8 param/defaults 'data_temporal'
+# echo
+# mpirun -np 1 python run_temporal_open.py nest 8 param/defaults 'data_temporal_open'
 
 
 # echo "starting Contrast"
-# echo 
-# mpirun python run_contrast.py nest 8 param/defaults 'data_contrast'
+# echo
+# mpirun -np 1 python run_contrast_open.py nest 8 param/defaults 'data_contrast_open'
 
 
 # echo "starting Size"
-# echo 
-# mpirun python run_size.py nest 8 param/defaults_mea 'data_size'
+# echo
+# mpirun -np 1 python run_size_open.py nest 8 param/defaults_mea 'data_size_open'
+
+
+echo "starting XCorr"
+echo
+mpirun -np 1 python run_xcorr_open.py nest 8 param/defaults_xcorr 'data_xcorr_open'
 
 
 
 
 ################################################
 # EXPERIMENTS Closed loop 2 (LGN+PGN+V1)
-# with V1 but without feedback
 
-# echo "starting Size"
-# echo 
-# # mpirun python run_size_V1.py nest 8 param/defaults_mea 'data_size_V1' 
-# # mpirun python run_size_V1_full.py nest 8 param/defaults_mea 'data_size_V1' 
-# #V1 Model: SomersTodorovSiapasTothKimSur1998 reaches 60 sp/s
-# #V1 Data: DeAngelisFreemanOhzawa1994 20-15 sp/s
-# mpirun python run_size_V1_full.py nest 8 param/defaults_mea 'data_size_V1' 
-# mpirun python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_V1_nonover' 
-# mpirun python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_V1_over' 
+# echo "starting Luminance"
+# echo
+# mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults 'data_luminance_closed'
 
 
 # echo "starting Contrast"
-# echo 
-# mpirun python run_contrast_V1.py nest 8 param/defaults 'data_contrast_V1'
+# echo
+# mpirun -np 1 python run_contrast_closed.py nest 8 param/defaults 'data_contrast_closed'
 
 
 # echo "starting Spatial"
-# echo 
-# mpirun python run_spatial_V1.py nest 8 param/defaults 'data_spatial_V1'
+# echo
+# mpirun -np 1 python run_spatial_closed.py nest 8 param/defaults 'data_spatial_closed'
 
 
 # echo "starting Spatial Kimura"
-# echo 
-# mpirun python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
+# echo
+# mpirun -np 1 python run_spatial_Kimura.py nest 8 param/defaults 'data_spatial_Kimura'
 
 
 # echo "starting Temporal"
-# echo 
-# mpirun python run_temporal_V1.py nest 8 param/defaults 'data_temporal_V1'
+# echo
+# mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
+
+# echo "starting Size"
+# echo
+# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
+# mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults 'data_size_nonoverlapping'
+# mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults 'data_size_overlapping'
+
+
+echo "starting XCorr"
+echo
+mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_mea 'data_xcorr_closed'
 
 
 
 ################################################
 # EXPERIMENTS Closed loop 3 (LGN+PGN+V1)
-# with V1 but with feedback
+# with V1 but without feedback
 
 
 # echo "starting Contrast"
-# echo 
-# mpirun python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
+# echo
+# mpirun -np 1 python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
 
 
 # echo "starting Spatial"
-# echo 
-# mpirun python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
+# echo
+# mpirun -np 1 python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
 
 
 # echo "starting Temporal"
-# echo 
-# mpirun python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
+# echo
+# mpirun -np 1 python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
+
 

@@ -100,6 +100,29 @@ def create_experiments_temporal(model):
   ]
 
 
+
+
+def create_experiments_orientation(model):
+  return [
+      #Lets kick the network up into activation
+      # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
+      NoStimulation( model, duration=147*7 ),
+      # ORIENTATION TUNING (GRATINGS)
+      # as in DanielsNormanPettigrew1977, VidyasagarUrbas1982
+      MeasureOrientationTuningFullfield(
+          model,
+          num_orientations=10, # rad: [0.0, 1.5707...]  (0, 90 deg)
+          spatial_frequency=0.5,
+          temporal_frequency=2.0,
+          grating_duration=2*147*7,
+          contrasts=[80],
+          num_trials=6
+      )
+  ]
+
+
+
+
 def create_experiments_size(model):
   return [
       NoStimulation( model, duration=147*7 ),
@@ -172,53 +195,9 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
 
 
 
-# ------------------------------------------
-
-
-
-def create_experiments_combined(model):
-  # return create_experiments_luminance(model) + create_experiments_contrast(model) + create_experiments_spatial(model) #+ create_experiments_temporal(model)
-  return create_experiments_spatial(model) + create_experiments_temporal(model)
-
-
-
-# ------------------------------------------
-
-
-
-def create_experiments_orientation(model):
-  return [
-      #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
-      NoStimulation( model, duration=147*7 ),
-      # ORIENTATION TUNING (GRATINGS)
-      # as in DanielsNormanPettigrew1977, VidyasagarUrbas1982
-      MeasureOrientationTuningFullfield(
-          model,
-          num_orientations=2, # rad: [0.0, 1.5707...]  (0, 90 deg)
-          spatial_frequency=0.8, #0.5,
-          temporal_frequency=2.0, #8.0,
-          grating_duration=2*147*7,
-          contrasts=[100],
-          num_trials=2
-      )
-  ]
-
-
-  # #Spontaneous Activity 
-  # NoStimulation(model,duration=2*2*5*3*8*7),
-  # # Measure orientation tuning with full-filed sinusoidal gratins
-  # MeasureOrientationTuningFullfield(model,num_orientations=2,spatial_frequency=0.8,temporal_frequency=2,grating_duration=2*147*7,contrasts=[100],num_trials=2),
-
-  # # Measure response to natural image with simulated eye movement
-  # MeasureNaturalImagesWithEyeMovement(model,stimulus_duration=2*147*7,num_trials=2),
-
-
 
 def create_experiments_correlation(model):
   return [
-      #Lets kick the network up into activation
-      PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
       # CONTOUR COMPLETION
       # as in SillitoJonesGersteinWest1994, SillitoCudeiroMurphy1993
@@ -229,11 +208,11 @@ def create_experiments_correlation(model):
           model, 
           contrast=80, 
           spatial_frequencies=[0.5],
-          separation=6,
-          temporal_frequency=8.0,
-          exp_duration=147*7,
+          separation=5, #6, # degrees of visual field
+          temporal_frequency=2.0,
+          exp_duration=1*147*7,
           frame_duration=7,
-          num_trials=8,
+          num_trials=1,
       ),
   ]
 
@@ -243,19 +222,3 @@ def create_experiments_correlation(model):
 # as in RathbunWarlandUsrey2010, AndolinaJonesWangSillito2007
 # stimulation as Size Tuning
 
-# IMAGES WITH EYEMOVEMENT
-#MeasureNaturalImagesWithEyeMovement(
-#  model,
-#  stimulus_duration=147*7 *3,
-#  num_trials=5
-#),
-
-# GRATINGS WITH EYEMOVEMENT
-# MeasureDriftingSineGratingWithEyeMovement(
-#   model, 
-#   spatial_frequency=0.8,
-#   temporal_frequency=2,
-#   stimulus_duration=147*7,
-#   num_trials=10,
-#   contrast=100
-# ),

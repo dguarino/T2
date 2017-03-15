@@ -37,57 +37,26 @@ CombinationParameterSearch(
         # 'pgn.params.cell.params.tau_refrac': [0.5],
         # 'pgn.params.cell.params.tau_m': [17.0]
 
-        # 'pgn.LGN_PGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [40, 75], # optimal for over/nonover
-        'pgn.LGN_PGN_ConnectionOn.base_weight': [.0007], #[.0009, .001], # model A of feedback: .0012
-        # 'pgn.LGN_PGN_Connection.num_samples': [40], # 
-        'pgn.PGN_PGN_Connection.base_weight': [.0001], #[.0008], # model A of feedback: .0001 
-        # 'pgn.PGN_PGN_Connection.num_samples': [40], 
-        # 'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [90, 150], #150 optimal for over/nonover
-        # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0005], # automatic (ref) assignment also to Off neurons
+        'pgn.LGN_PGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [50, 75], # model A of feedback: 75
+        # 'pgn.LGN_PGN_ConnectionOn.base_weight': [.0012], #[.0009, .001], # model A of feedback: .0012
+        # 'pgn.LGN_PGN_ConnectionOn.num_samples': [60], # model A of feedback: 60
 
-        'l4_cortex_exc.AfferentConnection.base_weight' : [.0013],
+        'pgn.PGN_PGN_Connection.weight_functions.f1.params.arborization_constant': [70], # model A of feedback: 70
+        # 'pgn.PGN_PGN_Connection.base_weight': [.0001], #[.0008], # model A of feedback: .0001 
+        # 'pgn.PGN_PGN_Connection.num_samples': [20], # model A of feedback: 20
 
-        'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.0001], # model A of feedback: .0004
-        'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [450], # model A of feedback: 250,
-        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [150], # model A of feedback: 60
+        'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [100, 150], # model A of feedback: 150
+        # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0005, .0007, .0009], # model A of feedback: .0005
+        # 'pgn.PGN_LGN_ConnectionOn.num_samples': [110], # model A of feedback: 110
+
+        # 'l4_cortex_exc.AfferentConnection.base_weight' : [.0013],
+
+        # 'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.00005, .00007], # model A of feedback: .0004
+        # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [400], # model A of feedback: 250,
+        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [60], # model A of feedback: 60
 
         # 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # model A of feedback: .0006
-        # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [50, 80],
-        # 'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [90], # model A of feedback: 90 
+        # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [40], # model A of feedback: 40
+        'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [90], # model A of feedback: 90 
   	}
 ).run_parameter_search()
-
-#                                                      Aff                LGN               PGN
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.0005_base_weight:5e-05_base_weight:0.0001
-
-
-# RGC tuning
-# luminance
-
-# contrast
-
-
-# PGN responses are 
-# - 100 sp/s with DG at optimal LGN freq
-# - reducing 
-
-# LGN-PGN and PGN-LGN
-#                                                     LGN_PGN            PGN_LGN           PGN_PGN
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.004_base_weight:0.0001_base_weight:0.003 ++ 39 sp/s
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.003_base_weight:0.0001_base_weight:0.003 + 31 sp/s
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.004_base_weight:0.0001_base_weight:0.0035 +
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.004_base_weight:0.0001_base_weight:0.004 +
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.003_base_weight:0.0001_base_weight:0.004
-# ThalamoCorticalModel_ParameterSearch_____base_weight:0.0035_base_weight:0.0001_base_weight:0.003
-
-
-# PGN-PGN
-# base_weight       arborization_constant
-# 0.005             200
-
-
-# with V1
-# Ratio             weight      match data
-# 0.7               0.0005      
-# 0.5               0.0005      
-# 0.7               0.0003       

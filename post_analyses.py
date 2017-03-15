@@ -11,6 +11,7 @@ import operator
 import gc
 import numpy
 import scipy.stats
+import scipy
 import pylab
 import matplotlib.pyplot as plt
 
@@ -38,53 +39,194 @@ import neo
 
 
 
-def get_per_neuron_firing_rate( datastore, stimulus, sheet, start, end, stimulus_parameter, group_by ):
-	dsv = queries.param_filter_query( datastore, st_name=stimulus, sheet_name=sheet )
-	# get neo segment, sorted by stimulu parameter chosen
-	segs = dsv.get_segments()
-	print "NEO segments: ",len(segs)
 
-	st = [ MozaikParametrized.idd(s) for s in dsv.get_stimuli() ]
-	stimuli = []
-	for s in st:
-		param = getattr(s, stimulus_parameter)
-		if param not in stimuli:
-			stimuli.append(param)
-	stimuli = sorted(stimuli)
-	# print "Stimuli: ", len(stimuli), stimuli
+def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=[], reverse=False):
+	selected_ids = []
+	distances = []
+	min_radius = radius[0]
+	max_radius = radius[1]
 
-	spike_ids = sorted( segs[0].get_stored_spike_train_ids() )
-	# print "spike_ids:", len(spike_ids), spike_ids
+	for i in sheet_ids:
+		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
+
+		if len(box)>1:
+			# Ex box: [ [-.3,.0], [.3,-.4] ]
+			# Ex a: [ [-0.10769224], [ 0.16841423], [ 0. ] ]
+			# print box[0][0], a[0], box[1][0]
+			# print box[0][1], a[1], box[1][1]
+			if a[0]>=box[0][0] and a[0]<=box[1][0] and a[1]>=box[0][1] and a[1]<=box[1][1]:
+				selected_ids.append(i[0])
+				distances.append(0.0)
+		else:
+			#print a, " - ", position
+			l = numpy.linalg.norm(a - position)
+
+			# print "distance",l
+			if abs(l)>min_radius and abs(l)<max_radius:
+				# print "taken"
+				selected_ids.append(i[0])
+				distances.append(l)
+
+	# sort by distance
+	# print len(selected_ids)
+	# print distances
+	return [x for (y,x) in sorted(zip(distances,selected_ids), key=lambda pair:pair[0], reverse=reverse)]
+
+
+
+
+
+def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0 ):
+
+	# if number of ADS==0:
+	TrialAveragedFiringRateCutout( 
+		param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
+		ParameterSet({}) 
+	).analyse(start=start, end=end)
+
+	SpikeCount( 
+		param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
+		ParameterSet({'bin_length' : bin }) 
+	).analyse()
+
+	dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sheet, st_name=stimulus )
+	dsv.print_content(full_recordings=False)
+	pnvs = [ dsv.get_analysis_result() ]
+	# get stimuli
+	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
+
+	spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+	neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+	print "neurons", len(neurons)
+
+	dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
+	for k in dic:
+		(b, a) = dic[k]
+		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+		dic[k] = (par,numpy.array(val))
+	print dic
+
+	mean_rates = dic.values()[0][1]
+	stimuli = dic.values()[0][0]
+
+	# dsv = queries.param_filter_query( datastore, st_name=stimulus, sheet_name=sheet )
+	# # get neo segment, sorted by stimulu parameter chosen
+	# segs = dsv.get_segments()
+	# print "NEO segments: ",len(segs)
+
+	# st = [ MozaikParametrized.idd(s) for s in dsv.get_stimuli() ]
+	# stimuli = []
+	# for s in st:
+	# 	param = getattr(s, stimulus_parameter)
+	# 	if param not in stimuli:
+	# 		stimuli.append(param)
+	# stimuli = sorted(stimuli)
+	# # print "Stimuli: ", len(stimuli), stimuli
+
+	# spike_ids = sorted( segs[0].get_stored_spike_train_ids() )
+	# # print "spike_ids:", len(spike_ids), spike_ids
  
-	qstart = (start * qt.ms).rescale(qt.s).magnitude
-	qend = (end * qt.ms).rescale(qt.s).magnitude
-	trials = len(st) / len(stimuli)
-	# print "trials:", trials
+	# qstart = (start * qt.ms).rescale(qt.s).magnitude
+	# qend = (end * qt.ms).rescale(qt.s).magnitude
+	# trials = len(st) / len(stimuli)
+	# # print "trials:", trials
 
-	# Compute Mean firing rate per cell (source_id) and chosen stimulus_parameter
-	mean_rates = numpy.zeros( (len(stimuli), len(spike_ids)) )
-	# print "mean_rates.shape:", mean_rates.shape
-	# for each segment (whose content is unsorted)
-	for g in segs:
+	# # Compute Mean firing rate per cell (source_id) and chosen stimulus_parameter
+	# mean_rates = numpy.zeros( (len(stimuli), len(spike_ids)) )
+	# # print "mean_rates.shape:", mean_rates.shape
+	# # for each segment (whose content is unsorted)
+	# for g in segs:
 
-		# get segment annotation
-		stim = ast.literal_eval( g.annotations['stimulus'] )
-		# get current stimulus parameter index among (sorted) stimuli
-		i = stimuli.index( stim[stimulus_parameter] )
-		# print i, "==", stim[stimulus_parameter] # check correct match all times
+	# 	# get segment annotation
+	# 	stim = ast.literal_eval( g.annotations['stimulus'] )
+	# 	# get current stimulus parameter index among (sorted) stimuli
+	# 	i = stimuli.index( stim[stimulus_parameter] )
+	# 	# print i, "==", stim[stimulus_parameter] # check correct match all times
 
-		# for each cell spiketrain
-		for t in g.spiketrains:
-			# get current cell index among (sorted) spike_ids
-			j = spike_ids.index(t.annotations['source_id'])
-			# print j, "==", t.annotations['source_id'] # check correct match all times
-			# increment its spike count (cutout)
-			mean_rates[i][ j ] = mean_rates[i][ j ] + len(t.time_slice(start, end))/(qend-qstart)
+	# 	# for each cell spiketrain
+	# 	for t in g.spiketrains:
+	# 		# get current cell index among (sorted) spike_ids
+	# 		j = spike_ids.index(t.annotations['source_id'])
+	# 		# print j, "==", t.annotations['source_id'] # check correct match all times
+	# 		# increment its spike count (cutout)
+	# 		mean_rates[i][ j ] = mean_rates[i][ j ] + len(t.time_slice(start, end))/(qend-qstart)
 
-		# do the mean rate over trials
-		mean_rates[i] = mean_rates[i] / trials
+	# 	# do the mean rate over trials
+	# 	mean_rates[i] = mean_rates[i] / trials
 
 	return mean_rates, stimuli
+
+
+
+def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, parameter, start, end, bin=10.0, xlabel="", ylabel="" ):
+	# following Brody1998a: "Correlations Without Synchrony"
+	# shuffe-corrected cross-correlogram
+
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+	positions = data_store.get_neuron_postions()[sheet]
+	neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+	print "neurons", len(neurons)
+
+	# compute binned spiketrains per cell per trial
+	SpikeCount( 
+		param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), 
+		ParameterSet({'bin_length' : bin }) 
+	).analyse()
+
+	dsv = param_filter_query( data_store, identifier='AnalogSignalList', sheet_name=sheet, st_name=stimulus, analysis_algorithm='SpikeCount' )
+	dsv.print_content(full_recordings=False)
+
+	# get S1 binned spiketrains
+	box = [[-3.,-.5],[-2.,.5]]
+	ids1 = select_ids_by_position(positions, sheet_ids, box=box)
+	neurons1 = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+	S1 = []
+	for idd in neurons1:
+		S1.append( zip([idd], [ads.get_asl_by_id(idd).magnitude for ads in dsv.get_analysis_result()]) )
+	print "S1",len(S1)
+	# print S1
+
+	# get S1 binned spiketrains
+	box = [[2.,-.5],[3.,.5]]
+	ids2 = select_ids_by_position(positions, sheet_ids, box=box)
+	neurons2 = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids2)
+	S2 = []
+	for idd in neurons2:
+		S2.append( zip([idd], [ads.get_asl_by_id(idd).magnitude for ads in dsv.get_analysis_result()]) )
+	print "S2",len(S2)
+	# print S2
+
+	# take the smallest number of ids
+	num_ids = len(S1)
+	if num_ids > len(S2):
+		num_ids = len(S2)
+	# print num_ids
+
+	# correlation of one-vs-one cell 
+	C = []
+	for i in range(num_ids):
+		C.append( numpy.correlate(S1[i][0][1], S2[i][0][1], "same") )
+
+	print C
+
+	# probably this is not good
+	# P(t) for each recorded cell
+	P, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, bin=bin )
+	print P.shape # (stimuli, cells)
+	# we should get an average binned spiketrain per cell as P
+
+	# to be able to subtract the right S and P
+	# either we extract from these numbers the selected idd or we make more complex the function get_per_neuron_spike_count
+
+	# then we should identify how to make the 
+
+
 
 
 
@@ -95,7 +237,7 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, group_by='trial' )
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter )
 	print rates.shape # (stimuli, cells)
 	#print rates[0][10]
 	print stimuli
@@ -148,22 +290,22 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_firing_rate( data_store, stimulus, sheet, start, end, parameter, group_by='trial' )
-	print rates
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter )
+	# print rates
 
-	# compute per-trial mean rate over cells axis=2
-	collapsed_mean_rates = numpy.mean(rates, axis=2) 
-	# print "Ex. collapsed_mean_rates: ", collapsed_mean_rates.shape
-	# print "Ex. collapsed_mean_rates (for stimulus 0): ", collapsed_mean_rates[0]
-	collapsed_std_rates = numpy.std(rates, axis=2, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# print "Ex. collapsed_std_rates (for stimulus 0): ", collapsed_std_rates[0]
+	# compute per-trial mean rate over cells
+	mean_rates = numpy.mean(rates, axis=1) 
+	# print "Ex. collapsed_mean_rates: ", mean_rates.shape
+	# print "Ex. collapsed_mean_rates: ", mean_rates
+	std_rates = numpy.std(rates, axis=1, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# print "Ex. collapsed_std_rates: ", std_rates
 
-	final_mean_rates = numpy.mean(collapsed_mean_rates, axis=1) 
-	final_std_rates = numpy.mean(collapsed_std_rates, axis=1) # mean std
-	# print "stimuli: ", stimuli	
-	# print "final means and stds: ", final_mean_rates, final_std_rates
-	# print sorted( zip(stimuli, final_mean_rates, final_std_rates), key=lambda entry: entry[0] ) )
-	final_sorted = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, final_mean_rates, final_std_rates), key=lambda entry: entry[0] ) ) ]
+	# final_mean_rates = numpy.mean(collapsed_mean_rates) 
+	# final_std_rates = numpy.mean(collapsed_std_rates) # mean std
+	# print "stimuli: ", stimuli
+	# print "final means and stds: ", mean_rates, std_rates
+	print sorted( zip(stimuli, mean_rates, std_rates) )
+	final_sorted = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates, std_rates) ) ) ]
 
 	if percentile:
 		firing_max = numpy.amax( final_sorted[1] )
@@ -225,20 +367,12 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 	# print sheet_ids2
 
 
-	x_full_rates, stimuli_full = get_per_neuron_firing_rate( data_store_full, stimulus, sheet, start, end, parameter, group_by='trial' )
-	x_inac_rates, stimuli_inac = get_per_neuron_firing_rate( data_store_inac, stimulus, sheet, start, end, parameter, group_by='trial' )
-	# print x_full_rates.shape # (5, 6, 133) # (stimuli, trials, cells)
+	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter )
+	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter )
 
-	# compute mean rate over trials (axis=1) so to have per-cells trial-averaged stimuli
-	collapsed_mean_x_full_rates = numpy.mean(x_full_rates, axis=1) 
-	collapsed_mean_x_inac_rates = numpy.mean(x_inac_rates, axis=1) 
-	# print "Ex. collapsed_mean_rates: ", collapsed_mean_x_full_rates.shape
-	# print "Ex. collapsed_mean_rates: ", collapsed_mean_x_inac_rates.shape
-	# print "Ex. collapsed_mean_rates (for stimulus 0): ", collapsed_mean_x_full_rates[0]
-
-	x_full = collapsed_mean_x_full_rates[stimulus_band]
+	x_full = x_full_rates[stimulus_band]
 	# print "x_full: ", x_full.shape, x_full
-	x_inac = collapsed_mean_x_inac_rates[stimulus_band]
+	x_inac = x_inac_rates[stimulus_band]
 	#!!!!!!!!!!!!! only for spontaneous test
 	# x_inac = x_inac - numpy.random.uniform(low=0.0, high=1., size=(len(x_full)) ) 
 
@@ -247,8 +381,8 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 		normalized_full = x_full / numpy.amax( x_full )
 		normalized_inac = x_inac / numpy.amax( x_inac )
 		# highest spatial frequency response is for [4]
-		x_full_highest = collapsed_mean_x_full_rates[4] 
-		x_inac_highest = collapsed_mean_x_inac_rates[4]
+		x_full_highest = x_full_rates[4] 
+		x_inac_highest = x_inac_rates[4]
 		# normalized highest
 		normalized_full_highest = x_full_highest / numpy.amax( x_full_highest )
 		normalized_inac_highest = x_inac_highest / numpy.amax( x_inac_highest )
@@ -329,7 +463,12 @@ full_list = [
 	# "ThalamoCorticalModel_data_spatial_Kimura_____"
 
 	# "ThalamoCorticalModel_data_size_V1_full_____"
-	"ThalamoCorticalModel_data_size_open_____"
+	# "ThalamoCorticalModel_data_size_open_____"
+
+	# "ThalamoCorticalModel_data_orientation_V1_full_____"
+	# "ThalamoCorticalModel_data_orientation_open_____"
+
+	"ThalamoCorticalModel_data_xcorr_open_____"
 	]
 
 inac_list = [ 
@@ -342,7 +481,7 @@ inac_list = [
 
 
 
-sheets = ['X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+sheets = ['X_ON'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 
 
 
@@ -351,7 +490,7 @@ for i,f in enumerate(full_list):
 
 	for s in sheets:
 
-		# # LUMINANCE
+		# LUMINANCE
 		# trial_averaged_tuning_curve_errorbar( 
 		# 	sheet=s, 
 		# 	folder=f, 
@@ -409,20 +548,63 @@ for i,f in enumerate(full_list):
 		# 	ylabel="firing rate (sp/s)", 
 		# 	color="black", 
 		# 	useXlog=True, 
-		# 	useYlog=False, 
+		# 	useYlog=True, 
 		# 	percentile=False 
 		# )
 
-		# SIZE
-		perform_end_inhibition_barplot( 
+		# # SIZE
+		# # Ex: ThalamoCorticalModel_data_size_V1_full_____
+		# # Ex: ThalamoCorticalModel_data_size_open_____
+		# perform_end_inhibition_barplot( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus="DriftingSinusoidalGratingDisk",
+		# 	parameter='radius',
+		# 	start=100., 
+		# 	end=1000., 
+		# 	xlabel="Index of end-inhibition",
+		# 	ylabel="Number of cells",
+		# )
+
+		# #ORIENTATION
+		# Ex: ThalamoCorticalModel_data_orientation_V1_full_____
+		# Ex: ThalamoCorticalModel_data_orientation_open_____
+		# trial_averaged_tuning_curve_errorbar( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='FullfieldDriftingSinusoidalGrating',
+		# 	parameter="orientation",
+		# 	start=100., 
+		# 	end=2000., 
+		# 	xlabel="Orientation", 
+		# 	ylabel="firing rate (sp/s)", 
+		# 	color="black", 
+		# 	useXlog=False, 
+		# 	useYlog=False, 
+		# 	percentile=False 
+		# )
+		# perform_end_inhibition_barplot( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus="FullfieldDriftingSinusoidalGrating",
+		# 	parameter='orientation',
+		# 	start=100., 
+		# 	end=2000., 
+		# 	xlabel="Orientation bias",
+		# 	ylabel="Number of cells",
+		# )
+
+		# #CROSS-CORRELATION
+		trial_averaged_corrected_xcorrelation( 
 			sheet=s, 
 			folder=f, 
-			stimulus="DriftingSinusoidalGratingDisk",
-			parameter='radius',
+			stimulus='FlashingSquares',
+			parameter="contrast",
 			start=100., 
-			end=1000., 
-			xlabel="Index of end-inhibition",
-			ylabel="Number of cells",
+			end=10000., 
+			bin=10.0,
+			xlabel="correlation", 
+			ylabel="firing rate (sp/s)"
 		)
 
 		# PAIRWISE
@@ -430,6 +612,7 @@ for i,f in enumerate(full_list):
 			print j
 
 			# # SPONTANEOUS ACTIVITY
+			# # Ex: ThalamoCorticalModel_data_luminance_V1_fake_____ vs ThalamoCorticalModel_data_luminance_____
 			# perform_pairwise_scatterplot( 
 			# 	sheet=s, 
 			# 	folder_full=f, 
@@ -447,6 +630,7 @@ for i,f in enumerate(full_list):
 			# )
 
 			# # SPATIAL FREQUENCY
+			# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
 			# perform_pairwise_scatterplot( 
 			# 	sheet=s, 
 			# 	folder_full=f, 

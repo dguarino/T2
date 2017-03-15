@@ -28,7 +28,7 @@
             }
         },
         'artificial_stimulators' : {},  
-        'recorders' :  url("param/pgn_rec_mea"),
+        'recorders' :  url("param/pgn_rec_xcorr"),
         'recording_interval': 0.1,
     },
 
