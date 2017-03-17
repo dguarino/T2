@@ -35,7 +35,7 @@
         },
         'artificial_stimulators' : {},
         'recording_interval'  :  1.0,                                                            
-        'recorders' : url("param/l4_exc_rec_mea"),
+        'recorders' : url("param/l4_exc_rec_xcorr"),
     },
 
     'rand_struct_ratio' : 0.8, # the ratio of synapses due to random and strucured connectivity
@@ -197,7 +197,9 @@
             'f1' : {
                 'component' : 'mozaik.connectors.modular_connector_functions.GaussianDecayModularConnectorFunction',
                 'params' : {
-                    'arborization_constant': 60.0,  # μm decay distance from the innervation point
+                    'arborization_constant': 60.0,  # V1-LGN << PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 200.0,# V1-LGN >> PGN-LGN  # μm decay distance from the innervation point
+                    #'arborization_constant': 150.0,# V1-LGN == PGN-LGN  # μm decay distance from the innervation point
                     'arborization_scaler': 1.0,   # the scaler of the exponential decay
                 }
             }, 

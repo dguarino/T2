@@ -141,7 +141,7 @@
 	    
             'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh.ExcInhAfferentRatio'),
             'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
-            'short_term_plasticity':  ref('l4_cortex_exc.AfferentConnection.short_term_plasticity'),
+            'short_term_plasticity':  ref('l4_cortex_exc_mea.AfferentConnection.short_term_plasticity'),
         'fan_in' : True,
     }
 }

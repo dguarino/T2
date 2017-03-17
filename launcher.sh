@@ -102,6 +102,15 @@ echo
 mpirun -np 1 python run_xcorr_open.py nest 8 param/defaults_xcorr 'data_xcorr_open'
 
 
+echo "starting XCorr"
+echo
+mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
+
+
+# echo "starting Orientation"
+# echo
+# mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orientation_open'
+
 
 
 ################################################
@@ -132,16 +141,21 @@ mpirun -np 1 python run_xcorr_open.py nest 8 param/defaults_xcorr 'data_xcorr_op
 # mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
 
-# echo "starting Size"
+# echo "starting Orientation"
 # echo
-# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
-# mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults 'data_size_nonoverlapping'
-# mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults 'data_size_overlapping'
+# mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
 
 
-echo "starting XCorr"
+echo "starting Size"
 echo
-mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_mea 'data_xcorr_closed'
+mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
+mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults 'data_size_nonoverlapping'
+mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults 'data_size_overlapping'
+
+
+# echo "starting XCorr"
+# echo
+# mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
 
 
 
@@ -152,16 +166,11 @@ mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_mea 'data_xcorr_cl
 
 # echo "starting Contrast"
 # echo
-# mpirun -np 1 python run_contrast_V1_full.py nest 8 param/defaults 'data_contrast_V1_full'
+# mpirun -np 1 python run_size_open2.py nest 8 param/defaults 'data_contrast_open2'
 
 
 # echo "starting Spatial"
 # echo
-# mpirun -np 1 python run_spatial_V1_full.py nest 8 param/defaults 'data_spatial_V1_full'
-
-
-# echo "starting Temporal"
-# echo
-# mpirun -np 1 python run_temporal_V1_full.py nest 8 param/defaults 'data_temporal_V1_full'
+# mpirun -np 1 python run_orientation_open2.py nest 8 param/defaults 'data_spatial_open2'
 
 

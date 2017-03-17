@@ -20,7 +20,6 @@ from experiments import create_experiments_temporal
 from experiments import create_experiments_size
 from experiments import create_experiments_orientation
 from experiments import create_experiments_correlation
-from experiments import create_experiments_combined
 
 from analysis_and_visualization import perform_analysis_test
 from analysis_and_visualization import perform_analysis_and_visualization
@@ -54,7 +53,6 @@ if True:
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_temporal )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size )
     # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
-    # data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_combined )
 
     if False: # save connections
         if withPGN: # PGN

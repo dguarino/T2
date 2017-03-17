@@ -1,0 +1,121 @@
+{
+    'component': 'mozaik.models.vision.spatiotemporalfilter.SpatioTemporalFilterRGCandLGN',
+    'params': {
+
+        ############################################
+        # RETINA
+        # --- Cross-Correlation Trick ---
+        #'density': 500, # neurons per degree squared 
+        #'size'  : (6.0,0.8), # deg; the effective size of the modelled section of retina/lgn
+        # --- one cell in the center ---
+        #'density': 10000.0, # high density
+        #'size'  : (0.03,0.03), # deg; but small size
+        # --- one in one degree ---
+        #'density': 1.0, # neurons per degree squared 
+        #'size'  : (1.0,1.0), # deg; the effective size of the modelled section of retina/lgn
+        # --- large ---
+        'density': 100.0, # neurons per degree squared 
+        'size'  : (8.0,8.0), # deg; the effective size of the modelled section of retina/lgn
+        # --- 
+        'linear_scaler': 1.0, # overall scaling
+        'mpi_reproducible_noise' : False,
+        'cached' : False,
+        'cache_path' : 'retinal_cache/',
+        'recorders' :  url("param/lgn_rec_xcorr"),
+        'recording_interval': 0.1, 
+
+        'receptive_field': {
+            'func': 'cai97.stRF_2d', # Changed for LGN only receiving from Retina
+            'func_params': {
+                # spatial filter
+                # CaiDeAngelisFreeman1997, AlonsoUsreyReid2001, SceniakChatterjeeCallaway2006 (see paragraph: "Geniculocortical afferent CRF spatial structure")
+                # balance has to be considered for the volumes under the gaussians: 2*pi * A*sigma_x*sigma_y
+                # ex of an almost balanced RF (center: 1.0*0.5*0.5=0.25; surround: 0.11*1.5*1.5=0.247):
+                'Ac': 1.0, # CaiDeAngelisFreeman1997 (fixed)
+                'As': 0.05, # derived from TroyerKrukowskiPriebeMiller1998 (see evernote)
+                'sigma_c': 0.2, # LinsenmeierFrishmanJakielaEnroth1982
+                'sigma_s': 0.7, # derived from TroyerKrukowskiPriebeMiller1998
+                # Temporal filter (starting from AllenFreeman2006)
+                'K1': 1.05, # transient height
+                'c1': 0.14, # transient bell (high=steep,narrow)
+                'n1': 7.0, # transient center
+                't1': -6.0, # transient offset (ms)
+                'K2': 0.7, # sustained height
+                'c2': 0.12, # sustained bell (low=flat,large) # longer sustained bell as in ...Butts2013
+                'n2': 8.0, # sustained center (ms)
+                't2': -6.0, # susteined offset (ms) 
+                'td': 6.0,  # time difference between ON-OFF
+                'subtract_mean': False,
+            },
+            'width': 9.0, # degrees
+            'height': 9.0, # degrees
+            'spatial_resolution': 0.2, # degrees
+            'temporal_resolution': 7.0, # ms
+            'duration': 100.0,
+        },
+
+        'gain_control' : {
+            'gain': 200,
+            #'non_linear_gain' : None,
+            'non_linear_gain' : {
+                'luminance_gain' : 380000.0, 
+                'luminance_scaler' : 150,
+                'contrast_scaler' : 0.00001
+            }
+        },
+
+        'cell': {
+            'model': 'IF_cond_exp',
+            'params': {
+                'v_thresh': -50.0, # GreenbergVelteHumayunScarlatisJuan2001
+                'v_rest': -63.0, # LankheetMolenaarVandegrind1989
+                'v_reset': -55.0, # MargolisDetwiler2007
+                'tau_refrac': 0.5, # LankheetMolenaarVandegrind1989
+                'tau_m': 10.0, # 
+                'cm': 0.1, # 0.074 FreedSterling1988, Weiner2012
+                'e_rev_E': 0.0, # Not used
+                'e_rev_I': 0.0, # Not used
+                'tau_syn_E': 1.0, # Not used
+                'tau_syn_I': 1.0, # Not used
+            },
+            'initial_values': {
+                'v': -70.0,
+            },
+        },
+        
+        'noise': {
+            'X_ON': {
+                'mean': 0.0,
+                'stdev': 2, #1.45, # nA, for dark discharge
+            },
+            'X_OFF': {
+                'mean': 0.0,
+                'stdev': 5,#2.5, # nA, for dark discharge
+            },
+        },
+
+        ############################################
+        # LGN
+        'magnification_factor': 200.0, # μm/degree
+        'retino_thalamic_weight': 0.006, # µS 
+        'LGN_cell_params': {
+            'model' : 'IF_cond_exp',
+            'params' : {
+                'v_thresh': -45.0, # WorgotterKoch1991
+                'v_rest': -65.0, # McCormickHuguenard1992 # -70 WorgotterKoch1991
+                'v_reset': -55.0, # HuertasGroffSmith2005, no reset in WorgotterKoch1991
+                'tau_refrac': 2.0, # 4.0 HuertasGroffSmith2005, not in WorgotterKoch1991
+                'tau_m': 10.0, # WorgotterKoch1991
+                'cm': 0.2, # nF see evernote (DestexheNeubigUlrichHuguenard1998)
+                'e_rev_E': 20.0, # WorgotterKoch1991 
+                'e_rev_I': -85.0, # HuertasGroffSmith2005, no inh in WorgotterKoch1991
+                'tau_syn_E': 1.5, # WorgotterKoch1991
+                'tau_syn_I': 5.0, # Kremkow, no inh in WorgotterKoch1991
+            },
+            'initial_values' : {
+                'v': -70.0,
+            }
+        },
+
+    }
+}

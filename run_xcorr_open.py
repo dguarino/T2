@@ -39,13 +39,13 @@ logger = mozaik.getMozaikLogger()
 
 # Manage what is executed
 # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
-withPGN = True  # 
+withPGN = False  # 
 withV1 = False  # open-loop
 withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
 # Model execution
-if False:
+if True:
     data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_correlation )
     data_store.save()
 
@@ -61,11 +61,11 @@ else:
         # all (the position is multiplied by -1. to get the other square and 0.0 is added)
         # perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[2.5],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
 
-        # left
-        perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[-2.5],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
-        # center
-        perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[.0],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
-        # right
-        perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[2.5],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
+        # # left
+        # perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[-2.5],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
+        # # center
+        # perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[.0],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
+        # # right
+        # perform_analysis_and_visualization_radius( data_store, 'xcorr', position=[[2.5],[.0],[.0]], radius=[.0,.25], withPGN=withPGN, withV1=withV1 )
 
-    data_store.save()
+        data_store.save()

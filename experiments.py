@@ -114,9 +114,9 @@ def create_experiments_orientation(model):
           num_orientations=10, # rad: [0.0, 1.5707...]  (0, 90 deg)
           spatial_frequency=0.5,
           temporal_frequency=2.0,
-          grating_duration=2*147*7,
+          grating_duration=1*147*7,
           contrasts=[80],
-          num_trials=6
+          num_trials=2
       )
   ]
 
@@ -208,11 +208,11 @@ def create_experiments_correlation(model):
           model, 
           contrast=80, 
           spatial_frequencies=[0.5],
-          separation=5, #6, # degrees of visual field
+          separation=1.5, #[1,2,3,4] # SillitoJonesGersteinWest1994 (at 13deg eccentricity) # degrees of visual field
           temporal_frequency=2.0,
           exp_duration=1*147*7,
           frame_duration=7,
-          num_trials=1,
+          num_trials=2,
       ),
   ]
 
