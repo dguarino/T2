@@ -32,18 +32,17 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
+		l = numpy.linalg.norm(a - position)
 
 		if len(box)>1:
 			# Ex box: [ [-.3,.0], [.3,-.4] ]
 			# Ex a: [ [-0.10769224], [ 0.16841423], [ 0. ] ]
-			# print box[0][0], a[0], box[1][0]
-			# print box[0][1], a[1], box[1][1]
+			# print box[0][0], a[0], box[1][0], "      ", box[0][1], a[1], box[1][1]
 			if a[0]>=box[0][0] and a[0]<=box[1][0] and a[1]>=box[0][1] and a[1]<=box[1][1]:
 				radius_ids.append(i[0])
-				distances.append(0.0)
+				distances.append(l)
 		else:
 			#print a, " - ", position
-			l = numpy.linalg.norm(a - position)
 
 			# print "distance",l
 			if abs(l)>min_radius and abs(l)<max_radius:
@@ -52,7 +51,7 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 				distances.append(l)
 
 	# sort by distance
-	print len(radius_ids)
+	# print len(radius_ids)
 	# print distances
 	return [x for (y,x) in sorted(zip(distances,radius_ids), key=lambda pair:pair[0], reverse=reverse)]
 
@@ -88,6 +87,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 	rowplots = 0
 	max_size = 0.6
 
+	# GET RECORDINGS BY POSITION (either step or box. In case of using box, inefficiently repetition of box-ing step times!)
 	slice_ranges = numpy.arange(step, max_size+step, step)
 	print "slice_ranges:",slice_ranges
 	for col,cur_range in enumerate(slice_ranges):
@@ -171,25 +171,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		    dic[k] = (par,numpy.array(val))
 		tc_dict2.append(dic)
 
-		# Plotting tuning curves
-		x_full = tc_dict1[0].values()[0][0]
-		x_inac = tc_dict2[0].values()[0][0]
-		# each cell couple 
 		print "(stimulus conditions, cells):", tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
-		axes[col,1].set_ylabel("Response (spikes/sec)", fontsize=10)
-		for j,nid in enumerate(neurons_full[col]):
-			# print col,j,nid
-			if len(neurons_full[col])>1: # case with just one neuron in the group
-				y_full = tc_dict1[0].values()[0][1][:,j]
-				y_inac = tc_dict2[0].values()[0][1][:,j]
-			else:
-				y_full = tc_dict1[0].values()[0][1]
-				y_inac = tc_dict2[0].values()[0][1]
-			if not plotOnlyPop:
-				axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
-				axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
-				axes[col,j+1].set_title(str(nid), fontsize=10)
-				axes[col,j+1].set_xscale("log")
 
 		# Population histogram
 		diff_full_inac = []
@@ -198,6 +180,47 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		smaller_pvalue = 0.
 		equal_pvalue = 0.
 		larger_pvalue = 0.
+
+		# 1. SELECT ONLY CHANGING UNITS
+		all_open_values = tc_dict2[0].values()[0][1]
+		all_closed_values = tc_dict1[0].values()[0][1]
+
+		# 1.1 Search for the units that are NOT changing (within a certain absolute tolerance)
+		unchanged_units = numpy.isclose(all_closed_values, all_open_values, rtol=0., atol=4.)
+		# print unchanged_units.shape
+
+		# 1.2 Reverse them into those that are changing
+		changed_units = numpy.invert( unchanged_units )
+		# print numpy.nonzero(changed_units)
+
+		# 1.3 Get the indexes of all units that are changing
+		changing_idxs = []
+		for i in numpy.nonzero(changed_units)[0]:
+			for j in numpy.nonzero(changed_units)[1]:
+				if j not in changing_idxs:
+					changing_idxs.append(j)
+		# print sorted(changing_idxs)
+
+		# 1.4 Get the changing units
+		open_values = [ x[changing_idxs] for x in all_open_values ]
+		open_values = numpy.array(open_values)
+		closed_values = [ x[changing_idxs] for x in all_closed_values ]
+		closed_values = numpy.array(closed_values)
+		print "chosen open units:", open_values.shape
+		print "chosen closed units:", closed_values.shape
+		num_cells = closed_values.shape[1]
+
+		# 2. AUTOMATIC SEARCH FOR INTERVALS
+		# peak = max(numpy.argmax(closed_values, axis=0 ))
+		peaks = numpy.argmax(closed_values, axis=0 )
+		# peak = int( numpy.argmax( closed_values ) / closed_values.shape[1] ) # the returned single value is from the flattened array
+		# print "numpy.argmax( closed_values ):", numpy.argmax( closed_values )
+		print "peaks:", peaks
+		# minimum = int( numpy.argmin( closed_values ) / closed_values.shape[1] )
+		# minimum = min(numpy.argmin(closed_values, axis=0 ))
+		minimums = numpy.argmin(closed_values, axis=0 )
+		# print "numpy.argmin( closed_values ):", numpy.argmin( closed_values )
+		print "minimums:", minimums
 
 		# -------------------------------------
 		# DIFFERENCE BETWEEN INACTIVATED AND CONTROL
@@ -221,19 +244,46 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# print "diff_norm",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)))
 		# print "diff_norm_perc",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
 
-		# diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ssmaller:Sequal], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ssmaller:Sequal], axis=0)) * 100
-		# diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Sequal:SequalStop], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Sequal:SequalStop], axis=0)) * 100
-		# diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Slarger:], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Slarger:], axis=0)) * 100
+		# USING PROVIDED INTERVALS
+		# diff_smaller = ((numpy.sum(open_values[Ismaller[0]:Ismaller[1]], axis=0) - numpy.sum(closed_values[Ismaller[0]:Ismaller[1]], axis=0)) / numpy.sum(closed_values[Ismaller[0]:Ismaller[1]], axis=0)) * 100
+		# diff_equal = ((numpy.sum(open_values[Iequal[0]:Iequal[1]], axis=0) - numpy.sum(closed_values[Iequal[0]:Iequal[1]], axis=0)) / numpy.sum(closed_values[Iequal[0]:Iequal[1]], axis=0)) * 100
+		# diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
 
-		diff_smaller = ((numpy.sum(tc_dict2[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ismaller[0]:Ismaller[1]], axis=0)) * 100
-		diff_equal = ((numpy.sum(tc_dict2[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Iequal[0]:Iequal[1]], axis=0)) * 100
-		diff_larger = ((numpy.sum(tc_dict2[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(tc_dict1[0].values()[0][1][Ilarger[0]:Ilarger[1]], axis=0)) * 100
+		# USING AUTOMATIC SEARCH
+		# print "open"
+		# print open_values[minimums]
+		# print "closed"
+		# print closed_values[minimums]
+		# print open_values[peaks]
+		# print closed_values[peaks]
+		# diff_smaller = ((numpy.sum(open_values[minimum:minimum+1], axis=0) - numpy.sum(closed_values[minimum:minimum+1], axis=0)) / numpy.sum(closed_values[minimum:minimum+1], axis=0)) * 100
+		# diff_equal = ((numpy.sum(open_values[peak:peak+1], axis=0) - numpy.sum(closed_values[peak:peak+1], axis=0)) / numpy.sum(closed_values[peak:peak+1], axis=0)) * 100
+		# diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
+
+		diff_smaller = ((numpy.sum(open_values[0:1], axis=0) - numpy.sum(closed_values[0:1], axis=0)) / numpy.sum(closed_values[0:1], axis=0)) * 100
+		diff_equal = ((numpy.sum(open_values[peaks], axis=0) - numpy.sum(closed_values[peaks], axis=0)) / numpy.sum(closed_values[peaks], axis=0)) * 100
+		diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
+
+		# smaller = (sum(open_values[minimum] - closed_values[minimum]) / sum(closed_values[minimum])) * 100
+		# equal = (sum(open_values[peak] - closed_values[peak]) / sum(closed_values[peak])) * 100
+		# larger = (numpy.sum(open_values[Ilarger[0]] - closed_values[Ilarger[0]]) / numpy.sum(closed_values[Ilarger[0]])) * 100
+		# larger = (numpy.sum(open_values[Ilarger[0]:Ilarger[1]] - closed_values[Ilarger[0]:Ilarger[1]]) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]])) * 100
+
 		# print "diff_smaller", diff_smaller
+		# print "diff_equal", diff_smaller
+		# print "diff_larger", diff_smaller
 		# average of all cells
 		smaller = sum(diff_smaller) / num_cells
 		equal = sum(diff_equal) / num_cells
 		larger = sum(diff_larger) / num_cells
 
+		print "smaller",smaller
+		print "equal", equal
+		print "larger", larger
+		# print diff_equal1 / num_cells
+		# print sum(diff_equal) / num_cells
+
+		# 0/0
 		# Check using scipy
 		# and we want to compare the responses of full and inactivated
 		# smaller, smaller_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3, numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3 )
@@ -249,9 +299,9 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 		# -------------------------------------
 		# Standard Error Mean calculated on the full sequence
-		sem_full_inac.append( scipy.stats.sem(diff_smaller) )
-		sem_full_inac.append( scipy.stats.sem(diff_equal) )
-		sem_full_inac.append( scipy.stats.sem(diff_larger) )
+		# sem_full_inac.append( scipy.stats.sem(diff_smaller) )
+		# sem_full_inac.append( scipy.stats.sem(diff_equal) )
+		# sem_full_inac.append( scipy.stats.sem(diff_larger) )
 
 		# print diff_full_inac
 		# print sem_full_inac
@@ -268,6 +318,25 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# colors = ['brown', 'darkgreen', 'blue']
 		# for patch, color in zip(bp['boxes'], colors):
 		# 	patch.set_facecolor(color)
+
+		# Plotting tuning curves
+		x_full = tc_dict1[0].values()[0][0]
+		x_inac = tc_dict2[0].values()[0][0]
+		# each cell couple 
+		axes[col,1].set_ylabel("Response (spikes/sec)", fontsize=10)
+		for j,nid in enumerate(neurons_full[col][changing_idxs]):
+			# print col,j,nid
+			if len(neurons_full[col][changing_idxs])>1: # case with just one neuron in the group
+				y_full = closed_values[:,j]
+				y_inac = open_values[:,j]
+			else:
+				y_full = closed_values
+				y_inac = open_values
+			if not plotOnlyPop:
+				axes[col,j+1].plot(x_full, y_full, linewidth=2, color='b')
+				axes[col,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
+				axes[col,j+1].set_title(str(nid), fontsize=10)
+				axes[col,j+1].set_xscale("log")
 
 	fig.subplots_adjust(hspace=0.4)
 	# fig.suptitle("All recorded cells grouped by circular distance", size='xx-large')
@@ -559,66 +628,32 @@ sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 
 full_list = [ 
-	# "CombinationParamSearch_higher_PGNPGN_active",
-	# "ThalamoCorticalModel_data_size_____full2"
-	# "CombinationParamSearch_size_V1_2sites_full13",
-	# "CombinationParamSearch_size_V1_2sites_full15",
-	# "CombinationParamSearch_size_V1_full",
-	# "CombinationParamSearch_size_full_8",
-	# "CombinationParamSearch_size_V1_full_more", 
-	# "CombinationParamSearch_size_V1_full_more2" 
-	"CombinationParamSearch_50_150_full"
-	# "CombinationParamSearch_full[0.0008, 0.00085]"
-	# "CombinationParamSearch_full[0.0009]2"
-	# "CombinationParamSearch_full[0.0012, 0.0013]"
-	# "CombinationParamSearch_full[0.001]"
+	"latest_size_full"
 	]
 
 inac_large_list = [ 
-	# "CombinationParamSearch_higher_PGNPGN_inactive",
-	# "CombinationParamSearch_higher_PGNPGN_overlapping",
-	# "CombinationParamSearch_higher_PGNPGN_nonoverlapping",
-	# "ThalamoCorticalModel_data_size_____",
-	# "ThalamoCorticalModel_data_size_____inactivated2"
-	# "CombinationParamSearch_size_V1_2sites_inhibition_small14",
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large13",
-	# "CombinationParamSearch_size_inhibition_8",
-	# "CombinationParamSearch_size_inhibition_nonoverlapping_8",
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping16",
-	# "CombinationParamSearch_size_V1_2sites_inhibition_large_nonoverlapping13",
-	# "CombinationParamSearch_size_V1_inhibition_large", 
-	# "CombinationParamSearch_size_V1_inhibition_large_more", 
-	# "CombinationParamSearch_size_V1_inhibition_large_more2" 
-	# "new_set_over"
-	"CombinationParamSearch_50_150_nonover"
-	# "CombinationParamSearch_over_larger5"
-	# "CombinationParamSearch_nonover[0.0008, 0.00085]"
-	# "CombinationParamSearch_nonover[0.0009]2"
-	# "CombinationParamSearch_nonover[0.0012, 0.0013]"
-	# "CombinationParamSearch_nonover[0.001]"
-	# "CombinationParamSearch_over[0.0012]"
+	"latest_size_nonoverlapping"
+	# "latest_size_overlapping"
 	]
 
-# - arborization 60
-box = []
-# box = [ lowerleft, upperright ]
-box = [[-.2,.2],[.2,.4]]
-# box = [[-.3,.3],[.0,.4]]
-# box = [ [-.3,-.6], [.3,-.3] ]
-# box = [ [-.3,.1], [.3,.3] ]
-# # OVER
-Ismaller = [2,4]
+# CHOICE OF CELLS
+# You can use either radius steps or box. The one excludes the other.
+# 1. Use radius steps, to globally inspect at step distances from the center
+steps = [.2] # for detail
+# steps = [.8] # for all cells
+# 2. Use the box (lowerleft, upperright) to have a more specific view
+box = [] # empty box to make the radius choice work
+box = [[-.5,.0],[.5,.5]] # 
+# box = [[-.5,.3],[.5,1.]] # 
+
+# CHOICE OF STIMULI GROUPS
+Ismaller = [0,3]
 Iequal   = [4,6]
-Ilarger  = [7,9]
-# NON_OVER
-# Ismaller = 2  
-# Iequal   = 5
-# Iequal  = 7
-# Ilarger  = 8
+Ilarger  = [6,8]
+
+sheets = ['X_ON'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 
 
-sheets = ['X_ON', 'X_OFF'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
-steps = [.3]
 
 for i,l in enumerate(full_list):
 	# for parameter search

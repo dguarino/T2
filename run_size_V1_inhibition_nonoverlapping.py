@@ -53,7 +53,7 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_V1_nonover_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_nonoverlapping_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
     # perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [.0,.5], withPGN, withV1 )

@@ -137,7 +137,7 @@ def create_experiments_size(model):
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
           contrasts=[80], 
-          num_trials=6, # 6,
+          num_trials=3, # 6,
           log_spacing=True,
           with_flat=False #use also flat luminance discs
       )
@@ -188,7 +188,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=6,
+          num_trials=3,
           log_spacing=True
       )
   ]

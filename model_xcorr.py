@@ -7,12 +7,12 @@ from mozaik import load_component
 from mozaik.space import VisualRegion
 
 
-# # Manage what is executed
-# # a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
-withPGN = True  # 
-withV1 = True  # open-loop
-withFeedback_CxPGN = True # closed loop
-withFeedback_CxLGN = True # closed loop
+# Manage what is executed
+# a set of variable here to manage the type of experiment and whether the pgn, cortex are there or not.
+withPGN = False  # 
+withV1 = False  # open-loop
+withFeedback_CxPGN = False # closed loop
+withFeedback_CxLGN = False # closed loop
 
 
 class ThalamoCorticalModel(Model):
@@ -101,7 +101,7 @@ class ThalamoCorticalModel(Model):
             cortex_exc_l4 = CortexExcL4(self, self.parameters.l4_cortex_exc.params)
             cortex_inh_l4 = CortexInhL4(self, self.parameters.l4_cortex_inh.params)
 
-            # ########################################################
+            ########################################################
             # THALAMO-CORTICAL
             # initialize afferent layer 4 projections
             GaborConnector(
@@ -122,7 +122,7 @@ class ThalamoCorticalModel(Model):
                 'V1AffInhConnection'
             )
 
-            # ########################################################
+            ########################################################
             # CORTICO-CORTICAL
             # random lateral layer 4 projections
             ModularSingleWeightProbabilisticConnector(
@@ -208,16 +208,6 @@ class ThalamoCorticalModel(Model):
                     self.input_layer.sheets['X_OFF'],
                     self.parameters.l4_cortex_exc.EfferentConnection_LGN
                 ).connect()
-
-                # GaborConnector(
-                #     self,
-                #     self.input_layer.sheets['X_ON'],
-                #     self.input_layer.sheets['X_OFF'],
-                #     cortex_exc_l4,                                      # source
-                #     self.parameters.l4_cortex_exc.EfferentConnection,   # parameters
-                #     'V1EffConnection'                                   # name
-                # )
-
 
             if withFeedback_CxPGN and withPGN:
                 ModularSamplingProbabilisticConnector(
