@@ -218,7 +218,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		print "peaks:", peaks
 		# minimum = int( numpy.argmin( closed_values ) / closed_values.shape[1] )
 		# minimum = min(numpy.argmin(closed_values, axis=0 ))
-		minimums = numpy.argmin(closed_values, axis=0 )
+		minimums = numpy.argmin(closed_values, axis=0 ) +2 # +2 to get the response out of the smallest
 		# print "numpy.argmin( closed_values ):", numpy.argmin( closed_values )
 		print "minimums:", minimums
 
@@ -256,32 +256,21 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		# print closed_values[minimums]
 		# print open_values[peaks]
 		# print closed_values[peaks]
-		# diff_smaller = ((numpy.sum(open_values[minimum:minimum+1], axis=0) - numpy.sum(closed_values[minimum:minimum+1], axis=0)) / numpy.sum(closed_values[minimum:minimum+1], axis=0)) * 100
-		# diff_equal = ((numpy.sum(open_values[peak:peak+1], axis=0) - numpy.sum(closed_values[peak:peak+1], axis=0)) / numpy.sum(closed_values[peak:peak+1], axis=0)) * 100
-		# diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
 
-		diff_smaller = ((numpy.sum(open_values[0:1], axis=0) - numpy.sum(closed_values[0:1], axis=0)) / numpy.sum(closed_values[0:1], axis=0)) * 100
+		diff_smaller = ((numpy.sum(open_values[minimums], axis=0) - numpy.sum(closed_values[minimums], axis=0)) / numpy.sum(closed_values[minimums], axis=0)) * 100
 		diff_equal = ((numpy.sum(open_values[peaks], axis=0) - numpy.sum(closed_values[peaks], axis=0)) / numpy.sum(closed_values[peaks], axis=0)) * 100
 		diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
-
-		# smaller = (sum(open_values[minimum] - closed_values[minimum]) / sum(closed_values[minimum])) * 100
-		# equal = (sum(open_values[peak] - closed_values[peak]) / sum(closed_values[peak])) * 100
-		# larger = (numpy.sum(open_values[Ilarger[0]] - closed_values[Ilarger[0]]) / numpy.sum(closed_values[Ilarger[0]])) * 100
-		# larger = (numpy.sum(open_values[Ilarger[0]:Ilarger[1]] - closed_values[Ilarger[0]:Ilarger[1]]) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]])) * 100
-
 		# print "diff_smaller", diff_smaller
 		# print "diff_equal", diff_smaller
 		# print "diff_larger", diff_smaller
+
 		# average of all cells
 		smaller = sum(diff_smaller) / num_cells
 		equal = sum(diff_equal) / num_cells
 		larger = sum(diff_larger) / num_cells
-
 		print "smaller",smaller
 		print "equal", equal
 		print "larger", larger
-		# print diff_equal1 / num_cells
-		# print sum(diff_equal) / num_cells
 
 		# 0/0
 		# Check using scipy
@@ -299,13 +288,13 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 		# -------------------------------------
 		# Standard Error Mean calculated on the full sequence
-		# sem_full_inac.append( scipy.stats.sem(diff_smaller) )
-		# sem_full_inac.append( scipy.stats.sem(diff_equal) )
-		# sem_full_inac.append( scipy.stats.sem(diff_larger) )
+		sem_full_inac.append( scipy.stats.sem(diff_smaller) )
+		sem_full_inac.append( scipy.stats.sem(diff_equal) )
+		sem_full_inac.append( scipy.stats.sem(diff_larger) )
 
 		# print diff_full_inac
 		# print sem_full_inac
-		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8)
+		barlist = axes[col,0].bar([0.5,1.5,2.5], diff_full_inac, yerr=sem_full_inac, width=0.8)
 		axes[col,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
 		for ba in barlist:
 			ba.set_color('white')
@@ -315,9 +304,6 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 			barlist[1].set_color('darkgreen')
 		if larger_pvalue < p_significance:
 			barlist[2].set_color('blue')
-		# colors = ['brown', 'darkgreen', 'blue']
-		# for patch, color in zip(bp['boxes'], colors):
-		# 	patch.set_facecolor(color)
 
 		# Plotting tuning curves
 		x_full = tc_dict1[0].values()[0][0]
@@ -649,7 +635,8 @@ box = [[-.5,.0],[.5,.5]] #
 # CHOICE OF STIMULI GROUPS
 Ismaller = [0,3]
 Iequal   = [4,6]
-Ilarger  = [6,8]
+Ilarger  = [6,8] # NON
+# Ilarger  = [7,10] # OVER
 
 sheets = ['X_ON'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 
