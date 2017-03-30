@@ -74,8 +74,7 @@ def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=
 
 
 
-
-def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0 ):
+def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0, neurons=[] ):
 
 	# if number of ADS==0:
 	TrialAveragedFiringRateCutout( 
@@ -94,10 +93,11 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 	# get stimuli
 	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
 
-	spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-	sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
-	neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
-	print "neurons", len(neurons)
+	if not len(neurons)>1:
+		spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+		sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+		neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+		print "neurons", len(neurons)
 
 	dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
 	for k in dic:
@@ -121,6 +121,7 @@ def mean_confidence_interval(data, confidence=0.95):
 	m, se = numpy.mean(a, axis=0), scipy.stats.sem(a, axis=0)
 	h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
 	return m, m-h, m+h
+
 
 
 
@@ -303,7 +304,7 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	center = (bin_edges[:-1] + bin_edges[1:]) / 2
 	fig,ax = plt.subplots()
 	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white')
-	ax.plot((mean, mean), (0,30), 'k:', linewidth=2)
+	ax.plot((mean, mean), (0,70), 'k:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	barlist[0].set_color('k')
@@ -313,7 +314,7 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 	barlist[4].set_color('k')
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([bin_edges[0], bin_edges[-1], 0, 30])
+	ax.axis([bin_edges[0], bin_edges[-1], 0, 70])
 	plt.xticks(bin_edges, (10,9,8,7,6,5,4,3,2,1))
 	plt.savefig( folder+"/suppression_index_"+sheet+".png", dpi=200 )
 	plt.close()
@@ -353,12 +354,12 @@ def perform_orientation_bias_barplot( sheet, folder, stimulus, parameter, start,
 	center = (bin_edges[:-1] + bin_edges[1:]) / 2
 	fig,ax = plt.subplots()
 	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white', hatch='/')
-	ax.plot((mean, mean), (0,50), 'k:', linewidth=2)
+	ax.plot((mean, mean), (0,130), 'k:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([bin_edges[0], bin_edges[-1], 0, 50])
+	ax.axis([bin_edges[0], bin_edges[-1], 0, 130])
 	plt.xticks(bin_edges, (1,2,3,4,5,6,7,8,9,10))
 	plt.savefig( folder+"/orientation_bias_"+sheet+".png", dpi=200 )
 	plt.close()
@@ -368,12 +369,21 @@ def perform_orientation_bias_barplot( sheet, folder, stimulus, parameter, start,
 
 
 
-def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.] ):
+def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], box=False ):
 	print folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter )
+	neurons =[]
+	if box:
+		spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+		positions = data_store.get_neuron_postions()[sheet]
+		box1 = [[-.5,-.5],[.5,.5]]
+		ids1 = select_ids_by_position(positions, sheet_ids, box=box1)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons )
 	# print rates
 
 	# compute per-trial mean rate over cells
@@ -408,18 +418,21 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	if useYlog:
 		ax.set_yscale("log", nonposy='clip')
 
-	if not percentile:
-		ax.set_ylim(ylim)
-
 	err_max = final_sorted[1] + final_sorted[2]
 	err_min = final_sorted[1] - final_sorted[2]
 	ax.fill_between(final_sorted[0], err_max, err_min, color=color, alpha=0.3)
+
+	if not percentile:
+		ax.set_ylim(ylim)
+	else:
+		ax.set_ylim([0,100+numpy.amax(final_sorted[2])])
 
 	# text
 	ax.set_title( sheet )
 	ax.set_xlabel( xlabel )
 	if percentile:
 		ylabel = "Percentile " + ylabel
+		sheet = sheet + "_percentile"
 	ax.set_ylabel( ylabel )
 	# ax.legend( loc="lower right", shadow=False )
 	# plt.show()
@@ -432,7 +445,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 
 
-def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False ):
+def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False, highest=3 ):
 	print "folder_full: ",folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -463,8 +476,8 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 		normalized_full = x_full / numpy.amax( x_full )
 		normalized_inac = x_inac / numpy.amax( x_inac )
 		# highest spatial frequency response is for [4]
-		x_full_highest = x_full_rates[4] 
-		x_inac_highest = x_inac_rates[4]
+		x_full_highest = x_full_rates[highest] 
+		x_inac_highest = x_inac_rates[highest]
 		# normalized highest
 		normalized_full_highest = x_full_highest / numpy.amax( x_full_highest )
 		normalized_inac_highest = x_inac_highest / numpy.amax( x_inac_highest )
@@ -498,6 +511,7 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 	if withRegression:
 		# add regression line
 		m,b = numpy.polyfit(x_full,x_inac, 1)
+		print "fitted line:", m, "x +", b
 		x = numpy.arange(x0, x1)
 		ax.plot(x, m*x+b, 'k-')
 
@@ -511,6 +525,11 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 		cy = x_inac.sum()/len(x_inac)
 		print "cx", cx, "cy", cy
 		ax.plot(cx, cy, 'k+', markersize=12, markeredgewidth=3)
+
+	from scipy.stats import chi2_contingency
+	obs = [ x_inac, x_full ]
+	chi2, p, dof, ex = chi2_contingency( obs, correction=False )
+	print "Scatter chi2:", chi2, "p:", p
 
 	# text
 	ax.set_title( sheet )
@@ -527,51 +546,193 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 
 
 
+def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter, ticks, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.] ):
+	print folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
+
+	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+	# l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.1)[0]]
+
+	# position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
+	# V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
+	# print "# of V1 cells within radius range having orientation close to 0:", len(V1_sheet_ids)
+	# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, radius=[0,.5])
+	# radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
+	# analog_ids = radius_V1_ids
+	print "analog_ids: ",analog_ids
+
+	num_ticks = len( ticks )
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		# key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+	trials = len(segs) / num_ticks
+	print "trials:",trials
+
+	pop_gsyn_e = []
+	pop_gsyn_i = []
+	for n,idd in enumerate(analog_ids):
+		print "idd", idd
+		full_gsyn_es = [s.get_esyn(idd) for s in segs]
+		full_gsyn_is = [s.get_isyn(idd) for s in segs]
+		# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_ticks
+		# print "shape gsyn_e/i", full_gsyn_es[0].shape
+		# mean input over trials
+		mean_full_gsyn_e = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0])) # init
+		mean_full_gsyn_i = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0]))
+		# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
+		sampling_period = full_gsyn_es[0].sampling_period
+		t_stop = float(full_gsyn_es[0].t_stop - sampling_period)
+		t_start = float(full_gsyn_es[0].t_start)
+		time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
+		# sum by size
+		t = 0
+		for e,i in zip(full_gsyn_es, full_gsyn_is):
+			s = int(t/trials)
+			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
+			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
+			t = t+1
+		# average by trials
+		for s in range(num_ticks):
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
+
+		pop_gsyn_e.append(mean_full_gsyn_e)
+		pop_gsyn_i.append(mean_full_gsyn_i)
+
+
+	pop_e = numpy.array(pop_gsyn_e)
+	pop_i = numpy.array(pop_gsyn_i)
+
+	# mean and std over cells
+	mean_pop_e = numpy.mean(pop_e, axis=(2,0) )
+	mean_pop_i = numpy.mean(pop_i, axis=(2,0) ) 
+	std_pop_e = numpy.std(pop_e, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	std_pop_i = numpy.std(pop_i, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+
+	final_sorted_e = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_e, std_pop_e) ) ) ]
+	final_sorted_i = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_i, std_pop_i) ) ) ]
+
+	# if percentile:
+	firing_max = numpy.amax( final_sorted_e[1] )
+	final_sorted_e[1] = final_sorted_e[1] / firing_max * 100
+	firing_max = numpy.amax( final_sorted_i[1] )
+	final_sorted_i[1] = final_sorted_i[1] / firing_max * 100
+
+	# Plotting tuning curve
+	fig,ax = plt.subplots()
+	ax.plot( final_sorted_e[0], final_sorted_e[1], color='red', linewidth=2 )
+	ax.plot( final_sorted_i[0], final_sorted_i[1], color='blue', linewidth=2 )
+
+	err_max = final_sorted_e[1] + final_sorted_e[2]
+	err_min = final_sorted_e[1] - final_sorted_e[2]
+	ax.fill_between(final_sorted_e[0], err_max, err_min, color='red', alpha=0.3)
+	err_max = final_sorted_i[1] + final_sorted_i[2]
+	err_min = final_sorted_i[1] - final_sorted_i[2]
+	ax.fill_between(final_sorted_i[0], err_max, err_min, color='blue', alpha=0.3)
+
+	# if not percentile:
+	# 	ax.set_ylim(ylim)
+	# else:
+	# 	ax.set_ylim([0,numpy.amax(final_sorted_e[2])])
+
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.xaxis.set_ticks_position('bottom')
+	ax.xaxis.set_ticks(ticks, ticks)
+	ax.yaxis.set_ticks_position('left')
+
+	if useXlog:
+		ax.set_xscale("log", nonposx='clip')
+	if useYlog:
+		ax.set_yscale("log", nonposy='clip')
+
+	# text
+	ax.set_title( "PSP Area response plot V1excL4" )
+	ax.set_xlabel( 'radius' )
+	ax.set_ylabel( "PSP (%)" )
+	plt.savefig( folder+"/TrialAveragedPSP_"+sheet+"_"+parameter+"_pop.png", dpi=200 )
+	fig.clf()
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
+
+def chisquared_test(observed, expected):
+
+	# chi2 = numpy.sum( (observed-expected)**2 / expected )
+	# p = 0.0
+
+	from scipy.stats import chi2_contingency
+	obs = [ observed, expected ]
+	chi2, p, dof, ex = chi2_contingency( obs, correction=True )
+	# print ex
+
+	# from scipy.stats import chisquare
+	# chi2, p = chisquare( f_obs=observed, f_exp=expected )
+
+	print "chi2:", chi2, "p-value:", p
+
+
+
+
 ###################################################
 # Execution
 
 full_list = [ 
-	# "ThalamoCorticalModel_data_luminance_____"
-	# "ThalamoCorticalModel_data_luminance_V1_fake_____"
+	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 
-	# "ThalamoCorticalModel_data_contrast_____.0012"
-	# "ThalamoCorticalModel_data_contrast_V1_full_____"
+	# "ThalamoCorticalModel_data_contrast_____.0012",
+	# "ThalamoCorticalModel_data_contrast_V1_full_____",
 
-	# "ThalamoCorticalModel_data_temporal_____.0008"
-	# "ThalamoCorticalModel_data_temporal_V1_____.0008"
+	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	# "ThalamoCorticalModel_data_spatial_V1_full_____"
-	# "ThalamoCorticalModel_data_spatial_____.0012"
-	# "ThalamoCorticalModel_data_spatial_Kimura_____"
+	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
-	# "ThalamoCorticalModel_data_size_V1_full_____"
-	# "ThalamoCorticalModel_data_size_open_____"
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
-	# "ThalamoCorticalModel_data_orientation_closed_____"
-	# "ThalamoCorticalModel_data_orientation_open_____"
+	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
+	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
-	# "ThalamoCorticalModel_data_xcorr_open_____1" # just one trial
-	# "ThalamoCorticalModel_data_xcorr_open_____2deg" # 2 trials
-	"ThalamoCorticalModel_data_xcorr_closed_____2deg" # 2 trials
+	"Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+
+	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
+	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
+	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 	]
 
 inac_list = [ 
-	# "ThalamoCorticalModel_data_luminance_____"
+	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	# "ThalamoCorticalModel_data_spatial_Kimura_____"
-	# "ThalamoCorticalModel_data_spatial_____.0012"
+	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
+	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	]
 
 
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-sheets = ['X_ON']
+# sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
-
+sheets = ['V1_Exc_L4'] 
 
 
 for i,f in enumerate(full_list):
@@ -630,10 +791,12 @@ for i,f in enumerate(full_list):
 		# 	sheet=s, 
 		# 	folder=f, 
 		# 	stimulus='FullfieldDriftingSinusoidalGrating',
-		# 	parameter="spatial_frequency",
+		# 	# parameter="spatial_frequency",
+		# 	parameter="temporal_frequency",
 		# 	start=100., 
 		# 	end=10000., 
-		# 	xlabel="Spatial frequency", 
+		# 	# xlabel="Spatial frequency", 
+		# 	xlabel="Temporal frequency", 
 		# 	ylabel="firing rate (sp/s)", 
 		# 	color="black", 
 		# 	useXlog=True, 
@@ -641,9 +804,9 @@ for i,f in enumerate(full_list):
 		# 	percentile=False 
 		# )
 
-		# # SIZE
-		# # Ex: ThalamoCorticalModel_data_size_V1_full_____
-		# # Ex: ThalamoCorticalModel_data_size_open_____
+		# SIZE
+		# Ex: ThalamoCorticalModel_data_size_V1_full_____
+		# Ex: ThalamoCorticalModel_data_size_open_____
 		# perform_end_inhibition_barplot( 
 		# 	sheet=s, 
 		# 	folder=f, 
@@ -654,10 +817,36 @@ for i,f in enumerate(full_list):
 		# 	xlabel="Index of end-inhibition",
 		# 	ylabel="Number of cells",
 		# )
+		# trial_averaged_tuning_curve_errorbar( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='DriftingSinusoidalGratingDisk',
+		# 	parameter="radius",
+		# 	start=100., 
+		# 	end=2000., 
+		# 	xlabel="radius", 
+		# 	ylabel="firing rate (sp/s)", 
+		# 	color="black", 
+		# 	# color="red", 
+		# 	useXlog=False, 
+		# 	useYlog=False, 
+		# 	percentile=True,
+		# 	ylim=[0,20],
+		# 	box=True
+		# )
+		# trial_averaged_conductance_tuning_curve( 
+		# 	sheet=s, 
+		# 	folder=f
+		# 	stimulus='DriftingSinusoidalGratingDisk',
+		# 	parameter="radius",
+		# 	#       0      1     2     3     4     5     6     7     8     9
+		# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+		# 	# ylim=[0,6]
+		# )
 
-		# #ORIENTATION
-		# Ex: ThalamoCorticalModel_data_orientation_V1_full_____
-		# Ex: ThalamoCorticalModel_data_orientation_open_____
+		# # #ORIENTATION
+		# # Ex: ThalamoCorticalModel_data_orientation_V1_full_____
+		# # Ex: ThalamoCorticalModel_data_orientation_open_____
 		# trial_averaged_tuning_curve_errorbar( 
 		# 	sheet=s, 
 		# 	folder=f, 
@@ -667,10 +856,12 @@ for i,f in enumerate(full_list):
 		# 	end=2000., 
 		# 	xlabel="Orientation", 
 		# 	ylabel="firing rate (sp/s)", 
-		# 	color="black", 
+		# 	# color="black", 
+		# 	color="red", 
 		# 	useXlog=False, 
 		# 	useYlog=False, 
-		# 	percentile=False 
+		# 	percentile=False,
+		# 	ylim=[0,50]
 		# )
 		# perform_orientation_bias_barplot( 
 		# 	sheet=s, 
@@ -680,34 +871,42 @@ for i,f in enumerate(full_list):
 		# 	start=100., 
 		# 	end=2000., 
 		# 	xlabel="Orientation bias",
-		# 	ylabel="Number of cells",
+		# 	ylabel="Number of cells"
 		# )
-
-		#CROSS-CORRELATION
-		trial_averaged_corrected_xcorrelation( 
+		trial_averaged_conductance_tuning_curve( 
 			sheet=s, 
-			folder=f, 
-			# stimulus='FlashingSquares',
-			stimulus='FullfieldDriftingSquareGrating',
-			start=100., 
-			end=1000., 
-			bin=20.0,
-			xlabel="time (ms)", 
-			ylabel="counts per bin"
+			folder=f,
+			stimulus='FullfieldDriftingSinusoidalGrating',
+			parameter='orientation',
+			ticks=[0.0, 0.314, 0.628, 0.942, 1.256, 1.570, 1.884, 2.199, 2.513, 2.827],
+			# ylim=[0,6]
 		)
+
+		# #CROSS-CORRELATION
+		# trial_averaged_corrected_xcorrelation( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	# stimulus='FlashingSquares',
+		# 	stimulus='FullfieldDriftingSquareGrating',
+		# 	start=100., 
+		# 	end=1000., 
+		# 	bin=20.0,
+		# 	xlabel="time (ms)", 
+		# 	ylabel="counts per bin"
+		# )
 
 		# PAIRWISE
 		for j,l in enumerate(inac_list):
 			print j
 
 			# # SPONTANEOUS ACTIVITY
-			# # Ex: ThalamoCorticalModel_data_luminance_V1_fake_____ vs ThalamoCorticalModel_data_luminance_____
+			# #Ex: ThalamoCorticalModel_data_luminance_V1_fake_____ vs ThalamoCorticalModel_data_luminance_____
 			# perform_pairwise_scatterplot( 
 			# 	sheet=s, 
 			# 	folder_full=f, 
 			# 	folder_inactive=l,
 			# 	stimulus="Null",
-			# 	stimulus_band=1,
+			# 	stimulus_band=0, #0, # OFF   #8, # ON
 			# 	parameter='background_luminance',
 			# 	start=100., 
 			# 	end=2000., 
@@ -734,5 +933,44 @@ for i,f in enumerate(full_list):
 			# 	withRegression=False,
 			# 	withCorrCoef=False,
 			# 	withCentroid=True,
-			# 	withLowPassIndex=True
+			# 	withLowPassIndex=True,
+			# 	highest=3
 			# )
+
+
+
+
+# # STATISTICAL SIGNIFICANCE
+# # For binned histograms, Chi-square distance is the most used method to compare observed and expected data.
+
+# # SIZE
+# print
+# print "Size statistical significance"
+# print "chi-square test of null-hypothesis: 'No difference between open and closed loop condition' ..."
+# data_size_open = numpy.array( [0, 0, 5, 1, 10, 19, 8, 7, 3, 3] ) # expected open
+# data_size_closed = numpy.array( [9, 9, 9, 12, 17, 7, 3, 1, 1, 0] ) # expected closed
+# model_size_open = numpy.array( [2, 0.00000000001, 0.0000000001, 1, 6, 5, 11, 21, 66, 21] ) # observed open
+# model_size_closed = numpy.array( [6, 3, 11, 11, 11, 10, 13, 28, 25, 15] ) # observed closed
+# # size contingency of closed vs open in data
+# print "... in data"
+# chisquared_test( data_size_closed, data_size_open )
+# # size contingency of closed vs open in model
+# print "... in model"
+# chisquared_test( model_size_closed, model_size_open )
+
+# # ORIENTATION
+# print
+# print "Orientation statistical significance"
+# print "chi-square test of null-hypothesis: 'No difference between open and closed loop condition' ..."
+# data_orientation_open = numpy.array( [16, 16, 7, 3, 2, 0.00000000001, 2, 0.00000000001, 0.00000000001, 0.00000000001] ) # expected open
+# data_orientation_closed = numpy.array( [22, 39, 20, 10, 4, 2, 0, 0, 0, 0] ) # expected closed
+# model_orientation_open = numpy.array( [30, 25, 24, 11, 15, 14, 8, 2, 3, 1] ) # observed open
+# model_orientation_closed = numpy.array( [16, 22, 20, 14, 18, 11, 10, 11, 8, 3] ) # observed closed
+# # size contingency of closed vs open in data
+# print "... in data"
+# chisquared_test( data_orientation_closed, data_orientation_open )
+# # size contingency of closed vs open in model
+# print "... in model"
+# chisquared_test( model_orientation_closed, model_orientation_open )
+
+

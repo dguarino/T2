@@ -125,23 +125,16 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
         NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
         l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
         l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
-        # idx4 = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
-        # x = data_store.get_neuron_postions()['V1_Exc_L4'][0][idx4]
-        # y = data_store.get_neuron_postions()['V1_Exc_L4'][1][idx4]
-        # center4 = l4_exc_or_many[numpy.nonzero(numpy.sqrt(numpy.multiply(x,x)+numpy.multiply(y,y)) < 0.2)[0]]
-        # analog_center4 = set(center4).intersection(spike_ids)
+        spike_ids = l4_exc_or_many
 
         position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
-        # V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=spike_ids)
         V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
         print "# of V1 cells within radius range having orientation close to 0:", len(V1_sheet_ids)
-        radius_V1_ids = select_ids_by_radius(position, radius, V1_sheet_ids, position_V1, True)
+        radius_V1_ids = select_ids_by_radius(position, radius, V1_sheet_ids, position_V1)
         radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
         spike_ids = radius_V1_ids
         if len(analog_ids)<1:
             analog_ids = spike_ids
-        # analog_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_esyn_ids()
-        # spike_ids_inh = param_filter_query(data_store,sheet_name="V1_Inh_L4").get_segments()[0].get_stored_spike_train_ids()
         print "analog_ids: ",analog_ids
         print "spike_ids: ",spike_ids
 
@@ -157,6 +150,9 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
 
     if atype in ['xcorr']:
         perform_analysis_xcorr( data_store, withPGN, withV1, radius_Xon_ids, radius_Xoff_ids, spike_ids )
+
+    if atype in ['feedforward']:
+        perform_analysis_feedforward( data_store, spike_ids )
 
     if atype == 'size' or atype == 'size_radius':
         perform_analysis_size( data_store, withPGN, withV1 )
@@ -211,7 +207,7 @@ def perform_analysis_and_visualization_radius( data_store, atype='contrast', pos
         plot_xcorr( data_store, label, radius_Xon_ids, radius_Xoff_ids, spike_PGN_ids, spike_ids)
 
     # Overview
-    plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
+    # plot_overview( data_store, analog_Xon_ids, analog_Xoff_ids, analog_PGN_ids, analog_ids, radius )
     # plot_overview( data_store, [], [], [], analog_ids, radius )
 
 
@@ -324,7 +320,6 @@ def perform_analysis_and_visualization_subcortical_conn(data_store, withV1, Xon_
         #     fig_param={'dpi':100, 'figsize': (24,12)},
         #     plot_file_name='V1_'+str(i)+'_incoming.png'
         # ).plot()    
-
 
 
 
@@ -464,6 +459,43 @@ def perform_analysis_xcorr( data_store, withPGN=False, withV1=False, analog_Xon_
     #     # TrialAveragedFiringRate( dsv1_V1e, ParameterSet({}) ).analyse()
     #     TrialAveragedFiringRateCutout( dsv1_V1e, ParameterSet({}) ).analyse(start=10, end=10000)
 
+
+
+def perform_analysis_feedforward( data_store, analog_ids=[] ):
+    print "Feedforward Analysis"
+    # dsv1_V1e = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='V1_Exc_L4' )  
+    # TrialAveragedFiringRateCutout( dsv1_V1e, ParameterSet({}) ).analyse(start=100, end=10000)
+    PSTH( param_filter_query( data_store, sheet_name='V1_Exc_L4',st_name="DriftingSinusoidalGratingDisk"), ParameterSet({'bin_length':20.0}) ).analyse()
+    TrialMean( data_store, ParameterSet({'vm':False,  'cond_exc':False, 'cond_inh':False})).analyse()
+    dsv = param_filter_query( data_store, st_name='DriftingSinusoidalGratingDisk', sheet_name='V1_Exc_L4', analysis_algorithm=['TrialMean'] )
+    # dsv.print_content(full_ADS=True)
+
+    if len(analog_ids):
+        # AnalogSignalListPlot(
+        #     dsv,
+        #     ParameterSet({
+        #         'mean': True,
+        #         'neurons': list(analog_ids), 
+        #         'sheet_name': 'V1_Exc_L4'
+        #     }),
+        #     fig_param={'dpi' : 100,'figsize': (14,14)}, 
+        #     plot_file_name='DriftingSinusoidalGratingDisk_PSTH_V1_Exc_L4.png'
+        # ).plot({
+        #     '*.fontsize':24
+        # })
+        for lid in analog_ids:
+            AnalogSignalListPlot(
+                dsv,
+                ParameterSet({
+                    'mean': False,
+                    'neurons': list([lid]), 
+                    'sheet_name': 'V1_Exc_L4'
+                }),
+                fig_param={'dpi' : 100,'figsize': (140,14)}, 
+                plot_file_name='DriftingSinusoidalGratingDisk_PSTH_V1_Exc_L4_'+str(lid)+'.png'
+            ).plot({
+                '*.fontsize':24
+            })
 
 
 

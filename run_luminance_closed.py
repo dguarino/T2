@@ -55,10 +55,9 @@ else:
     logger.info('Loaded data store')
     data_store.save()
 
-
-# Analysis and Plotting
-if mpi_comm.rank == MPI_ROOT:
-    # perform_analysis_test( data_store )
-    perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    
-    data_store.save()
+    # Analysis and Plotting
+    if mpi_comm.rank == MPI_ROOT:
+        # perform_analysis_test( data_store )
+        perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
+        
+        data_store.save()

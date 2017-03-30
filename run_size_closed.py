@@ -53,18 +53,15 @@ if True:
 else:
     setup_logging()
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_closed_____', 'store_stimuli' : False}),replace=True)
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_size_closed_____', 'store_stimuli' : False}),replace=True)
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_size_feedforward_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
     # Analysis and Plotting
     if mpi_comm.rank == MPI_ROOT:
         # perform_analysis_test( data_store )
-        # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
         perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'size_radius', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'feedforward', withPGN, withV1 )
         
         # import numpy
         # step = .2

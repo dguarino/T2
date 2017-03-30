@@ -196,14 +196,36 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
 
 
 
+def create_experiments_brokenbar(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # CONTOUR COMPLETION
+      # as in Mumford1991
+      MeasureBrokenBarResponse(
+          model, 
+          relative_luminance = 0., # 0. is dark, 1.0 is double the background luminance
+          orientation = 0., # 0, pi
+          width = 0.5, # cpd
+          length = 10., # cpd, length of the bar
+          flash_duration = 300., # ms, duration of the bar presentation
+          gap_radius = .5, # degrees, radius of the gap
+          x = .0, # degrees, x location of the center of the bar
+          y = .0, # degrees, y location of the center of the bar
+          duration = 100*7,
+          frame_duration = 7, # ms
+          num_trials = 1
+      ),
+  ]
+
+
+
+
+
 def create_experiments_correlation(model):
   return [
       NoStimulation( model, duration=147*7 ),
       # CONTOUR COMPLETION
       # as in SillitoJonesGersteinWest1994, SillitoCudeiroMurphy1993
-      # By default, for this experiment only, the visual space ('size' parameter in the SpatioTemporalFilterRetinaLGN_default file)
-      # is reduced to a flat line in order to have an horizontal distribution of neurons.
-      # A separation distance is established and the experimental protocol finds the closest neurons to the distance specified.
       MeasureFeatureInducedCorrelation(
           model, 
           contrast=80, 
