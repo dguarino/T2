@@ -27,6 +27,7 @@ from mozaik.analysis.vision import *
 from mozaik.storage.queries import *
 from mozaik.storage.datastore import PickledDataStore
 
+
 from mozaik.tools.mozaik_parametrized import colapse
 
 import neo
@@ -70,6 +71,7 @@ def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=
 	# print len(selected_ids)
 	# print distances
 	return [x for (y,x) in sorted(zip(distances,selected_ids), key=lambda pair:pair[0], reverse=reverse)]
+
 
 
 
@@ -122,6 +124,49 @@ def mean_confidence_interval(data, confidence=0.95):
 	h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
 	return m, m-h, m+h
 
+
+
+def trial_to_trial_variability( sheet, folder, stimulus ):
+
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+
+	dsv = param_filter_query(data_store,st_name=stimulus,sheet_name=sheet)
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+
+	if sheet == 'V1_Exc_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+		spike_ids = list(l4_exc_or_many)
+
+	# # Full Raster
+	# RasterPlot(
+	# 	dsv,
+	# 	ParameterSet({'sheet_name' : sheet, 'neurons' : spike_ids, 'trial_averaged_histogram': False, 'spontaneous' : False}),
+	# 	fig_param={'dpi' : 100,'figsize': (50,100)},
+	# 	plot_file_name=folder+"/Raster_"+sheet+"_"+stimulus+".png"
+	# ).plot({})
+
+	# Raster + Histogram
+	RasterPlot(
+		dsv,
+		ParameterSet({'sheet_name' : sheet, 'neurons' : spike_ids, 'trial_averaged_histogram': True, 'spontaneous' : False}),
+		fig_param={'dpi' : 100,'figsize': (200,100)},
+		plot_file_name=folder+"/HistRaster_"+sheet+"_"+stimulus+".png"
+	).plot({'SpikeRasterPlot.group_trials':True})
+
+	# TrialAveragedSparseness
+
+	# # take only stimulus-dependent data
+	# # Analog_MeanSTDAndFanoFactor(dsv,ParameterSet({})).analyse()
+	# dsv = param_filter_query(data_store,value_name=['FanoFactor(ECond)','FanoFactor(ICond)','FanoFactor(VM)'])   
+	# PerNeuronValuePlot(
+	# 	dsv,
+	# 	ParameterSet({'cortical_view' : False}),
+	# 	plot_file_name=folder+"/FanoFactor_"+sheet+".png",
+	# 	fig_param={'dpi' : 100,'figsize': (25,12)}
+	# ).plot({})
 
 
 
@@ -708,8 +753,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	"Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
@@ -730,15 +775,22 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
-# sheets = ['X_OFF'] 
+sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Exc_L4'] 
 
 
 for i,f in enumerate(full_list):
 	print i,f
 
 	for s in sheets:
+
+		# Variability
+		trial_to_trial_variability( 
+			sheet=s, 
+			folder=f,
+			stimulus='FullfieldDriftingSinusoidalGrating',
+		)
 
 		# LUMINANCE
 		# trial_averaged_tuning_curve_errorbar( 
@@ -873,14 +925,14 @@ for i,f in enumerate(full_list):
 		# 	xlabel="Orientation bias",
 		# 	ylabel="Number of cells"
 		# )
-		trial_averaged_conductance_tuning_curve( 
-			sheet=s, 
-			folder=f,
-			stimulus='FullfieldDriftingSinusoidalGrating',
-			parameter='orientation',
-			ticks=[0.0, 0.314, 0.628, 0.942, 1.256, 1.570, 1.884, 2.199, 2.513, 2.827],
-			# ylim=[0,6]
-		)
+		# trial_averaged_conductance_tuning_curve( 
+		# 	sheet=s, 
+		# 	folder=f,
+		# 	stimulus='FullfieldDriftingSinusoidalGrating',
+		# 	parameter='orientation',
+		# 	ticks=[0.0, 0.314, 0.628, 0.942, 1.256, 1.570, 1.884, 2.199, 2.513, 2.827],
+		# 	# ylim=[0,6]
+		# )
 
 		# #CROSS-CORRELATION
 		# trial_averaged_corrected_xcorrelation( 

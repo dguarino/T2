@@ -35,13 +35,13 @@
 
 # full closed loop model
 # python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
-python parameter_search_50_150.py run_size_closed.py nest param/defaults_mea
-python parameter_search_50_150.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-python parameter_search_75_100.py run_size_closed.py nest param/defaults_mea
-python parameter_search_75_100.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_50_150.py run_size_closed.py nest param/defaults_mea
+# python parameter_search_50_150.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_75_100.py run_size_closed.py nest param/defaults_mea
+# python parameter_search_75_100.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 
 
 
@@ -173,4 +173,4 @@ python parameter_search_75_100.py run_size_V1_inhibition_nonoverlapping.py nest 
 # echo
 # mpirun -np 1 python run_orientation_open2.py nest 8 param/defaults 'data_spatial_open2'
 
-
+# mpirun -np 1 python run_bar_feedforward.py nest 8 param/defaults_mea 'data_bar_feedforward'
