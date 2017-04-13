@@ -12,7 +12,7 @@ from parameters import ParameterSet
 
 from model_V1_full import ThalamoCorticalModel
     
-from experiments import create_experiments_size_V1_inactivated_nonoverlapping
+from experiments import create_experiments_size_overlapping
 
 from analysis_and_visualization import perform_analysis_test
 from analysis_and_visualization import perform_analysis_and_visualization
@@ -39,30 +39,26 @@ withFeedback_CxLGN = True # closed loop
 
 # Model execution
 if True:
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_V1_inactivated_nonoverlapping )
+    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_size_overlapping )
     data_store.save()
 
 # or only load pickled data
 else:
     setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_nonoverlapping_____', 'store_stimuli' : False}),replace=True)
+    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_size_closed_overlapping_____', 'store_stimuli' : False}),replace=True)
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_size_closed_____', 'store_stimuli' : False}),replace=True)
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_size_feedforward_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-
-    # perform_analysis_and_visualization_radius( data_store, 'size_radius', [[1.6],[.0],[.0]], [.0,.5], withPGN, withV1 )
 
     # Analysis and Plotting
     if mpi_comm.rank == MPI_ROOT:
         # perform_analysis_test( data_store )
-        # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
         perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'size_radius', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
+        # perform_analysis_and_visualization( data_store, 'feedforward', withPGN, withV1 )
+        
         # import numpy
         # step = .2
-        # for i in numpy.arange(step, 2.+step, step):
+        # for i in numpy.arange(step, 3.+step, step):
         #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
-            
+
     data_store.save()

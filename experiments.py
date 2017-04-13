@@ -131,7 +131,47 @@ def create_experiments_size(model):
       MeasureSizeTuning(
           model, 
           num_sizes=10, # 10,
-          max_size=6.0, # radius
+          max_size=5.0, # radius
+          orientation=0., #numpy.pi/2, 
+          spatial_frequency=0.5,
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7, # 1 sec
+          contrasts=[80], 
+          num_trials=3, # 6,
+          log_spacing=True,
+          with_flat=False #use also flat luminance discs
+      )
+  ]
+
+def create_experiments_size_overlapping(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # SIZE TUNING
+      # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
+      MeasureSizeTuning(
+          model, 
+          num_sizes=10, # 10,
+          max_size=5.0, # radius
+          orientation=0., 
+          spatial_frequency=0.5,
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=1*147*7, # 1 sec
+          contrasts=[80], 
+          num_trials=3, # 6,
+          log_spacing=True,
+          with_flat=False #use also flat luminance discs
+      )
+  ]
+
+def create_experiments_size_nonoverlapping(model):
+  return [
+      NoStimulation( model, duration=147*7 ),
+      # SIZE TUNING
+      # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
+      MeasureSizeTuning(
+          model, 
+          num_sizes=10, # 10,
+          max_size=5.0, # radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
@@ -157,13 +197,13 @@ def create_experiments_size_V1_inactivated_overlapping(model):
           },
           injection_current=-.5, # nA
           num_sizes=10, 
-          max_size=6.0, # max radius
-          orientation=numpy.pi/2, 
+          max_size=5.0, # max radius
+          orientation=0., #numpy.pi/2, 
           spatial_frequency=0.5, #
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-          num_trials=6,
+          num_trials=3,
           log_spacing=True
       )
   ]
@@ -182,7 +222,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
           },
           injection_current=-.5, # nA
           num_sizes=10, 
-          max_size=6.0, # max radius
+          max_size=5.0, # max radius
           orientation=numpy.pi/2, 
           spatial_frequency=0.5, #
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.

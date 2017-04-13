@@ -28,20 +28,16 @@
 # python parameter_search_full_all_models.py run_spatial_V1_full.py nest param/defaults
 # python parameter_search.py run_spatial_V1.py nest param/defaults
 
-# SIZE
-# decorticated
+# SIZE decorticated
 # python parameter_search.py run_size.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
-# full closed loop model
-# python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
+# SIZE full closed loop model
+python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
-# python parameter_search_50_150.py run_size_closed.py nest param/defaults_mea
-# python parameter_search_50_150.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-# python parameter_search_75_100.py run_size_closed.py nest param/defaults_mea
-# python parameter_search_75_100.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 
 
 
@@ -51,8 +47,8 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping
 # echo "starting PLOTTING"
 # echo 
 
-# python parameter_search_analysis.py CombinationParamSearch_50_150_full
-# python parameter_search_analysis.py CombinationParamSearch_50_150_nonover
+# python parameter_search_analysis.py CombinationParamSearch_closed_PGNLGN_150_200_250_300__V1PGN_90_70_50_30
+# python parameter_search_analysis.py CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30
 
 # python parameter_search_analysis.py CombinationParamSearch_full_3sigma_1
 # python parameter_search_analysis.py CombinationParamSearch_nonover_3sigma_1

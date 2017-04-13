@@ -14,6 +14,8 @@ import scipy.stats
 import scipy
 import pylab
 import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
+
 import quantities as qt
 
 from parameters import ParameterSet
@@ -222,16 +224,17 @@ def variability( sheet, folder, stimulus, stimulus_parameter ):
 	if sheet=='V1_Exc_L4' and stimulus_parameter=='orientation':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < 0.1)[0]]
+		print "# of V1 cells having orientation 0:", len(l4_exc_or_many)
 		spike_ids = list(l4_exc_or_many)
 
 	if sheet=='V1_Exc_L4' and stimulus_parameter=='radius':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 1.5)[0]]
+		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < 0.1)[0]]
 		position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
 		V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
-		radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, radius=[0,.5])
+		radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.5,-.5],[.5,.5]])
 		radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
 		print "# of V1 cells within radius range having orientation 0:", len(radius_V1_ids)
 		spike_ids = radius_V1_ids
@@ -248,6 +251,36 @@ def variability( sheet, folder, stimulus, stimulus_parameter ):
 	print "means:", means.shape
 	print "variances:", variances.shape
 
+	# OVERALL CELL COUNT
+	# as in AndolinaJonesWangSillito2007 
+	color = 'black'
+	fanos = numpy.mean(variances, axis=1) / numpy.mean(means, axis=1)
+	print "fanos shape: ",fanos.shape
+	for i,ff in enumerate(fanos):
+		print "max ff: ", numpy.amax(ff) 
+		print "min ff: ", numpy.amin(ff) 
+		counts, bin_edges = numpy.histogram( ff, bins=10 )
+		print counts
+		bin_centres = (bin_edges[:-1] + bin_edges[1:])/2.
+		# Plot
+		fig = plt.figure(1)
+		plt.errorbar(bin_centres, counts, fmt='o', color=color)
+		# Gaussian fit
+		mean = numpy.mean(ff)
+		variance = numpy.var(ff)
+		sigma = numpy.sqrt(variance)
+		x = numpy.linspace(min(ff), max(ff), 300)
+		dx = bin_edges[1] - bin_edges[0]
+		scale = len(ff)*dx
+		plt.xlim([0,3])
+		plt.ylim([0,160])
+		plt.plot(x, mlab.normpdf(x, mean, sigma)*scale, color=color, linewidth=2 )
+		plt.xlabel("Fano Factor")
+		plt.ylabel("Number of Cells")
+		plt.savefig( folder+"/TrialConditionsAveraged_FanoHist_"+stimulus_parameter+"_"+sheet+"_"+str(i)+".png", dpi=200 )
+		plt.close()
+
+	# TIME COURSE
 	# PLOTTING
 	fig,ax = plt.subplots(nrows=len(stimuli), ncols=means.shape[1], figsize=(70, 20), sharey=False, sharex=False)
 	fig.tight_layout()
@@ -292,7 +325,6 @@ def variability( sheet, folder, stimulus, stimulus_parameter ):
 	plt.close()
 	# garbage
 	gc.collect()
-
 
 	# TrialAveragedSparseness !!!!
 
@@ -557,6 +589,15 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 		ids1 = select_ids_by_position(positions, sheet_ids, box=box1)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
+	if sheet=='V1_Exc_L4' and parameter=='orientation':
+		spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < 0.1)[0]]
+		neurons = list(l4_exc_or_many)
+
+	print "neurons:", neurons
+
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons )
 	# print rates
 
@@ -567,8 +608,6 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	std_rates = numpy.std(rates, axis=1, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
 	# print "Ex. collapsed_std_rates: ", std_rates
 
-	# final_mean_rates = numpy.mean(collapsed_mean_rates) 
-	# final_std_rates = numpy.mean(collapsed_std_rates) # mean std
 	# print "stimuli: ", stimuli
 	# print "final means and stds: ", mean_rates, std_rates
 	print sorted( zip(stimuli, mean_rates, std_rates) )
@@ -726,19 +765,27 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	data_store.print_content(full_recordings=False)
 
 	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
+	print "analog_ids (pre): ",analog_ids
 
-	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	# l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-	# l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.1)[0]]
+	if sheet=='V1_Exc_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
+		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.5)[0]]
+		analog_ids = l4_exc_or_many
+		print "# of V1 cells having orientation close to 0:", len(analog_ids)
 
-	# position_V1 = data_store.get_neuron_postions()['V1_Exc_L4']
-	# V1_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4',neuron_ids=l4_exc_or_many)
-	# print "# of V1 cells within radius range having orientation close to 0:", len(V1_sheet_ids)
-	# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, radius=[0,.5])
-	# radius_V1_ids = data_store.get_sheet_ids(sheet_name='V1_Exc_L4',indexes=radius_V1_ids)
-	# analog_ids = radius_V1_ids
-	print "analog_ids: ",analog_ids
+		if parameter=='radius':
+			position_V1 = data_store.get_neuron_postions()[sheet]
+			print position_V1
+			V1_sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet,neuron_ids=analog_ids)
+			print V1_sheet_ids
+			# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, radius=[0,3])
+			radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.5,-.5],[.5,.5]])
+			radius_V1_ids = data_store.get_sheet_ids(sheet_name=sheet,indexes=radius_V1_ids)
+			print "# of V1 cells within radius range having orientation close to 0:", len(radius_V1_ids)
+			analog_ids = radius_V1_ids
 
+	print "analog_ids (post): ",analog_ids
 	num_ticks = len( ticks )
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
@@ -794,11 +841,11 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	final_sorted_e = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_e, std_pop_e) ) ) ]
 	final_sorted_i = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_i, std_pop_i) ) ) ]
 
-	# if percentile:
-	firing_max = numpy.amax( final_sorted_e[1] )
-	final_sorted_e[1] = final_sorted_e[1] / firing_max * 100
-	firing_max = numpy.amax( final_sorted_i[1] )
-	final_sorted_i[1] = final_sorted_i[1] / firing_max * 100
+	if percentile:
+		firing_max = numpy.amax( final_sorted_e[1] )
+		final_sorted_e[1] = final_sorted_e[1] / firing_max * 100
+		firing_max = numpy.amax( final_sorted_i[1] )
+		final_sorted_i[1] = final_sorted_i[1] / firing_max * 100
 
 	# Plotting tuning curve
 	fig,ax = plt.subplots()
@@ -812,10 +859,10 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	err_min = final_sorted_i[1] - final_sorted_i[2]
 	ax.fill_between(final_sorted_i[0], err_max, err_min, color='blue', alpha=0.3)
 
-	# if not percentile:
-	# 	ax.set_ylim(ylim)
-	# else:
-	# 	ax.set_ylim([0,numpy.amax(final_sorted_e[2])])
+	if not percentile:
+		ax.set_ylim(ylim)
+	else:
+		ax.set_ylim([0,numpy.amax(final_sorted_i[1])+numpy.amax(final_sorted_i[2])])
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -829,10 +876,10 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		ax.set_yscale("log", nonposy='clip')
 
 	# text
-	ax.set_title( "PSP Area response plot V1excL4" )
-	ax.set_xlabel( 'radius' )
-	ax.set_ylabel( "PSP (%)" )
-	plt.savefig( folder+"/TrialAveragedPSP_"+sheet+"_"+parameter+"_pop.png", dpi=200 )
+	ax.set_title( "Area response plot V1excL4" )
+	ax.set_xlabel( parameter )
+	ax.set_ylabel( "Conductance change (%)" )
+	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_pop.png", dpi=200 )
 	fig.clf()
 	plt.close()
 	# garbage
@@ -874,8 +921,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -883,7 +930,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
@@ -902,11 +949,12 @@ inac_list = [
 
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Exc_L4'] 
 
 
 for i,f in enumerate(full_list):
@@ -1000,8 +1048,8 @@ for i,f in enumerate(full_list):
 		# 	end=2000., 
 		# 	xlabel="radius", 
 		# 	ylabel="firing rate (sp/s)", 
-		# 	color="black", 
-		# 	# color="red", 
+		# 	# color="black", 
+		# 	color="red", 
 		# 	useXlog=False, 
 		# 	useYlog=False, 
 		# 	percentile=True,
@@ -1010,19 +1058,20 @@ for i,f in enumerate(full_list):
 		# )
 		# trial_averaged_conductance_tuning_curve( 
 		# 	sheet=s, 
-		# 	folder=f
+		# 	folder=f,
 		# 	stimulus='DriftingSinusoidalGratingDisk',
 		# 	parameter="radius",
 		# 	#       0      1     2     3     4     5     6     7     8     9
 		# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-		# 	# ylim=[0,6]
+		# 	percentile=True,
+		# 	ylim=[0,120]
 		# )
-		variability( 
-			sheet=s, 
-			folder=f,
-			stimulus='DriftingSinusoidalGratingDisk',
-			stimulus_parameter='radius'
-		)
+		# variability( 
+		# 	sheet=s, 
+		# 	folder=f,
+		# 	stimulus='DriftingSinusoidalGratingDisk',
+		# 	stimulus_parameter='radius'
+		# )
 
 		# # #ORIENTATION
 		# # Ex: ThalamoCorticalModel_data_orientation_V1_full_____
@@ -1033,7 +1082,7 @@ for i,f in enumerate(full_list):
 		# 	stimulus='FullfieldDriftingSinusoidalGrating',
 		# 	parameter="orientation",
 		# 	start=100., 
-		# 	end=2000., 
+		# 	end=10000., 
 		# 	xlabel="Orientation", 
 		# 	ylabel="firing rate (sp/s)", 
 		# 	# color="black", 
@@ -1041,7 +1090,7 @@ for i,f in enumerate(full_list):
 		# 	useXlog=False, 
 		# 	useYlog=False, 
 		# 	percentile=False,
-		# 	ylim=[0,50]
+		# 	# ylim=[0,50]
 		# )
 		# perform_orientation_bias_barplot( 
 		# 	sheet=s, 
@@ -1059,14 +1108,15 @@ for i,f in enumerate(full_list):
 		# 	stimulus='FullfieldDriftingSinusoidalGrating',
 		# 	parameter='orientation',
 		# 	ticks=[0.0, 0.314, 0.628, 0.942, 1.256, 1.570, 1.884, 2.199, 2.513, 2.827],
-		# 	# ylim=[0,6]
+		# 	percentile=True,
+		# 	ylim=[0,110]
 		# )
-		# variability( 
-		# 	sheet=s, 
-		# 	folder=f,
-		# 	stimulus='FullfieldDriftingSinusoidalGrating',
-		# 	stimulus_parameter='orientation'
-		# )
+		variability( 
+			sheet=s, 
+			folder=f,
+			stimulus='FullfieldDriftingSinusoidalGrating',
+			stimulus_parameter='orientation'
+		)
 
 		# #CROSS-CORRELATION
 		# trial_averaged_corrected_xcorrelation( 

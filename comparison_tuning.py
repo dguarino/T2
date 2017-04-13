@@ -58,7 +58,7 @@ def select_ids_by_position(position, radius, sheet_ids, positions, reverse=False
 
 
 
-def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ismaller=[2,3], Iequal=[4,5], Ilarger=[6,8], box=[] ):
+def perform_comparison_size_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive, reverse=False, Ismaller=[2,3], Iequal=[4,5], Ilarger=[6,8], box=[], csvfile=None ):
 	print folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -218,7 +218,7 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		print "peaks:", peaks
 		# minimum = int( numpy.argmin( closed_values ) / closed_values.shape[1] )
 		# minimum = min(numpy.argmin(closed_values, axis=0 ))
-		minimums = numpy.argmin(closed_values, axis=0 ) +2 # +2 to get the response out of the smallest
+		minimums = numpy.argmin(closed_values, axis=0 ) +1 # +N to get the response out of the smallest
 		# print "numpy.argmin( closed_values ):", numpy.argmin( closed_values )
 		print "minimums:", minimums
 
@@ -271,6 +271,9 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 		print "smaller",smaller
 		print "equal", equal
 		print "larger", larger
+
+		if csvfile:
+			csvfile.write( "("+ str(smaller)+ ", " + str(equal)+ ", " + str(larger)+ "), " )
 
 		# 0/0
 		# Check using scipy
@@ -357,240 +360,6 @@ def perform_comparison_size_tuning( sheet, reference_position, step, sizes, fold
 
 
 
-def perform_percent_tuning( sheet, reference_position, step, sizes, folder_full, folder_inactive ):
-	print folder_full
-	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
-	data_store_full.print_content(full_recordings=False)
-	print folder_inactive
-	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
-	data_store_inac.print_content(full_recordings=False)
-
-	# full
-	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	dsv = param_filter_query( data_store_full, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
-
-	PlotTuningCurve(
-		dsv,
-		ParameterSet({
-			'polar': False,
-			'pool': False,
-			'centered': False,
-			'percent': True,
-			'mean': True,
-			'parameter_name' : 'radius', 
-			# 'neurons': list(spike_ids1[11:12]), 
-			'neurons': list(spike_ids1), 
-			'sheet_name' : sheet
-		}), 
-		fig_param={'dpi' : 100,'figsize': (8,8)}, 
-		# plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids1[11:12])+".png"
-		plot_file_name=folder_full+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
-	).plot({
-		'*.y_lim':(0,100), 
-		'*.y_label': "Response (%)",
-		# '*.y_ticks':[10, 20, 30, 40, 50], 
-		'*.x_ticks':[0.1, 1, 2, 4, 6], 
-		'*.x_scale':'linear',
-		#'*.x_scale':'log', '*.x_scale_base':2,
-		'*.fontsize':24
-	})
-
-	# inactivated
-	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	print spike_ids2
-	dsv = param_filter_query( data_store_inac, st_name='DriftingSinusoidalGratingDisk', analysis_algorithm=['TrialAveragedFiringRateCutout'] )
-
-	PlotTuningCurve(
-		dsv,
-		ParameterSet({
-			'polar': False,
-			'pool': False,
-			'centered': False,
-			'percent': True,
-			'mean': True,
-			'parameter_name' : 'radius', 
-			'neurons': list(spike_ids2), 
-			# 'neurons': list(spike_ids2[11:12]), 
-			'sheet_name' : sheet
-		}), 
-		fig_param={'dpi' : 100,'figsize': (8,8)}, 
-		# plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_percent_"+str(spike_ids2[11:12])+".png"
-		plot_file_name=folder_inactive+"/"+"SizeTuning_Grating_"+sheet+"_mean_percent.png"
-	).plot({
-		'*.y_lim':(0,100), 
-		'*.y_label': "Response (%)",
-		# '*.y_ticks':[10, 20, 30, 40, 50], 
-		'*.x_ticks':[0.1, 1, 2, 4, 6], 
-		'*.x_scale':'linear',
-		#'*.x_scale':'log', '*.x_scale_base':2,
-		'*.fontsize':24
-	})
-
-
-
-
-def perform_time_course_fano_factor_comparison():
-	# What is the added value in having a loop?
-	# Compare it with Churchland_etal_2010
-
-	pass
-
-
-
-
-def perform_comparison_size_inputs( sheet, sizes, folder_full, folder_inactive, with_ppd=False ):
-	print folder_full
-	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
-	data_store_full.print_content(full_recordings=False)
-	print folder_inactive
-	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
-	data_store_inac.print_content(full_recordings=False)
-
-	print "Checking data..."
-
-	analog_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
-	print analog_ids1
-	analog_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
-	print analog_ids2
-
-	assert len(analog_ids1) == len(analog_ids2) , "ERROR: the number of recorded neurons is different"
-	assert set(analog_ids1) == set(analog_ids2) , "ERROR: the neurons in the two arrays are not the same"
-
-	num_sizes = len( sizes )
-
-	for _,idd in enumerate(analog_ids1):
-
-		# get trial averaged gsyn for each stimulus condition
-		# then subtract full - inactive for each stimulus condition (size)
-		# then summarize the time differences in one number, to have one point for each size
-
-		# Full
-		segs = sorted( 
-			param_filter_query(data_store_full, st_name='DriftingSinusoidalGratingDisk', sheet_name=sheet).get_segments(), 
-			key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
-		)
-		print "full idd", idd # 
-		# print len(segs), "/", num_sizes
-		trials = len(segs) / num_sizes
-		# print trials
-		full_gsyn_es = [s.get_esyn(idd) for s in segs]
-		full_gsyn_is = [s.get_isyn(idd) for s in segs]
-		# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_sizes
-		# print "shape gsyn_e/i", full_gsyn_es[0].shape
-		# mean input over trials
-		mean_full_gsyn_e = numpy.zeros((num_sizes, full_gsyn_es[0].shape[0])) # init
-		mean_full_gsyn_i = numpy.zeros((num_sizes, full_gsyn_es[0].shape[0]))
-		# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
-		sampling_period = full_gsyn_es[0].sampling_period
-		t_stop = float(full_gsyn_es[0].t_stop - sampling_period)
-		t_start = float(full_gsyn_es[0].t_start)
-		time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
-		# sum by size
-		t = 0
-		for e,i in zip(full_gsyn_es, full_gsyn_is):
-			s = int(t/trials)
-			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
-			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
-			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
-			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
-			t = t+1
-		# average by trials
-		for s in range(num_sizes):
-			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
-			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
-		# print "mean_full_gsyn_e", len(mean_full_gsyn_e), mean_full_gsyn_e
-		# print "mean_full_gsyn_i", len(mean_full_gsyn_i), mean_full_gsyn_i
-
-		# Inactivated
-		segs = sorted( 
-			param_filter_query(data_store_inac, st_name='DriftingSinusoidalGratingDisk', sheet_name=sheet).get_segments(), 
-			key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
-		)
-		print "inactivation idd", idd # 
-		# print len(segs), "/", num_sizes
-		trials = len(segs) / num_sizes
-		# print trials
-		inac_gsyn_es = [s.get_esyn(idd) for s in segs]
-		inac_gsyn_is = [s.get_isyn(idd) for s in segs]
-		# print "len full_gsyn_e/i", len(inac_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_sizes
-		# print "shape gsyn_e/i", inac_gsyn_es[0].shape
-		# mean input over trials
-		mean_inac_gsyn_e = numpy.zeros((num_sizes, inac_gsyn_es[0].shape[0])) # init
-		mean_inac_gsyn_i = numpy.zeros((num_sizes, inac_gsyn_es[0].shape[0]))
-		# print "shape mean_inac_gsyn_e/i", mean_inac_gsyn_e.shape
-		sampling_period = inac_gsyn_es[0].sampling_period
-		t_stop = float(inac_gsyn_es[0].t_stop - sampling_period)
-		t_start = float(inac_gsyn_es[0].t_start)
-		time_axis = numpy.arange(0, len(inac_gsyn_es[0]), 1) / float(len(inac_gsyn_es[0])) * abs(t_start-t_stop) + t_start
-		# sum by size
-		t = 0
-		for e,i in zip(inac_gsyn_es, inac_gsyn_is):
-			s = int(t/trials)
-			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
-			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
-			mean_inac_gsyn_e[s] = mean_inac_gsyn_e[s] + numpy.array(e.tolist())
-			mean_inac_gsyn_i[s] = mean_inac_gsyn_i[s] + numpy.array(i.tolist())
-			t = t+1
-		# average by trials
-		for s in range(num_sizes):
-			mean_inac_gsyn_e[s] = mean_inac_gsyn_e[s] / trials
-			mean_inac_gsyn_i[s] = mean_inac_gsyn_i[s] / trials
-		# print "mean_inac_gsyn_e", len(mean_inac_gsyn_e), mean_inac_gsyn_e.shape
-		# print "mean_inac_gsyn_i", len(mean_inac_gsyn_i), mean_inac_gsyn_i.shape
-
-		# PSP Area response plot (as in LindstromWrobel2011)
-		max_full_gsyn_e = numpy.amax(mean_full_gsyn_e, axis=1)
-		max_full_gsyn_i = numpy.amax(mean_full_gsyn_i, axis=1)
-		norm_full_gsyn_e = (mean_full_gsyn_e.sum(axis=1) / 10291) / max_full_gsyn_e *100
-		norm_full_gsyn_i = (mean_full_gsyn_i.sum(axis=1) / 10291) / max_full_gsyn_i *100
-
-		max_inac_gsyn_e = numpy.amax(mean_inac_gsyn_e, axis=1)
-		max_inac_gsyn_i = numpy.amax(mean_inac_gsyn_i, axis=1)
-		norm_inac_gsyn_e = (mean_inac_gsyn_e.sum(axis=1) / 10291) / max_full_gsyn_e *100
-		norm_inac_gsyn_i = (mean_inac_gsyn_i.sum(axis=1) / 10291) / max_full_gsyn_i *100
-
-		plt.figure()
-		plt.errorbar(sizes, norm_full_gsyn_e, color='red', linewidth=2)#, xerr=0.2, yerr=0.4)
-		plt.errorbar(sizes, norm_full_gsyn_i, color='blue', linewidth=2)#, xerr=0.2, yerr=0.4)
-		plt.errorbar(sizes, norm_inac_gsyn_e, color='purple', linewidth=2)#, xerr=0.2, yerr=0.4)
-		plt.errorbar(sizes, norm_inac_gsyn_i, color='cyan', linewidth=2)#, xerr=0.2, yerr=0.4)
-		plt.xscale("log")
-		plt.xticks(sizes, sizes)
-		plt.ylabel("PSP (%)", fontsize=10)
-		plt.xlabel("sizes", fontsize=10)
-		plt.title("PSP Area response plot "+sheet)
-		plt.savefig( folder_inactive+"/TrialAveragedPSP_"+sheet+".png", dpi=100 )
-		plt.close()
-
-		# Point-to-Point difference 
-		if with_ppd:
-			diff_e_full_inac = mean_full_gsyn_e - mean_inac_gsyn_e
-			diff_i_full_inac = mean_full_gsyn_i - mean_inac_gsyn_i
-			# print "diff_e_full_inac", len(diff_e_full_inac), diff_e_full_inac
-			# print "diff_i_full_inac", len(diff_i_full_inac), diff_i_full_inac
-			fig, axes = plt.subplots(nrows=1, ncols=num_sizes, figsize=(10*num_sizes, 10))
-			print axes.shape
-			# http://paletton.com/#uid=7020Q0km5KqbrV8hkPPqCEHz+z+
-			for s in range(num_sizes):
-				axes[s].plot(mean_full_gsyn_e[s], color='#F93026')
-				axes[s].plot(mean_full_gsyn_i[s], color='#294BA8')
-				axes[s].plot(mean_inac_gsyn_e[s], color='#FF7C75')
-				axes[s].plot(mean_inac_gsyn_i[s], color='#7592E1')
-				axes[s].plot(diff_e_full_inac[s], color='#FFC64C')
-				axes[s].plot(diff_i_full_inac[s], color='#6CEA7B')
-				axes[s].set_title(str(sizes[s]))
-			plt.savefig( folder_inactive+"/TrialAveragedConductanceComparison_"+sheet+".png", dpi=100 )
-			# plt.savefig( folder_full+"/TrialAveragedSizeTuningComparison_"+sheet+"_"+interval+".png", dpi=100 )
-			plt.close()
-
-		plt.close()
-		# garbage
-		gc.collect()
-
-
-
-
-
 
 ###################################################
 # Execution
@@ -614,22 +383,22 @@ sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
 
 
 full_list = [ 
-	"latest_size_full"
+	"CombinationParamSearch_closed_PGNLGN_150_200_250_300__V1PGN_90_70_50_30"
 	]
 
 inac_large_list = [ 
-	"latest_size_nonoverlapping"
+	"CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30"
 	# "latest_size_overlapping"
 	]
 
 # CHOICE OF CELLS
 # You can use either radius steps or box. The one excludes the other.
 # 1. Use radius steps, to globally inspect at step distances from the center
-steps = [.2] # for detail
-# steps = [.8] # for all cells
+# steps = [.2] # for detail
+steps = [.8] # for all cells
 # 2. Use the box (lowerleft, upperright) to have a more specific view
 box = [] # empty box to make the radius choice work
-box = [[-.5,.0],[.5,.5]] # 
+# box = [[-.5,.0],[.5,.5]] # 
 # box = [[-.5,.3],[.5,1.]] # 
 
 # CHOICE OF STIMULI GROUPS
@@ -638,14 +407,22 @@ Iequal   = [4,6]
 Ilarger  = [6,8] # NON
 # Ilarger  = [7,10] # OVER
 
-sheets = ['X_ON'] #['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+# sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+# sheets = ['X_ON', 'X_OFF']
+sheets = ['X_ON']
+# sheets = ['X_OFF'] 
+# sheets = ['PGN']
+# sheets = ['V1_Exc_L4'] 
 
+
+# values of the bars for further analysis
+csvfile = open(inac_large_list[0]+"/barsizevalues_"+sheets[0]+"_step"+str(steps[0])+"_box"+str(box)+".csv", 'w')
 
 
 for i,l in enumerate(full_list):
 	# for parameter search
-	full = [ l+"/"+f for f in os.listdir(l) if os.path.isdir(os.path.join(l, f)) ]
-	large = [ inac_large_list[i]+"/"+f for f in os.listdir(inac_large_list[i]) if os.path.isdir(os.path.join(inac_large_list[i], f)) ]
+	full = [ l+"/"+f for f in sorted(os.listdir(l)) if os.path.isdir(os.path.join(l, f)) ]
+	large = [ inac_large_list[i]+"/"+f for f in sorted(os.listdir(inac_large_list[i])) if os.path.isdir(os.path.join(inac_large_list[i], f)) ]
 
 	# print "\n\nFull:", i
 	# print full
@@ -659,24 +436,7 @@ for i,l in enumerate(full_list):
 
 		for s in sheets:
 
-			# perform_comparison_size_inputs( 
-			# 	sheet=s,
-			# 	sizes = sizes,
-			# 	folder_full=f, 
-			# 	folder_inactive=large[i],
-			# 	with_ppd=True
-			# 	)
-
 			for step in steps:
-
-				# perform_percent_tuning( 
-				# 	sheet=s, 
-				#   reference_position=[[0.0], [0.0], [0.0]],
-				# 	step=step, 
-				# 	sizes = sizes, 
-				# 	folder_full=f, 
-				# 	folder_inactive=large[i] 
-				# )
 
 				perform_comparison_size_tuning( 
 					sheet=s, 
@@ -689,10 +449,13 @@ for i,l in enumerate(full_list):
 					Ismaller = Ismaller,
 					Iequal   = Iequal,
 					Ilarger  = Ilarger,
-					box = box
+					box = box,
+					csvfile = csvfile,
 				)
+			csvfile.write("\n")
 
-
+# plot map
+csvfile.close()
 
 
 # # Testing
