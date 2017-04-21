@@ -45,7 +45,8 @@ CombinationParameterSearch(
         # 'pgn.PGN_PGN_Connection.base_weight': [.0001], #[.0008], # model A of feedback: .0001 
         # 'pgn.PGN_PGN_Connection.num_samples': [20], # model A of feedback: 20
 
-        'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [150, 200, 250, 300], # model A of feedback: 150
+        # 'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [150, 200, 250, 300], # model A of feedback: 150
+        'pgn.PGN_LGN_ConnectionOn.weight_functions.f1.params.arborization_constant': [100, 130, 150, 170, 200], # model A of feedback: 150
         # 'pgn.PGN_LGN_ConnectionOn.base_weight': [.0005, .0007, .0009], # model A of feedback: .0005
         # 'pgn.PGN_LGN_ConnectionOn.num_samples': [110], # model A of feedback: 110
 
@@ -57,6 +58,7 @@ CombinationParameterSearch(
 
         # 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # model A of feedback: .0006
         # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [40], # model A of feedback: 40
-        'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [30, 50, 70, 90], # model A of feedback: 90 
+        # 'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [30, 50, 70, 90], # model A of feedback: 90 
+        'l4_cortex_exc.EfferentConnection_PGN.weight_functions.f1.params.arborization_constant': [40, 70, 90, 110, 140], # model A of feedback: 90 
   	}
 ).run_parameter_search()

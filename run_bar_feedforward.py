@@ -10,8 +10,7 @@ from mozaik.controller import run_workflow, setup_logging
 from mozaik.storage.datastore import Hdf5DataStore, PickledDataStore
 from parameters import ParameterSet
 
-from model import ThalamoCorticalModel
-# from model_feedforward import ThalamoCorticalModel
+from model_feedforward import ThalamoCorticalModel
     
 from experiments import create_experiments_brokenbar
 
@@ -31,6 +30,8 @@ logger = mozaik.getMozaikLogger()
 
 withPGN = True
 withV1 = True
+withFeedback_CxPGN = False # closed loop
+withFeedback_CxLGN = False # closed loop
 
 # Model execution
 if True:
@@ -42,8 +43,8 @@ else:
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_brokenbar_closed_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
 
-    # Analysis and Plotting
-    if mpi_comm.rank == MPI_ROOT:
-        perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
+    # # Analysis and Plotting
+    # if mpi_comm.rank == MPI_ROOT:
+    #     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
 
-    data_store.save()
+    # data_store.save()

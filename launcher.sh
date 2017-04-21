@@ -169,4 +169,4 @@ python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping
 # echo
 # mpirun -np 1 python run_orientation_open2.py nest 8 param/defaults 'data_spatial_open2'
 
-# mpirun -np 1 python run_bar_feedforward.py nest 8 param/defaults_mea 'data_bar_feedforward'
+# mpirun -np 1 python run_bar_feedforward.py nest 1 param/defaults_mea 'data_bar_feedforward'

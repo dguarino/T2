@@ -33,15 +33,13 @@ for name in filenames:
 			print i%len(xvalues), int(i/len(xvalues)), " - ", X[i%len(xvalues)][int(i/len(xvalues))], Y[i%len(xvalues)][int(i/len(xvalues))]
 			s = list(eval(line)[0])
 			fit = numpy.polyfit([0,1,2], s, 1)
-			if numpy.amin(s) < -3: # tolerance on the smallest value
+			if numpy.amin(s) < -8: # tolerance on the smallest value
 				fit = [0., 0.]
 			if fit[0] < 0.:
 				fit = [0., 0.]
 			print s, fit
-			colors[i%len(xvalues)][int(i/len(xvalues))] = fit[0]# if fit[0]>0. else 0. # slope
+			colors[i%len(xvalues)][int(i/len(xvalues))] = fit[0] # if fit[0]>0. else 0. # slope
 			alpha[i%len(xvalues)][int(i/len(xvalues))] = fit[1] # in
-			# colors[int(i/len(xvalues))][i%len(xvalues)] = fit[0] # slope
-			# alpha[int(i/len(xvalues))][i%len(xvalues)] = fit[1] # height
 
 	print colors
 	# alpha = numpy.absolute( normalize(alpha) )
@@ -51,9 +49,9 @@ for name in filenames:
 	plt.figure()
 	ca = plt.imshow(colors, interpolation='nearest', cmap='coolwarm')
 	# ca = plt.contourf(colors, cmap='coolwarm')
-	# cb = plt.contour(alpha, cmap='brg')
 	cbara = plt.colorbar(ca, ticks=[numpy.amin(colors), 0, numpy.amax(colors)])
 	cbara.set_label('Regression Slope')
+	# cb = plt.contour(alpha, cmap='brg')
 	# cbarb = plt.colorbar(cb, ticks=[numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# print cbarb.set_ticklabels([numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# cbarb.set_label('Regression Intercept')
