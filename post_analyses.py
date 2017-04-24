@@ -345,6 +345,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 
 
 
+
 def boxplot_comparison( folder, sheet, stimulus, csvfilename, xlabel="", ylabel="" ):
 	csvfile0 = open(csvfilename, 'r')
 	csv0 = numpy.loadtxt( csvfile0, delimiter=',' )
@@ -826,6 +827,53 @@ def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, e
 
 
 
+def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black" ):
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False )
+	print rates.shape # (stimuli, cells)
+	# print rates
+	# print stimuli
+
+	# Cumulative distribution as in LiYeSongYangZhou2011:
+	# 1. find the peak response for each cell
+	peaks = numpy.amax(rates, axis=0)
+	# 2. compute c50 for each cell
+	halves = peaks/2 
+	# find the index (stimulus causing half-max response: c50)
+	c50s = (numpy.abs(rates-halves)).argmin(axis=0)
+	print c50s
+	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,7), normed=True, density=True)
+	print hist, bin_edges
+	cumulative = numpy.cumsum(hist)
+	m = numpy.amax(cumulative)
+	cumulative = cumulative/m
+	print cumulative
+
+	# PLOTTING
+	x = [0, .02, .04, .08, .18, .36, .50, 1.]
+	fig,ax = plt.subplots()
+	barlist = ax.plot( x, cumulative, color=color, linewidth=2 )
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.set_xlabel(xlabel)
+	ax.set_ylabel(ylabel)
+	# ax.set_xscale('log')
+	# ax.axis([0, 1., 0-.05, 1+.05])
+	plt.xlim([0,.6])
+	plt.ylim([0-.05, 1+.05])
+	# plt.xticks(edges, edges)
+	plt.savefig( folder+"/cumulative_distribution_C50_"+sheet+".png", dpi=300 )
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
+
+
 def perform_orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
@@ -1257,25 +1305,22 @@ def chisquared_test(observed, expected):
 
 full_list = [ 
 	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_luminance_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	# "ThalamoCorticalModel_data_contrast_____.0012",
-	# "ThalamoCorticalModel_data_contrast_V1_full_____",
-
-	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
-
-	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
-
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
+
+	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
+
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
@@ -1285,13 +1330,9 @@ full_list = [
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
 	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 
-	# "CombinationParamSearch_closed_PGNLGN_150_200_250_300__V1PGN_90_70_50_30",
-
 	]
 
 inac_list = [ 
-	# "CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30",
-
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -1306,9 +1347,9 @@ inac_list = [
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-# sheets = ['X_ON', 'X_OFF']
+sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
-sheets = ['X_OFF'] 
+# sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
@@ -1392,14 +1433,14 @@ else:
 			# 	percentile=False,
 			# 	useXlog=True 
 			# )
-			boxplot_comparison( 
-				sheet=s, 
-				folder=f, 
-				stimulus='Null',
-				csvfilename="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A.csv",
-				xlabel="conditions", 
-				ylabel="firing rate (sp/s)"
-			)
+			# boxplot_comparison( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='Null',
+			# 	csvfilename="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A.csv",
+			# 	xlabel="conditions", 
+			# 	ylabel="firing rate (sp/s)"
+			# )
 
 			# # CONTRAST
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1414,6 +1455,17 @@ else:
 			# 	color="black", 
 			# 	percentile=True 
 			# )
+			cumulative_distribution_C50_curve( 
+				sheet=s, 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='contrast',
+				start=100., 
+				end=2000., 
+				xlabel="c50",
+				ylabel="Percentile",
+				color="black"
+			)
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
