@@ -48,8 +48,9 @@ def create_experiments_contrast(model):
           spatial_frequency = 0.5, 
           temporal_frequency = 2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration = 2*147*7,
-          contrasts = [0, 10, 25, 40, 75, 100], # Bonin Mante Carandini 2005
+          # contrasts = [0, 10, 25, 40, 75, 100], # Bonin Mante Carandini 2005
           # contrasts = [0, 2, 4, 8, 18, 36, 50, 100], # KaplanPurpuraShapley1987
+          contrasts = [0.0, 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55., 60.], # LiYeSongYangZhou2011
           num_trials=6
       )
   ]
