@@ -44,7 +44,7 @@ def create_experiments_contrast(model):
       MeasureContrastSensitivity(
           model, 
           size = 20.0,
-          orientation=numpy.pi/2, 
+          orientation=0., 
           spatial_frequency = 0.5, 
           temporal_frequency = 2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration = 2*147*7,
@@ -65,7 +65,7 @@ def create_experiments_spatial(model):
       # as in SolomonWhiteMartin2002, SceniakChatterjeeCallaway2006
       MeasureFrequencySensitivity(
           model, 
-          orientation=numpy.pi/2, 
+          orientation=0., 
           contrasts=[80], #[25,50,100], #
           spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
           # spatial_frequencies = [0.2, 0.3],
@@ -88,7 +88,7 @@ def create_experiments_temporal(model):
       # as in SaulHumphrey1990, AlittoUsrey2004
       MeasureFrequencySensitivity(
           model, 
-          orientation=numpy.pi/2, 
+          orientation=0., 
           contrasts=[80], 
           spatial_frequencies=[0.5], 
           temporal_frequencies=[0.05, 0.2, 1.2, 3.0, 6.4, 8, 12, 30], # AlittoUsrey2004

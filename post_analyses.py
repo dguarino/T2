@@ -71,6 +71,164 @@ def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=
 
 
 
+def get_per_neuron_sliding_window_spike_count( datastore, sheet, stimulus, stimulus_parameter, start, stop, window=50.0, step=10.0, neurons=[] ):
+
+	if not len(neurons)>1:
+		spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+		sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+		neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+	print "neurons", len(neurons)
+
+	SpikeCount( 
+		param_filter_query( datastore, sheet_name=sheet, st_name=stimulus ), 
+		ParameterSet({'bin_length':window}) 
+	).analyse()
+	# datastore.save()
+
+	TrialMean(
+		param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCount' ),
+		ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
+	).analyse()
+	# datastore.save()
+
+	TrialVariability(
+		param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCount' ),
+		ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
+	).analyse()
+	# datastore.save()
+
+	dsvTM = param_filter_query( datastore, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialMean' )
+	dsvTV = param_filter_query( datastore, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialVariability' )
+	# dsvTM.print_content(full_recordings=False)
+	pnvsTM = [ dsvTM.get_analysis_result() ]
+	pnvsTV = [ dsvTV.get_analysis_result() ]
+	# print pnvsTM
+
+	# get stimuli from PerNeuronValues
+	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvsTM[-1]]
+
+	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTM[-1]], st, stimulus_parameter)
+	for k in dic:
+		(b, a) = dic[k]
+		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+		dic[k] = (par,numpy.array(val))
+
+	stimuli = dic.values()[0][0]
+	means = numpy.array( dic.values()[0][1] )
+	# print "means:", means.shape
+
+	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTV[-1]], st, stimulus_parameter)
+	for k in dic:
+		(b, a) = dic[k]
+		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+		dic[k] = (par,numpy.array(val))
+
+	variances = numpy.array( dic.values()[0][1] )
+	# print "variances:", variances.shape
+
+	return stimuli, numpy.swapaxes(means,1,2), numpy.swapaxes(variances,1,2)
+
+	# strides_start = numpy.arange( start, stop-window, step )
+	# strides_end = numpy.arange( start+window, stop, step )
+	# print strides_start
+	# print strides_end
+
+	# datapoints = []	
+	# for s,e in zip(strides_start, strides_end):
+	# 	print s,e
+
+	# 	SpikeCountCutout( 
+	# 		param_filter_query( datastore, sheet_name=sheet, st_name=stimulus ), 
+	# 		ParameterSet({'bin_length':window, 'start':s, 'end':e+1.0 }) 
+	# 	).analyse()
+
+	# 	# TrialMean(
+	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
+	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
+	# 	# ).analyse()
+
+	# 	# TrialVariability(
+	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
+	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
+	# 	# ).analyse()
+	#datapoints.append( mean, variability )
+	# print datapoints
+
+
+
+
+def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0, neurons=[], spikecount=True ):
+	if not spikecount:
+		TrialAveragedFiringRateCutout( 
+			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
+			ParameterSet({}) 
+		).analyse(start=start, end=end)
+	else:
+		SpikeCount( 
+			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
+			ParameterSet({'bin_length' : bin }) 
+		).analyse()
+		# datastore.save()
+
+	# dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sheet, st_name=stimulus )
+	# # dsv.print_content(full_recordings=False)
+	# pnvs = [ dsv.get_analysis_result() ]
+	# # get stimuli from PerNeuronValues
+	# st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
+
+	# if not len(neurons)>1:
+	# 	spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	# 	sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+	# 	neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+	# print "neurons", len(neurons)
+
+	# dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
+	# for k in dic:
+	# 	(b, a) = dic[k]
+	# 	par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+	# 	dic[k] = (par,numpy.array(val))
+	# # print dic
+
+	# mean_rates = dic.values()[0][1]
+	# stimuli = dic.values()[0][0]
+
+	mean_rates = []
+	stimuli = []
+	for sh in sheet:
+
+		dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sh, st_name=stimulus )
+		# dsv.print_content(full_recordings=False)
+		pnvs = [ dsv.get_analysis_result() ]
+		# get stimuli from PerNeuronValues
+		st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
+
+		if not len(neurons)>1:
+			spike_ids = param_filter_query(datastore, sheet_name=sh, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+			sheet_ids = datastore.get_sheet_indexes(sheet_name=sh, neuron_ids=spike_ids)
+			neurons = datastore.get_sheet_ids(sheet_name=sh, indexes=sheet_ids)
+		print "neurons", len(neurons)
+
+		dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
+		for k in dic:
+			(b, a) = dic[k]
+			par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+			dic[k] = (par,numpy.array(val))
+		# print dic
+
+		if len(mean_rates)>1:
+			# print mean_rates.shape, dic.values()[0][1].shape
+			mean_rates = numpy.append( mean_rates, dic.values()[0][1], axis=1 )
+		else:
+			mean_rates = dic.values()[0][1]
+		stimuli = dic.values()[0][0]
+		neurons = [] # reset, if we are in a loop we don't want the old neurons id to be still present
+		print mean_rates.shape
+
+	return mean_rates, stimuli
+
+
+
+
 # def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, reverse=False, Ismaller=[2,3], Iequal=[4,5], Ilarger=[6,8], box=[], csvfile=None ):
 def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, reverse=False, Ilarger=[6,8], box=[], csvfile=None, plotAll=False ):
 	print folder_full
@@ -373,132 +531,6 @@ def boxplot_comparison( folder, sheet, stimulus, csvfilename, xlabel="", ylabel=
 
 
 
-def get_per_neuron_sliding_window_spike_count( datastore, sheet, stimulus, stimulus_parameter, start, stop, window=50.0, step=10.0, neurons=[] ):
-
-	if not len(neurons)>1:
-		spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-		sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
-		neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
-	print "neurons", len(neurons)
-
-	SpikeCount( 
-		param_filter_query( datastore, sheet_name=sheet, st_name=stimulus ), 
-		ParameterSet({'bin_length':window}) 
-	).analyse()
-	# datastore.save()
-
-	TrialMean(
-		param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCount' ),
-		ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	).analyse()
-	# datastore.save()
-
-	TrialVariability(
-		param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCount' ),
-		ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	).analyse()
-	# datastore.save()
-
-	dsvTM = param_filter_query( datastore, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialMean' )
-	dsvTV = param_filter_query( datastore, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialVariability' )
-	# dsvTM.print_content(full_recordings=False)
-	pnvsTM = [ dsvTM.get_analysis_result() ]
-	pnvsTV = [ dsvTV.get_analysis_result() ]
-	# print pnvsTM
-
-	# get stimuli from PerNeuronValues
-	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvsTM[-1]]
-
-	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTM[-1]], st, stimulus_parameter)
-	for k in dic:
-		(b, a) = dic[k]
-		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-		dic[k] = (par,numpy.array(val))
-
-	stimuli = dic.values()[0][0]
-	means = numpy.array( dic.values()[0][1] )
-	# print "means:", means.shape
-
-	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTV[-1]], st, stimulus_parameter)
-	for k in dic:
-		(b, a) = dic[k]
-		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-		dic[k] = (par,numpy.array(val))
-
-	variances = numpy.array( dic.values()[0][1] )
-	# print "variances:", variances.shape
-
-	return stimuli, numpy.swapaxes(means,1,2), numpy.swapaxes(variances,1,2)
-
-	# strides_start = numpy.arange( start, stop-window, step )
-	# strides_end = numpy.arange( start+window, stop, step )
-	# print strides_start
-	# print strides_end
-
-	# datapoints = []	
-	# for s,e in zip(strides_start, strides_end):
-	# 	print s,e
-
-	# 	SpikeCountCutout( 
-	# 		param_filter_query( datastore, sheet_name=sheet, st_name=stimulus ), 
-	# 		ParameterSet({'bin_length':window, 'start':s, 'end':e+1.0 }) 
-	# 	).analyse()
-
-	# 	# TrialMean(
-	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
-	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	# 	# ).analyse()
-
-	# 	# TrialVariability(
-	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
-	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	# 	# ).analyse()
-	#datapoints.append( mean, variability )
-	# print datapoints
-
-
-
-
-def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0, neurons=[], spikecount=True ):
-	if not spikecount:
-		TrialAveragedFiringRateCutout( 
-			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
-			ParameterSet({}) 
-		).analyse(start=start, end=end)
-	else:
-		SpikeCount( 
-			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
-			ParameterSet({'bin_length' : bin }) 
-		).analyse()
-		# datastore.save()
-
-	dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sheet, st_name=stimulus )
-	# dsv.print_content(full_recordings=False)
-	pnvs = [ dsv.get_analysis_result() ]
-	# get stimuli from PerNeuronValues
-	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
-
-	if not len(neurons)>1:
-		spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-		sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
-		neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
-	print "neurons", len(neurons)
-
-	dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
-	for k in dic:
-		(b, a) = dic[k]
-		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-		dic[k] = (par,numpy.array(val))
-	# print dic
-
-	mean_rates = dic.values()[0][1]
-	stimuli = dic.values()[0][0]
-
-	return mean_rates, stimuli
-
-
-
-
 def mean_confidence_interval(data, confidence=0.95):
 	import scipy.stats
 	a = 1.0*numpy.array(data)
@@ -775,12 +807,13 @@ def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, 
 
 
 
-def perform_end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
+def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	data_store.print_content(full_recordings=False)
+	data_store.print_content(full_recordings=True)
+	# return
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter )
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
 	print rates.shape # (stimuli, cells)
 	#print rates[0][10]
 	print stimuli
@@ -845,7 +878,8 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	# find the index (stimulus causing half-max response: c50)
 	c50s = (numpy.abs(rates-halves)).argmin(axis=0)
 	print c50s
-	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,7), normed=True, density=True)
+	# hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,7), normed=True, density=True)
+	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,13), normed=True, density=True)
 	print hist, bin_edges
 	cumulative = numpy.cumsum(hist)
 	m = numpy.amax(cumulative)
@@ -853,7 +887,8 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	print cumulative
 
 	# PLOTTING
-	x = [0, .02, .04, .08, .18, .36, .50, 1.]
+	# x = [0, .02, .04, .08, .18, .36, .50, 1.]
+	x = [0.0, .05, .1, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60]
 	fig,ax = plt.subplots()
 	barlist = ax.plot( x, cumulative, color=color, linewidth=2 )
 	ax.spines['right'].set_visible(False)
@@ -873,8 +908,7 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 
 
 
-
-def perform_orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
+def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
@@ -1002,7 +1036,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 
 
-def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False, highest=3 ):
+def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withLowPassIndex=False, highest=3, xlim=[], ylim=[], data_full="", data_inac="" ):
 	print "folder_full: ",folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -1018,15 +1052,11 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 	# sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
 	# print sheet_ids2
 
-
-	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter )
-	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter )
+	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=False )
+	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=False )
 
 	x_full = x_full_rates[stimulus_band]
-	# print "x_full: ", x_full.shape, x_full
 	x_inac = x_inac_rates[stimulus_band]
-	#!!!!!!!!!!!!! only for spontaneous test
-	# x_inac = x_inac - numpy.random.uniform(low=0.0, high=1., size=(len(x_full)) ) 
 
 	if withLowPassIndex:
 		# normalized
@@ -1045,37 +1075,60 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 		x_full = _x_full / numpy.amax( _x_full )
 		x_inac = _x_inac / numpy.amax( _x_inac )
 
+	# read external data to plot as well
+	if data_full and data_inac:
+		data_full_list = numpy.genfromtxt(data_full, delimiter='\n')
+		print data_full_list
+		data_inac_list = numpy.genfromtxt(data_inac, delimiter='\n')
+		print data_inac_list
+
 	# PLOTTING
 	fig,ax = plt.subplots()
-	ax.scatter( x_full, x_inac, marker="D", facecolor="k", edgecolor="k", label=sheet )
 	x0,x1 = ax.get_xlim()
 	y0,y1 = ax.get_ylim()
+
 	# to make it squared
 	if x1 >= y1:
 		y1 = x1
 	else:
 		x1 = y1
+
 	if withLowPassIndex:
 		x0 = y0 = 0.
 		x1 = y1 = 1.
 
 	ax.set_xlim( (x0,x1) )
 	ax.set_ylim( (y0,y1) )
+	if len(xlim)>1:
+		ax.set_xlim( xlim )
+		x0,x1 = ax.get_xlim()
+	if len(ylim)>1:
+		ax.set_ylim( ylim )
+		y0,y1 = ax.get_ylim()
+
 	ax.set_aspect( abs(x1-x0)/abs(y1-y0) )
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
+	ax.scatter( x_full, x_inac, marker="o", facecolor="grey", edgecolor="black", label=sheet )
+	ax.scatter( data_full_list, data_inac_list, marker="D", facecolor="k", edgecolor="k", label=sheet )
 
 	if withRegression:
 		# add regression line
 		m,b = numpy.polyfit(x_full,x_inac, 1)
 		print "fitted line:", m, "x +", b
 		x = numpy.arange(x0, x1)
-		ax.plot(x, m*x+b, 'k-')
+		ax.plot(x, m*x+b, linestyle='-', color="grey")
+
+		if data_full and data_inac:
+			m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
+			print "data fitted line:", m, "x +", b
+			x = numpy.arange(x0, x1)
+			ax.plot(x, m*x+b, linestyle='-', color="k")
 
 	if withCorrCoef:
 		# add correlation coefficient
 		corr = numpy.corrcoef(x_full,x_inac)
-		sheet = sheet + " r=" + '{:.3f}'.format(corr[0][1])
+		sheet = str(sheet) + " r=" + '{:.3f}'.format(corr[0][1])
 
 	if withCentroid:
 		cx = x_full.sum()/len(x_full)
@@ -1083,10 +1136,10 @@ def perform_pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus,
 		print "cx", cx, "cy", cy
 		ax.plot(cx, cy, 'k+', markersize=12, markeredgewidth=3)
 
-	from scipy.stats import chi2_contingency
-	obs = [ x_inac, x_full ]
-	chi2, p, dof, ex = chi2_contingency( obs, correction=False )
-	print "Scatter chi2:", chi2, "p:", p
+	# from scipy.stats import chi2_contingency
+	# obs = [ x_inac, x_full ]
+	# chi2, p, dof, ex = chi2_contingency( obs, correction=False )
+	# print "Scatter chi2:", chi2, "p:", p
 
 	# text
 	ax.set_title( sheet )
@@ -1304,10 +1357,10 @@ def chisquared_test(observed, expected):
 # Execution
 
 full_list = [ 
-	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -1318,6 +1371,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
+	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
@@ -1333,7 +1387,7 @@ full_list = [
 	]
 
 inac_list = [ 
-	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
+	"Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
@@ -1347,8 +1401,8 @@ inac_list = [
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-sheets = ['X_ON', 'X_OFF']
-# sheets = ['X_ON']
+# sheets = ['X_ON', 'X_OFF']
+sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
@@ -1455,17 +1509,17 @@ else:
 			# 	color="black", 
 			# 	percentile=True 
 			# )
-			cumulative_distribution_C50_curve( 
-				sheet=s, 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='contrast',
-				start=100., 
-				end=2000., 
-				xlabel="c50",
-				ylabel="Percentile",
-				color="black"
-			)
+			# cumulative_distribution_C50_curve( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='contrast',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	xlabel="c50",
+			# 	ylabel="Percentile",
+			# 	color="red"
+			# )
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1502,7 +1556,7 @@ else:
 			# SIZE
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
-			# perform_end_inhibition_barplot( 
+			# end_inhibition_barplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus="DriftingSinusoidalGratingDisk",
@@ -1565,7 +1619,7 @@ else:
 			# 	percentile=False,
 			# 	# ylim=[0,50]
 			# )
-			# perform_orientation_bias_barplot( 
+			# orientation_bias_barplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus="FullfieldDriftingSinusoidalGrating",
@@ -1608,27 +1662,32 @@ else:
 			for j,l in enumerate(inac_list):
 				print j
 
-				# # SPONTANEOUS ACTIVITY
-				# #Ex: ThalamoCorticalModel_data_luminance_V1_fake_____ vs ThalamoCorticalModel_data_luminance_____
-				# perform_pairwise_scatterplot( 
-				# 	sheet=s, 
-				# 	folder_full=f, 
-				# 	folder_inactive=l,
-				# 	stimulus="Null",
-				# 	stimulus_band=0, #0, # OFF   #8, # ON
-				# 	parameter='background_luminance',
-				# 	start=100., 
-				# 	end=2000., 
-				# 	xlabel="spontaneous activity before cooling (spikes/s)",
-				# 	ylabel="spontaneous activity during cooling (spikes/s)",
-				# 	withRegression=True,
-				# 	withCorrCoef=True,
-				# 	withCentroid=False
-				# )
+				# SPONTANEOUS ACTIVITY
+				#Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
+				pairwise_scatterplot( 
+					# sheet=s,
+					sheet=['X_ON', 'X_OFF'], # s,
+					folder_full=f, 
+					folder_inactive=l,
+					stimulus="Null",
+					stimulus_band=7, # 1, smallest background light: 1 cd/m2 as in Walesc...
+					parameter='background_luminance',
+					start=100., 
+					end=2000., 
+					xlabel="spontaneous activity before cooling (spikes/s)",
+					ylabel="spontaneous activity during cooling (spikes/s)",
+					withRegression=True,
+					withCorrCoef=True,
+					withCentroid=False,
+					xlim=[0,60],
+					ylim=[0,60],
+					data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+					data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+				)
 
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
-				# perform_pairwise_scatterplot( 
+				# pairwise_scatterplot( 
 				# 	sheet=s, 
 				# 	folder_full=f, 
 				# 	folder_inactive=l,
