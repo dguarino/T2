@@ -860,7 +860,7 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 
 
 
-def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black" ):
+def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", data="", data_color="" ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
@@ -886,21 +886,26 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	cumulative = cumulative/m
 	print cumulative
 
+	# read external data to plot as well
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+		print data_list
+
 	# PLOTTING
 	# x = [0, .02, .04, .08, .18, .36, .50, 1.]
 	x = [0.0, .05, .1, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60]
 	fig,ax = plt.subplots()
-	barlist = ax.plot( x, cumulative, color=color, linewidth=2 )
+	if data:
+		barlist = ax.plot( x, data_list, color=data_color, linewidth=2 )
+	# barlist = ax.plot( x, cumulative, color=color, linewidth=2 )
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
-	# ax.set_xscale('log')
-	# ax.axis([0, 1., 0-.05, 1+.05])
 	plt.xlim([0,.6])
 	plt.ylim([0-.05, 1+.05])
 	# plt.xticks(edges, edges)
-	plt.savefig( folder+"/cumulative_distribution_C50_"+sheet+".png", dpi=300 )
+	plt.savefig( folder+"/cumulative_distribution_C50_"+str(sheet)+".png", dpi=300 )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -1109,21 +1114,20 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	ax.set_aspect( abs(x1-x0)/abs(y1-y0) )
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
-	ax.scatter( x_full, x_inac, marker="o", facecolor="grey", edgecolor="black", label=sheet )
-	ax.scatter( data_full_list, data_inac_list, marker="D", facecolor="k", edgecolor="k", label=sheet )
+	ax.scatter( data_full_list, data_inac_list, marker="D", s=60, facecolor="k", edgecolor="k", label=sheet )
+	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="black", label=sheet )
 
 	if withRegression:
-		# add regression line
-		m,b = numpy.polyfit(x_full,x_inac, 1)
-		print "fitted line:", m, "x +", b
-		x = numpy.arange(x0, x1)
-		ax.plot(x, m*x+b, linestyle='-', color="grey")
-
 		if data_full and data_inac:
 			m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
 			print "data fitted line:", m, "x +", b
 			x = numpy.arange(x0, x1)
 			ax.plot(x, m*x+b, linestyle='-', color="k")
+
+		m,b = numpy.polyfit(x_full,x_inac, 1)
+		print "fitted line:", m, "x +", b
+		x = numpy.arange(x0, x1)
+		ax.plot(x, m*x+b, linestyle='-', color="blue")
 
 	if withCorrCoef:
 		# add correlation coefficient
@@ -1357,10 +1361,10 @@ def chisquared_test(observed, expected):
 # Execution
 
 full_list = [ 
-	"Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -1387,7 +1391,7 @@ full_list = [
 	]
 
 inac_list = [ 
-	"Deliverable/ThalamoCorticalModel_data_luminance_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
@@ -1510,15 +1514,20 @@ else:
 			# 	percentile=True 
 			# )
 			# cumulative_distribution_C50_curve( 
-			# 	sheet=s, 
+			# 	sheet=[s], 
 			# 	folder=f, 
 			# 	stimulus="FullfieldDriftingSinusoidalGrating",
 			# 	parameter='contrast',
 			# 	start=100., 
 			# 	end=2000., 
-			# 	xlabel="c50",
+			# 	xlabel="C$_{50}$",
 			# 	ylabel="Percentile",
-			# 	color="red"
+			# 	color="blue",
+			# 	# color="black",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+			# 	data_color="black",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
+			# 	# data_color="grey",
 			# )
 
 			# # TEMPORAL
@@ -1662,28 +1671,28 @@ else:
 			for j,l in enumerate(inac_list):
 				print j
 
-				# SPONTANEOUS ACTIVITY
-				#Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
-				pairwise_scatterplot( 
-					# sheet=s,
-					sheet=['X_ON', 'X_OFF'], # s,
-					folder_full=f, 
-					folder_inactive=l,
-					stimulus="Null",
-					stimulus_band=7, # 1, smallest background light: 1 cd/m2 as in Walesc...
-					parameter='background_luminance',
-					start=100., 
-					end=2000., 
-					xlabel="spontaneous activity before cooling (spikes/s)",
-					ylabel="spontaneous activity during cooling (spikes/s)",
-					withRegression=True,
-					withCorrCoef=True,
-					withCentroid=False,
-					xlim=[0,60],
-					ylim=[0,60],
-					data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
-					data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
-				)
+				# # SPONTANEOUS ACTIVITY
+				# #Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
+				# pairwise_scatterplot( 
+				# 	# sheet=s,
+				# 	sheet=['X_ON', 'X_OFF'], # s,
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="Null",
+				# 	stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+				# 	parameter='background_luminance',
+				# 	start=100., 
+				# 	end=2000., 
+				# 	xlabel="spontaneous activity before cooling (spikes/s)",
+				# 	ylabel="spontaneous activity during cooling (spikes/s)",
+				# 	withRegression=True,
+				# 	withCorrCoef=True,
+				# 	withCentroid=False,
+				# 	xlim=[0,60],
+				# 	ylim=[0,60],
+				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+				# )
 
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
