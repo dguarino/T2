@@ -6,13 +6,14 @@ import glob
 import os
 
 
-directory = "CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30"
+# directory = "CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30"
+directory = "CombinationParamSearch_focused_nonoverlapping"
 filenames = [ x for x in glob.glob(directory+"/*.csv") ]
-
+print filenames
 	
-xvalues = [30, 50, 70, 90]
-yvalues = [150, 200, 250, 300]
-X, Y = numpy.meshgrid(xvalues, yvalues)
+xvalues = [40, 70, 90, 110, 140]
+yvalues = [100, 130, 150, 170, 200]
+
 
 def normalize(a, axis=-1, order=2):
 	l2 = numpy.atleast_1d( numpy.linalg.norm(a, order, axis) )
@@ -30,16 +31,20 @@ for name in filenames:
 	# cycle over lines
 	with open(name,'r') as csv:
 		for i,line in enumerate(csv): 
-			print i%len(xvalues), int(i/len(xvalues)), " - ", X[i%len(xvalues)][int(i/len(xvalues))], Y[i%len(xvalues)][int(i/len(xvalues))]
-			s = list(eval(line)[0])
+			print line
+			print eval(line)
+			xvalue = eval(line)[0]
+			yvalue = eval(line)[1]
+			s = eval(line)[2]
+			print xvalue, yvalue, s
 			fit = numpy.polyfit([0,1,2], s, 1)
-			if numpy.amin(s) < -8: # tolerance on the smallest value
+			if numpy.amin(s) < -10: # tolerance on the smallest value
 				fit = [0., 0.]
 			if fit[0] < 0.:
 				fit = [0., 0.]
 			print s, fit
-			colors[i%len(xvalues)][int(i/len(xvalues))] = fit[0] # if fit[0]>0. else 0. # slope
-			alpha[i%len(xvalues)][int(i/len(xvalues))] = fit[1] # in
+			colors[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[0] # if fit[0]>0. else 0. # slope
+			alpha[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[1] # in
 
 	print colors
 	# alpha = numpy.absolute( normalize(alpha) )
@@ -55,7 +60,7 @@ for name in filenames:
 	# cbarb = plt.colorbar(cb, ticks=[numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# print cbarb.set_ticklabels([numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# cbarb.set_label('Regression Intercept')
-	ticks = [0,1,2,3]
+	ticks = [0,1,2,3,4]
 	plt.xticks(ticks, xvalues)
 	plt.yticks(ticks, yvalues)
 	plt.xlabel('V1-PGN arborization radius')

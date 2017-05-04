@@ -4,6 +4,7 @@
 import sys
 import os
 import ast
+import re
 
 from functools import reduce # forward compatibility
 import operator
@@ -226,12 +227,17 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 
 	return mean_rates, stimuli
 
+# http://stackoverflow.com/questions/5294955/how-to-scale-down-a-range-of-numbers-with-a-known-min-and-max-value
+def scale_bycolumn(rawpoints, high=100.0, low=-100.0):
+	mins = numpy.min(rawpoints, axis=0)
+	maxs = numpy.max(rawpoints, axis=0)
+	rng = maxs - mins
+	return high - (((high - low) * (maxs - rawpoints)) / rng)
 
-
-
-# def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, reverse=False, Ismaller=[2,3], Iequal=[4,5], Ilarger=[6,8], box=[], csvfile=None ):
-def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, reverse=False, Ilarger=[6,8], box=[], csvfile=None, plotAll=False ):
+def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, reverse=False, box=[], csvfile=None, plotAll=False ):
 	print folder_full
+	folder_nums = re.findall(r'\d+', folder_full)
+	print folder_nums
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
 	print folder_inactive
@@ -246,6 +252,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# get stimuli
 	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
 	# print st1
+	num_stimuli = len(st1)
 
 	# Inactivated
 	dsv2 = queries.param_filter_query( data_store_inac, identifier='PerNeuronValue', sheet_name=sheet )
@@ -308,8 +315,10 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	    par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
 	    dic[k] = (par,numpy.array(val))
 	tc_dict2.append(dic)
+	print "tc_dict1",tc_dict1[0].values()[0][1].shape
+	print "tc_dict2",tc_dict2[0].values()[0][1].shape
 
-	print "(stimulus conditions, cells):", tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+	# print "(stimulus conditions, cells):", tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
 
 	# Population histogram
 	diff_full_inac = []
@@ -320,8 +329,8 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	larger_pvalue = 0.
 
 	# 1. SELECT ONLY CHANGING UNITS
-	all_open_values = tc_dict2[0].values()[0][1]
 	all_closed_values = tc_dict1[0].values()[0][1]
+	all_open_values = tc_dict2[0].values()[0][1]
 
 	# 1.1 Search for the units that are NOT changing (within a certain absolute tolerance)
 	unchanged_units = numpy.isclose(all_closed_values, all_open_values, rtol=0., atol=4.)
@@ -349,15 +358,19 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	num_cells = closed_values.shape[1]
 
 	# 2. AUTOMATIC SEARCH FOR INTERVALS
+	# minimum = min(numpy.argmin(closed_values, axis=0 ))
+	minimums = numpy.argmin(closed_values, axis=0 ) # +N to get the response out of the smallest
+	# minimums = [0]*len(closed_values[1])
+	# print "numpy.argmin( closed_values ):", numpy.argmin( closed_values )
+	print "index of the stimulus triggering the minimal response for each chosen cell:", minimums
 	# peak = max(numpy.argmax(closed_values, axis=0 ))
 	peaks = numpy.argmax(closed_values, axis=0 )
 	# peak = int( numpy.argmax( closed_values ) / closed_values.shape[1] ) # the returned single value is from the flattened array
 	# print "numpy.argmax( closed_values ):", numpy.argmax( closed_values )
-	print "peaks:", peaks
-	# minimum = min(numpy.argmin(closed_values, axis=0 ))
-	minimums = numpy.argmin(closed_values, axis=0 ) +1 # +N to get the response out of the smallest
-	# print "numpy.argmin( closed_values ):", numpy.argmin( closed_values )
-	print "minimums:", minimums
+	print "index of the stimulus triggering the maximal response for each chosen cell:", peaks
+	# larger are 1 more than optimal, clipped to the largest index
+	largers = numpy.minimum(peaks+2, len(closed_values)-1)
+	print "index of the stimulus after the maximal (+n, arbitrary) for each chosen cell:", largers
 
 	# -------------------------------------
 	# DIFFERENCE BETWEEN INACTIVATED AND CONTROL
@@ -374,6 +387,8 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 
 	# average of all trial-averaged response for each cell for grouped stimulus size
 	# we want the difference / normalized by the highest value * expressed as percentage
+	# sum all cells (axis=1) to get only stimuli-related (axis=0) measures
+
 	# print num_cells
 	# print "inac",numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0)
 	# print "full",numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)
@@ -387,16 +402,10 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
 
 	# USING AUTOMATIC SEARCH
-	# print "open"
-	# print open_values[minimums]
-	# print "closed"
-	# print closed_values[minimums]
-	# print open_values[peaks]
-	# print closed_values[peaks]
+	diff_smaller = scale_bycolumn( numpy.array([open_values[s][c] for s,c in zip(minimums,range(num_cells))]) - numpy.array([closed_values[s][c] for s,c in zip(minimums,range(num_cells))]) )
+	diff_equal = scale_bycolumn( numpy.array([open_values[s][c] for s,c in zip(peaks,range(num_cells))]) - numpy.array([closed_values[s][c] for s,c in zip(peaks,range(num_cells))]) )
+	diff_larger = scale_bycolumn( numpy.sum([open_values[l:] for l in largers][0], axis=0) - numpy.sum([closed_values[l:] for l in largers][0], axis=0) )
 
-	diff_smaller = ((numpy.sum(open_values[minimums], axis=0) - numpy.sum(closed_values[minimums], axis=0)) / numpy.sum(closed_values[minimums], axis=0)) * 100
-	diff_equal = ((numpy.sum(open_values[peaks], axis=0) - numpy.sum(closed_values[peaks], axis=0)) / numpy.sum(closed_values[peaks], axis=0)) * 100
-	diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
 	# print "diff_smaller", diff_smaller
 	# print "diff_equal", diff_smaller
 	# print "diff_larger", diff_smaller
@@ -410,7 +419,9 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	print "larger", larger
 
 	if csvfile:
-		csvfile.write( "("+ str(smaller)+ ", " + str(equal)+ ", " + str(larger)+ "), " )
+		csvrow = ",".join(folder_nums)+",("+ str(smaller)+ ", " + str(equal)+ ", " + str(larger)+ "), "
+		print csvrow
+		csvfile.write( csvrow )
 
 	if plotAll:
 		# subplot figure creation
@@ -1175,6 +1186,7 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 
 	x_full = x_full_rates.mean(axis=1)
 	x_inac = x_inac_rates.mean(axis=1)
+	print x_full.shape
 	x_full_std = x_full_rates.std(axis=1)
 	x_inac_std = x_inac_rates.std(axis=1)
 	x_full_max = x_full.max()
@@ -1194,15 +1206,15 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	width = 0.35
 	ind = numpy.arange(len(stimuli_full))
 	fig, ax = plt.subplots()
-	ax.bar( ind, reduction, width, color='grey', hatch=None)
-	# ax.bar( ind, reduction, width, color='white', hatch='/')
+	# ax.bar( ind, reduction, width, color='grey', hatch=None)
+	ax.bar( ind, reduction, width, color='white', hatch='/')
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 	ax.set_xticklabels( stimuli_full )
 	ax.axis([ind[0], ind[-1], 0, 50])
-	plt.savefig( folder_inactive+"/response_reduction_"+sheet+".png", dpi=200 )
+	plt.savefig( folder_inactive+"/response_reduction_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -1364,7 +1376,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -1388,6 +1400,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
 	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 
+	"CombinationParamSearch_focused_closed",
 	]
 
 inac_list = [ 
@@ -1399,6 +1412,8 @@ inac_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
+
+	"CombinationParamSearch_focused_nonoverlapping",
 	]
 
 
@@ -1406,12 +1421,12 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-sheets = ['X_ON']
-# sheets = ['X_OFF'] 
+# sheets = ['X_ON']
+sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
-if False: # just for comparison parameter search
+if True: # just for comparison parameter search
 	# How the choice of smaller, equal, and larger is made:
 	# - Smaller: [ smaller0 : smaller1 ]
 	# - Equal:   [  equal0  :  equal1  ]
@@ -1434,8 +1449,8 @@ if False: # just for comparison parameter search
 	Ilarger  = [6,8] # NON
 	# Ilarger  = [7,10] # OVER
 
-	# box = [[-.5,.0],[.5,.5]] # close to the overlapping
-	box = [[-.5,.0],[.5,.1]] # far from the overlapping
+	box = [[-.5,.0],[.5,.5]] # close to the overlapping
+	# box = [[-.5,.0],[.5,.1]] # far from the overlapping
 
 	csvfile = open(inac_list[0]+"/barsizevalues_"+sheets[0]+"_box"+str(box)+".csv", 'w')
 
@@ -1713,18 +1728,18 @@ else:
 				# 	withLowPassIndex=True,
 				# 	highest=3
 				# )
-				# pairwise_response_reduction( 
-				# 	sheet=s, 
-				# 	folder_full=f, 
-				# 	folder_inactive=l,
-				# 	stimulus="FullfieldDriftingSinusoidalGrating",
-				# 	stimulus_band=1, # 0, 1
-				# 	parameter='spatial_frequency',
-				# 	start=100., 
-				# 	end=10000., 
-				# 	xlabel="Spatial Frequency",
-				# 	ylabel="Percentage response reduction"
-				# )
+				pairwise_response_reduction( 
+					sheet=['X_ON', 'X_OFF'], 
+					folder_full=f, 
+					folder_inactive=l,
+					stimulus="FullfieldDriftingSinusoidalGrating",
+					stimulus_band=1, # 0, 1
+					parameter='spatial_frequency',
+					start=100., 
+					end=10000., 
+					xlabel="Spatial Frequency",
+					ylabel="Percentage response reduction"
+				)
 
 
 
