@@ -369,8 +369,8 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# print "numpy.argmax( closed_values ):", numpy.argmax( closed_values )
 	print "index of the stimulus triggering the maximal response for each chosen cell:", peaks
 	# larger are 1 more than optimal, clipped to the largest index
-	largers = numpy.minimum(peaks+2, len(closed_values)-1)
-	print "index of the stimulus after the maximal (+n, arbitrary) for each chosen cell:", largers
+	largers = numpy.minimum(peaks+1, len(closed_values)-1)
+	print "index of the stimulus after the maximal (+1) for each chosen cell:", largers
 
 	# -------------------------------------
 	# DIFFERENCE BETWEEN INACTIVATED AND CONTROL
@@ -389,23 +389,23 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# we want the difference / normalized by the highest value * expressed as percentage
 	# sum all cells (axis=1) to get only stimuli-related (axis=0) measures
 
-	# print num_cells
-	# print "inac",numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0)
-	# print "full",numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)
-	# print "diff",(numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))
-	# print "diff_norm",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)))
-	# print "diff_norm_perc",((numpy.sum(tc_dict2[0].values()[0][1][2:3], axis=0) - numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0)) / (numpy.sum(tc_dict1[0].values()[0][1][2:3], axis=0))) * 100
-
-	# USING PROVIDED INTERVALS
-	# diff_smaller = ((numpy.sum(open_values[Ismaller[0]:Ismaller[1]], axis=0) - numpy.sum(closed_values[Ismaller[0]:Ismaller[1]], axis=0)) / numpy.sum(closed_values[Ismaller[0]:Ismaller[1]], axis=0)) * 100
-	# diff_equal = ((numpy.sum(open_values[Iequal[0]:Iequal[1]], axis=0) - numpy.sum(closed_values[Iequal[0]:Iequal[1]], axis=0)) / numpy.sum(closed_values[Iequal[0]:Iequal[1]], axis=0)) * 100
-	# diff_larger = ((numpy.sum(open_values[Ilarger[0]:Ilarger[1]], axis=0) - numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) / numpy.sum(closed_values[Ilarger[0]:Ilarger[1]], axis=0)) * 100
-
 	# USING AUTOMATIC SEARCH
-	diff_smaller = scale_bycolumn( numpy.array([open_values[s][c] for s,c in zip(minimums,range(num_cells))]) - numpy.array([closed_values[s][c] for s,c in zip(minimums,range(num_cells))]) )
-	diff_equal = scale_bycolumn( numpy.array([open_values[s][c] for s,c in zip(peaks,range(num_cells))]) - numpy.array([closed_values[s][c] for s,c in zip(peaks,range(num_cells))]) )
-	diff_larger = scale_bycolumn( numpy.sum([open_values[l:] for l in largers][0], axis=0) - numpy.sum([closed_values[l:] for l in largers][0], axis=0) )
+	# print zip(largers,range(num_cells))
+	# print open_values[2:]
+	# print [open_values[2:][c] for l,c in zip(largers,range(num_cells))]
 
+	# print [open_values[l][c] for l,c in zip(largers,range(num_cells))]
+	# print numpy.sum(numpy.array([open_values[l:][c] for l,c in zip(largers,range(num_cells))]), axis=0)
+	diff_smaller = scale_bycolumn( numpy.array([open_values[s][c] for c,s in enumerate(minimums)]) - numpy.array([closed_values[s][c] for c,s in enumerate(minimums)]) )
+	diff_equal = scale_bycolumn( numpy.array([open_values[s][c] for c,s in enumerate(peaks)]) - numpy.array([closed_values[s][c] for c,s in enumerate(peaks)]) )
+	# we have to get for each cell the sum of all its results for all stimulus conditions larger than peak
+	sum_largers_open = numpy.zeros(num_cells)
+	sum_largers_closed = numpy.zeros(num_cells)
+	for c,l in enumerate([open_values[s:][:,c] for c,s in enumerate(largers)]):
+		sum_largers_open[c] = sum(l)
+	for c,l in enumerate([closed_values[s:][:,c] for c,s in enumerate(largers)]):
+		sum_largers_closed[c] = sum(l)
+	diff_larger = scale_bycolumn( sum_largers_open - sum_largers_closed )
 	# print "diff_smaller", diff_smaller
 	# print "diff_equal", diff_smaller
 	# print "diff_larger", diff_smaller
@@ -428,43 +428,29 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		print 'rowplots', rowplots
 		print "Starting plotting ..."
 		fig, axes = plt.subplots(nrows=2, ncols=rowplots+1, figsize=(3*rowplots, 5), sharey=False)
-		print axes.shape
-
-		p_significance = .02
-
+		# print axes.shape
 		axes[0,0].set_ylabel("Response change (%)")
-
-		# Check using scipy
-		# and we want to compare the responses of full and inactivated
-		# smaller, smaller_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][0:3], axis=0)/3, numpy.sum(tc_dict1[0].values()[0][1][0:3], axis=0)/3 )
-		# equal, equal_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][3:5], axis=0)/2, numpy.sum(tc_dict1[0].values()[0][1][3:5], axis=0)/2 )
-		# larger, larger_pvalue = scipy.stats.ttest_rel( numpy.sum(tc_dict2[0].values()[0][1][5:], axis=0)/5, numpy.sum(tc_dict1[0].values()[0][1][5:], axis=0)/5 )
-		# print "smaller, smaller_pvalue:", smaller, smaller_pvalue
-		# print "equal, equal_pvalue:", equal, equal_pvalue
-		# print "larger, larger_pvalue:", larger, larger_pvalue
 
 		diff_full_inac.append( smaller )
 		diff_full_inac.append( equal )
 		diff_full_inac.append( larger )
+		# print diff_full_inac
 
 		# -------------------------------------
 		# Standard Error Mean calculated on the full sequence
 		sem_full_inac.append( scipy.stats.sem(diff_smaller) )
 		sem_full_inac.append( scipy.stats.sem(diff_equal) )
 		sem_full_inac.append( scipy.stats.sem(diff_larger) )
-
-		# print diff_full_inac
 		# print sem_full_inac
-		barlist = axes[0,0].bar([0.5,1.5,2.5], diff_full_inac, yerr=sem_full_inac, width=0.8)
+
+		barlist = axes[0,0].bar([0.5,1.5,2.5], diff_full_inac, width=0.8)
+		barlist[0].set_color('brown')
+		barlist[1].set_color('darkgreen')
+		barlist[2].set_color('blue')
+		axes[0,0].errorbar(0.9, diff_full_inac[0], sem_full_inac[0], color='brown')
+		axes[0,0].errorbar(1.9, diff_full_inac[1], sem_full_inac[1], color='darkgreen')
+		axes[0,0].errorbar(2.9, diff_full_inac[2], sem_full_inac[2], color='blue')
 		axes[0,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
-		for ba in barlist:
-			ba.set_color('white')
-		if smaller_pvalue < p_significance:
-			barlist[0].set_color('brown')
-		if equal_pvalue < p_significance:
-			barlist[1].set_color('darkgreen')
-		if larger_pvalue < p_significance:
-			barlist[2].set_color('blue')
 
 		# Plotting tuning curves
 		x_full = tc_dict1[0].values()[0][0]
@@ -1400,6 +1386,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
 	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 
+	# "CombinationParamSearch_large_closed",
 	"CombinationParamSearch_focused_closed",
 	]
 
@@ -1413,6 +1400,7 @@ inac_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
+	# "CombinationParamSearch_large_nonoverlapping",
 	"CombinationParamSearch_focused_nonoverlapping",
 	]
 
@@ -1421,8 +1409,8 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-# sheets = ['X_ON']
-sheets = ['X_OFF'] 
+sheets = ['X_ON']
+# sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
@@ -1443,10 +1431,10 @@ if True: # just for comparison parameter search
 	# SequalStop  = 10
 	# Slarger  = 13
 
-	# CHOICE OF STIMULI GROUPS
-	Ismaller = [0,3]
-	Iequal   = [4,6]
-	Ilarger  = [6,8] # NON
+	# # CHOICE OF STIMULI GROUPS
+	# Ismaller = [0,3]
+	# Iequal   = [4,6]
+	# Ilarger  = [6,8] # NON
 	# Ilarger  = [7,10] # OVER
 
 	box = [[-.5,.0],[.5,.5]] # close to the overlapping
@@ -1473,7 +1461,6 @@ if True: # just for comparison parameter search
 					reference_position=[[0.0], [0.0], [0.0]],
 					reverse=True, # False if overlapping, True if non-overlapping
 					sizes = sizes,
-					Ilarger = Ilarger,
 					box = box,
 					csvfile = csvfile,
 					plotAll = True # plot all barplots per folder?

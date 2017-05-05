@@ -6,13 +6,21 @@ import glob
 import os
 
 
-# directory = "CombinationParamSearch_nonover_PGNLGN_150_200_250_300__V1PGN_90_70_50_30"
 directory = "CombinationParamSearch_focused_nonoverlapping"
-filenames = [ x for x in glob.glob(directory+"/*.csv") ]
-print filenames
-	
 xvalues = [40, 70, 90, 110, 140]
 yvalues = [100, 130, 150, 170, 200]
+ticks = [0,1,2,3,4]
+
+
+# directory = "CombinationParamSearch_large_nonoverlapping"
+# xvalues = [30, 50, 70, 90]
+# yvalues = [150, 200, 250, 300]
+# ticks = [0,1,2,3]
+
+
+
+filenames = [ x for x in glob.glob(directory+"/*.csv") ]
+print filenames
 
 
 def normalize(a, axis=-1, order=2):
@@ -38,7 +46,7 @@ for name in filenames:
 			s = eval(line)[2]
 			print xvalue, yvalue, s
 			fit = numpy.polyfit([0,1,2], s, 1)
-			if numpy.amin(s) < -10: # tolerance on the smallest value
+			if numpy.amin(s) < -10.: # tolerance on the smallest value
 				fit = [0., 0.]
 			if fit[0] < 0.:
 				fit = [0., 0.]
@@ -60,7 +68,6 @@ for name in filenames:
 	# cbarb = plt.colorbar(cb, ticks=[numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# print cbarb.set_ticklabels([numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# cbarb.set_label('Regression Intercept')
-	ticks = [0,1,2,3,4]
 	plt.xticks(ticks, xvalues)
 	plt.yticks(ticks, yvalues)
 	plt.xlabel('V1-PGN arborization radius')
