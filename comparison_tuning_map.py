@@ -6,9 +6,9 @@ import glob
 import os
 
 
-directory = "CombinationParamSearch_focused_nonoverlapping"
-xvalues = [40, 70, 90, 110, 140]
-yvalues = [100, 130, 150, 170, 200]
+directory = "CombinationParamSearch_more_focused_nonoverlapping"
+xvalues = [70, 80, 90, 100, 110]
+yvalues = [130, 140, 150, 160, 170]
 ticks = [0,1,2,3,4]
 
 

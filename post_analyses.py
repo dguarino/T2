@@ -129,32 +129,6 @@ def get_per_neuron_sliding_window_spike_count( datastore, sheet, stimulus, stimu
 
 	return stimuli, numpy.swapaxes(means,1,2), numpy.swapaxes(variances,1,2)
 
-	# strides_start = numpy.arange( start, stop-window, step )
-	# strides_end = numpy.arange( start+window, stop, step )
-	# print strides_start
-	# print strides_end
-
-	# datapoints = []	
-	# for s,e in zip(strides_start, strides_end):
-	# 	print s,e
-
-	# 	SpikeCountCutout( 
-	# 		param_filter_query( datastore, sheet_name=sheet, st_name=stimulus ), 
-	# 		ParameterSet({'bin_length':window, 'start':s, 'end':e+1.0 }) 
-	# 	).analyse()
-
-	# 	# TrialMean(
-	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
-	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	# 	# ).analyse()
-
-	# 	# TrialVariability(
-	# 	# 	param_filter_query( datastore, name='AnalogSignalList', analysis_algorithm='SpikeCountCutout' ),
-	# 	# 	ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
-	# 	# ).analyse()
-	#datapoints.append( mean, variability )
-	# print datapoints
-
 
 
 
@@ -167,36 +141,15 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 	else:
 		SpikeCount( 
 			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
-			ParameterSet({'bin_length' : bin }) 
+			ParameterSet({'bin_length' : bin}) 
 		).analyse()
 		# datastore.save()
 
-	# dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sheet, st_name=stimulus )
-	# # dsv.print_content(full_recordings=False)
-	# pnvs = [ dsv.get_analysis_result() ]
-	# # get stimuli from PerNeuronValues
-	# st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
-
-	# if not len(neurons)>1:
-	# 	spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-	# 	sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
-	# 	neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
-	# print "neurons", len(neurons)
-
-	# dic = colapse_to_dictionary([z.get_value_by_id(neurons) for z in pnvs[-1]], st, stimulus_parameter)
-	# for k in dic:
-	# 	(b, a) = dic[k]
-	# 	par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-	# 	dic[k] = (par,numpy.array(val))
-	# # print dic
-
-	# mean_rates = dic.values()[0][1]
-	# stimuli = dic.values()[0][0]
-
 	mean_rates = []
 	stimuli = []
+	if not isinstance(sheet, list):
+		sheet = [sheet]
 	for sh in sheet:
-
 		dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sh, st_name=stimulus )
 		# dsv.print_content(full_recordings=False)
 		pnvs = [ dsv.get_analysis_result() ]
@@ -221,11 +174,15 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 			mean_rates = numpy.append( mean_rates, dic.values()[0][1], axis=1 )
 		else:
 			mean_rates = dic.values()[0][1]
+
 		stimuli = dic.values()[0][0]
 		neurons = [] # reset, if we are in a loop we don't want the old neurons id to be still present
 		print mean_rates.shape
 
 	return mean_rates, stimuli
+
+
+
 
 # http://stackoverflow.com/questions/5294955/how-to-scale-down-a-range-of-numbers-with-a-known-min-and-max-value
 def scale_bycolumn(rawpoints, high=100.0, low=-100.0):
@@ -393,7 +350,6 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# print zip(largers,range(num_cells))
 	# print open_values[2:]
 	# print [open_values[2:][c] for l,c in zip(largers,range(num_cells))]
-
 	# print [open_values[l][c] for l,c in zip(largers,range(num_cells))]
 	# print numpy.sum(numpy.array([open_values[l:][c] for l,c in zip(largers,range(num_cells))]), axis=0)
 	diff_smaller = scale_bycolumn( numpy.array([open_values[s][c] for c,s in enumerate(minimums)]) - numpy.array([closed_values[s][c] for c,s in enumerate(minimums)]) )
@@ -497,33 +453,6 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		plt.close()
 		# garbage
 		gc.collect()
-
-
-
-
-def boxplot_comparison( folder, sheet, stimulus, csvfilename, xlabel="", ylabel="" ):
-	csvfile0 = open(csvfilename, 'r')
-	csv0 = numpy.loadtxt( csvfile0, delimiter=',' )
-	print csv0
-
-	# plotting
-	fig = plt.figure( )
-
-	bp0 = plt.boxplot( csv0, vert=True, notch=True, patch_artist=True )
-	# bp0['boxes'].set_facecolor('grey')
-	# for ax in axes:
-	# 	ax.yaxis.grid(True)
-	# 	ax.set_xlabel(xlabel)
-	# 	ax.set_ylabel(ylabel)
-	# plt.setp( axes, xticks=[y+1 for y in range(len())], xticklabels=['Closed-loop', 'Open-loop'] )
-
-	csvfile0.close()
-
-	# plt.show()
-	plt.savefig( folder+"/boxplot_comparison_"+sheet+"_stimulus"+stimulus+".png", dpi=300 )
-	fig.clf()
-	plt.close()
-	gc.collect()
 
 
 
@@ -651,8 +580,6 @@ def variability( sheet, folder, stimulus, stimulus_parameter ):
 	plt.close()
 	# garbage
 	gc.collect()
-
-	# TrialAveragedSparseness !!!!
 
 
 
@@ -804,52 +731,55 @@ def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, 
 
 
 
-def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
+def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", data=None ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	data_store.print_content(full_recordings=True)
-	# return
+	# data_store.print_content(full_recordings=True)
 
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
 	print rates.shape # (stimuli, cells)
-	#print rates[0][10]
 	print stimuli
 
 	# END-INHIBITION as in MurphySillito1987:
+	# "The responses of the cell with corticofugal feedback are totally suppressed at bar lenghts of 2deg and above, 
+	#  and those of cell lacking feedback are reduced up to 40% at bar lenghts of 8deg and above."
 	# For each cell
-	# 1. find the peak response stimulus value
-	peaks = numpy.amax(rates, axis=0) # print peaks
-	# 2. compute average of plateau response (before-last 3: [1.55, 2.35, 3.59])
-	plateaus = numpy.mean( rates[6:9], axis=0) # print plateaus
+	# 1. find the peak response at large sizes
+	peaks = numpy.amax(rates[5:], axis=0) # print peaks
+	# 2. compute average response at large sizes
+	plateaus = numpy.mean( rates[5:], axis=0) # print plateaus
 	# 3. compute the percentage difference from peak: (peak-plateau)/peak *100
 	ends = (peaks-plateaus)/peaks *100 # print ends
 	# 4. group cells by end-inhibition
-	hist, bin_edges = numpy.histogram( ends, bins=10 )
-	mean = ends.mean()
-	print mean
-	hist = hist[::-1] # reversed
-	bin_edges = bin_edges[::-1]
+	hist, _ = numpy.histogram( ends, bins=10 )
+	median = numpy.median(hist)
+	print median
 	print hist
-	print bin_edges
+	width = 1.
+	ind = numpy.arange(10)
+
+	# read external data to plot as well
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+		data_median = numpy.median(data_list) * width
+		print data_median
+		print data_list
 
 	# PLOTTING
-	width = bin_edges[1] - bin_edges[0]
-	center = (bin_edges[:-1] + bin_edges[1:]) / 2
 	fig,ax = plt.subplots()
-	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white')
-	ax.plot((mean, mean), (0,70), 'k:', linewidth=2)
+	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
+	ax.plot((median/10, median/10), (0,100), 'b:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
-	barlist[0].set_color('k')
-	barlist[1].set_color('k')
-	barlist[2].set_color('k')
-	barlist[3].set_color('k')
-	barlist[4].set_color('k')
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([bin_edges[0], bin_edges[-1], 0, 70])
-	plt.xticks(bin_edges, (10,9,8,7,6,5,4,3,2,1))
-	plt.savefig( folder+"/suppression_index_"+sheet+".png", dpi=200 )
+	ax.axis([ind[0]-width/2, ind[-1], 0, 80])
+	ax.set_xticks(ind+width/2) 
+	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
+	if data: # in front of the synthetic
+		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
+		ax.plot((data_median, data_median), (0,100), 'k:', linewidth=2)
+	plt.savefig( folder+"/suppression_index_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -910,12 +840,12 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 
 
 
-def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="" ):
+def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", data=None ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter )
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False )
 	print rates.shape # (stimuli, cells)
 	#print rates[0][10]
 	print stimuli
@@ -925,29 +855,40 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 	# 1. find the peak response (optimal orientation)
 	peaks = numpy.amax(rates, axis=0) # print peaks
 	# 2. find the least response 
-	trough = numpy.mean( rates[6:9], axis=0) # (mean of non-optimal orientations)
+	# trough = numpy.mean( rates[6:9], axis=0) # (mean of non-optimal orientations)
+	trough = numpy.amin( rates, axis=0)
 	# 3. compute the percentage difference from peak
 	bias = (peaks-trough)/peaks *100 # print ends
 	# 4. group cells by orientation bias
-	hist, bin_edges = numpy.histogram( bias, bins=10 )
-	mean = bias.mean()
-	print mean
+	hist, _ = numpy.histogram( bias, bins=10 )
+	median = numpy.median(hist)
+	print median
 	print hist
-	print bin_edges
+	width = 1.
+	ind = numpy.arange(10)
+
+	# read external data to plot as well
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+		data_median = numpy.median(data_list) * width
+		print data_median
+		print data_list
 
 	# PLOTTING
-	width = bin_edges[1] - bin_edges[0]
-	center = (bin_edges[:-1] + bin_edges[1:]) / 2
 	fig,ax = plt.subplots()
-	barlist = ax.bar(center, hist, align='center', width=width, facecolor='white', hatch='/')
-	ax.plot((mean, mean), (0,130), 'k:', linewidth=2)
+	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
+	ax.plot((median/10, median/10), (0,100), 'b:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([bin_edges[0], bin_edges[-1], 0, 130])
-	plt.xticks(bin_edges, (1,2,3,4,5,6,7,8,9,10))
-	plt.savefig( folder+"/orientation_bias_"+sheet+".png", dpi=200 )
+	ax.axis([ind[0]-width/2, ind[-1], 0, 80])
+	ax.set_xticks(ind+width/2) 
+	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
+	if data: # in front of the synthetic
+		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
+		ax.plot((data_median, data_median), (0,100), 'k:', linewidth=2)
+	plt.savefig( folder+"/orientation_bias_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -955,7 +896,7 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 
 
 
-def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], box=False ):
+def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], box=False, data=None ):
 	print folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
@@ -978,7 +919,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 	print "neurons:", len(neurons)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=True ) # set it to false in case of spatial frequency
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False ) # set it to false in case of spatial frequency
 	# print rates
 
 	# compute per-trial mean rate over cells
@@ -999,6 +940,22 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 	# Plotting tuning curve
 	fig,ax = plt.subplots()
+
+	# if data:
+	# 	data_list = numpy.genfromtxt(data, delimiter=',', filling_values=None)
+	# 	# print data_list.shape
+	# 	data_domain = data_list[:,0]
+	# 	# print data_domain
+	# 	data_rates = data_list[:,1:]
+	# 	# print data_rates
+	# 	data_mean_rates = numpy.nanmean(data_rates, axis=1) 
+	# 	print data_mean_rates
+	# 	data_std_rates = numpy.nanstd(data_rates, axis=1, ddof=1) 
+	# 	print data_std_rates
+	# 	ax.plot( data_domain, data_mean_rates, color='black', label='data' )
+	# 	data_err_max = data_mean_rates + data_std_rates
+	# 	data_err_min = data_mean_rates - data_std_rates
+	# 	ax.fill_between(data_domain, data_err_max, data_err_min, color='black', alpha=0.3)
 
 	ax.plot( final_sorted[0], final_sorted[1], color=color, label=sheet )
 	ax.spines['right'].set_visible(False)
@@ -1111,7 +1068,8 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	ax.set_aspect( abs(x1-x0)/abs(y1-y0) )
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
-	ax.scatter( data_full_list, data_inac_list, marker="D", s=60, facecolor="k", edgecolor="k", label=sheet )
+	if data_full and data_inac:
+		ax.scatter( data_full_list, data_inac_list, marker="o", s=60, facecolor="k", edgecolor="k", label=sheet )
 	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="black", label=sheet )
 
 	if withRegression:
@@ -1135,7 +1093,12 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 		cx = x_full.sum()/len(x_full)
 		cy = x_inac.sum()/len(x_inac)
 		print "cx", cx, "cy", cy
-		ax.plot(cx, cy, 'k+', markersize=12, markeredgewidth=3)
+		ax.plot(cx, cy, 'b+', markersize=12, markeredgewidth=3)
+		if data_full and data_inac:
+			cx = data_full_list.sum()/len(data_full_list)
+			cy = data_inac_list.sum()/len(data_inac_list)
+			print "dcx", cx, "dcy", cy
+			ax.plot(cx, cy, 'k+', markersize=12, markeredgewidth=3)
 
 	# from scipy.stats import chi2_contingency
 	# obs = [ x_inac, x_full ]
@@ -1148,7 +1111,7 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	ax.set_ylabel( ylabel )
 	ax.legend( loc="lower right", shadow=False, scatterpoints=1 )
 	# plt.show()
-	plt.savefig( folder_inactive+"/TrialAveragedPairwiseScatter_"+parameter+"_"+sheet+".png", dpi=200 )
+	plt.savefig( folder_inactive+"/TrialAveragedPairwiseScatter_"+parameter+"_"+str(sheet)+".png", dpi=200 )
 	fig.clf()
 	plt.close()
 	# garbage
@@ -1157,7 +1120,7 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 
 
 
-def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="" ):
+def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, parameter, start, end, percentage=False, xlabel="", ylabel="" ):
 	print "folder_full: ",folder_full
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
@@ -1175,31 +1138,44 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	print x_full.shape
 	x_full_std = x_full_rates.std(axis=1)
 	x_inac_std = x_inac_rates.std(axis=1)
-	x_full_max = x_full.max()
-	x_inac_max = x_full.max()
-	x_full = x_full/x_full_max *100
-	x_inac = x_inac/x_inac_max *100
+	if percentage:
+		x_full_max = x_full.max()
+		x_inac_max = x_full.max()
+		x_full = x_full/x_full_max *100
+		x_inac = x_inac/x_inac_max *100
 
-	reduction = numpy.zeros( len(stimuli_full) ) # group by two
-	# print reduction
+	reduction = numpy.zeros( len(stimuli_full) )
 	# compute the percentage difference at each group
 	for i,(full,inac) in enumerate(zip(x_full, x_inac)):
-		# print i, full, inac, full-inac
+		print i, full, inac, full-inac
 		reduction[i] = full-inac
+
+	# reduction = numpy.zeros( int(len(stimuli_full)/2) )
+	# full_by2 = [sum(x_full[current:current+2]) for current in xrange(0,len(x_full),2)]
+	# inac_by2 = [sum(x_inac[current:current+2]) for current in xrange(0,len(x_inac),2)]
+	# for i,(full,inac) in enumerate(zip(full_by2, inac_by2)):
+	# 	reduction[i] = full-inac
+
 	print reduction
 
 	# PLOTTING
 	width = 0.35
-	ind = numpy.arange(len(stimuli_full))
+	# width = 0.9
+	ind = numpy.arange(len(reduction))
 	fig, ax = plt.subplots()
-	# ax.bar( ind, reduction, width, color='grey', hatch=None)
-	ax.bar( ind, reduction, width, color='white', hatch='/')
+	ax.bar( ind, reduction, width, color='grey', hatch=None)
+	# ax.bar( ind, reduction, width, color='white', hatch='/')
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 	ax.set_xticklabels( stimuli_full )
 	ax.axis([ind[0], ind[-1], 0, 50])
+
+	# temporal tuning reduction
+	# ax.spines['bottom'].set_visible(False)
+	# ax.axis([ind[0], ind[-1], -10, 10])
+
 	plt.savefig( folder_inactive+"/response_reduction_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
@@ -1375,19 +1351,19 @@ full_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	"Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
 	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 
 	# "CombinationParamSearch_large_closed",
-	"CombinationParamSearch_focused_closed",
+	# "CombinationParamSearch_more_focused_closed_nonoverlapping",
 	]
 
 inac_list = [ 
@@ -1398,10 +1374,12 @@ inac_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
+	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
+
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
 	# "CombinationParamSearch_large_nonoverlapping",
-	"CombinationParamSearch_focused_nonoverlapping",
+	# "CombinationParamSearch_more_focused_nonoverlapping",
 	]
 
 
@@ -1409,12 +1387,14 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-sheets = ['X_ON']
-# sheets = ['X_OFF'] 
+# sheets = ['X_ON']
+sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
-if True: # just for comparison parameter search
+
+# just for comparison parameter search
+if False: 
 	# How the choice of smaller, equal, and larger is made:
 	# - Smaller: [ smaller0 : smaller1 ]
 	# - Equal:   [  equal0  :  equal1  ]
@@ -1493,14 +1473,6 @@ else:
 			# 	percentile=False,
 			# 	useXlog=True 
 			# )
-			# boxplot_comparison( 
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus='Null',
-			# 	csvfilename="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A.csv",
-			# 	xlabel="conditions", 
-			# 	ylabel="firing rate (sp/s)"
-			# )
 
 			# # CONTRAST
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1545,7 +1517,8 @@ else:
 			# 	color="black", 
 			# 	useXlog=True, 
 			# 	useYlog=True, 
-			# 	percentile=False 
+			# 	percentile=False,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/DerringtonLennie1982_6A_2d.csv",
 			# )
 
 			# # SPATIAL
@@ -1568,7 +1541,9 @@ else:
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
 			# end_inhibition_barplot( 
-			# 	sheet=s, 
+			# 	sheet=['X_ON', 'X_OFF'], 
+			# 	# sheet=['X_ON'], 
+			# 	# sheet=['X_OFF'], 
 			# 	folder=f, 
 			# 	stimulus="DriftingSinusoidalGratingDisk",
 			# 	parameter='radius',
@@ -1576,6 +1551,8 @@ else:
 			# 	end=1000., 
 			# 	xlabel="Index of end-inhibition",
 			# 	ylabel="Number of cells",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -1630,16 +1607,18 @@ else:
 			# 	percentile=False,
 			# 	# ylim=[0,50]
 			# )
-			# orientation_bias_barplot( 
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus="FullfieldDriftingSinusoidalGrating",
-			# 	parameter='orientation',
-			# 	start=100., 
-			# 	end=2000., 
-			# 	xlabel="Orientation bias",
-			# 	ylabel="Number of cells"
-			# )
+			orientation_bias_barplot( 
+				sheet=['X_ON', 'X_OFF'], 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='orientation',
+				start=100., 
+				end=2000., 
+				xlabel="Orientation bias",
+				ylabel="Number of cells",
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
+			)
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -1699,11 +1678,11 @@ else:
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
 				# pairwise_scatterplot( 
-				# 	sheet=s, 
+				# 	sheet=['X_ON', 'X_OFF'], 
 				# 	folder_full=f, 
 				# 	folder_inactive=l,
 				# 	stimulus="FullfieldDriftingSinusoidalGrating",
-				# 	stimulus_band=1, # 0, 1
+				# 	stimulus_band=1,
 				# 	parameter='spatial_frequency',
 				# 	start=100., 
 				# 	end=10000., 
@@ -1713,20 +1692,36 @@ else:
 				# 	withCorrCoef=False,
 				# 	withCentroid=True,
 				# 	withLowPassIndex=True,
-				# 	highest=3
+				# 	highest=3,
+				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
+				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
 				# )
-				pairwise_response_reduction( 
-					sheet=['X_ON', 'X_OFF'], 
-					folder_full=f, 
-					folder_inactive=l,
-					stimulus="FullfieldDriftingSinusoidalGrating",
-					stimulus_band=1, # 0, 1
-					parameter='spatial_frequency',
-					start=100., 
-					end=10000., 
-					xlabel="Spatial Frequency",
-					ylabel="Percentage response reduction"
-				)
+				# pairwise_response_reduction( 
+				# 	sheet=['X_ON'], 
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="FullfieldDriftingSinusoidalGrating",
+				# 	parameter='spatial_frequency',
+				# 	start=100., 
+				# 	end=10000., 
+				# 	percentage=True,
+				# 	xlabel="Spatial Frequency",
+				# 	ylabel="Percentage response reduction"
+				# )
+
+				# # TEMPORAL
+				# pairwise_response_reduction( 
+				# 	sheet=['X_ON', 'X_OFF'], 
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="FullfieldDriftingSinusoidalGrating",
+				# 	parameter='temporal_frequency',
+				# 	start=100., 
+				# 	end=10000., 
+				# 	percentage=True,
+				# 	xlabel="Temporal frequency", 
+				# 	ylabel="Response change (sp/s)", 
+				# )
 
 
 
