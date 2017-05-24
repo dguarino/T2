@@ -739,6 +739,8 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
 	print rates.shape # (stimuli, cells)
 	print stimuli
+	width = 1.
+	ind = numpy.arange(10)
 
 	# END-INHIBITION as in MurphySillito1987:
 	# "The responses of the cell with corticofugal feedback are totally suppressed at bar lenghts of 2deg and above, 
@@ -751,24 +753,24 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	# 3. compute the percentage difference from peak: (peak-plateau)/peak *100
 	ends = (peaks-plateaus)/peaks *100 # print ends
 	# 4. group cells by end-inhibition
-	hist, _ = numpy.histogram( ends, bins=10 )
-	median = numpy.median(hist)
-	print median
+	hist, edges = numpy.histogram( ends, bins=10 )
+	mean = numpy.mean(ends)
+	mean = (numpy.abs( edges-mean )).argmin() * width # find where to place the mean line in the plot
+	print mean
 	print hist
-	width = 1.
-	ind = numpy.arange(10)
 
 	# read external data to plot as well
 	if data:
 		data_list = numpy.genfromtxt(data, delimiter='\n')
-		data_median = numpy.median(data_list) * width
-		print data_median
+		data_mean = data_list[0] -width/2 # positioning
+		data_list = data_list[1:]
+		print data_mean
 		print data_list
 
 	# PLOTTING
 	fig,ax = plt.subplots()
 	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
-	ax.plot((median/10, median/10), (0,100), 'b:', linewidth=2)
+	ax.plot((mean,mean), (0,100), 'b:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
@@ -778,7 +780,7 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
 	if data: # in front of the synthetic
 		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
-		ax.plot((data_median, data_median), (0,100), 'k:', linewidth=2)
+		ax.plot((data_mean, data_mean), (0,100), 'k:', linewidth=2)
 	plt.savefig( folder+"/suppression_index_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
@@ -850,44 +852,48 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 	#print rates[0][10]
 	print stimuli
 
+	width = 1.
+	ind = numpy.arange(10)
+	print ind
+	print ind+width/2
+
 	# ORIENTATION BIAS as in VidyasagarUrbas1982:
 	# For each cell
 	# 1. find the peak response (optimal orientation)
 	peaks = numpy.amax(rates, axis=0) # print peaks
 	# 2. find the least response 
-	# trough = numpy.mean( rates[6:9], axis=0) # (mean of non-optimal orientations)
 	trough = numpy.amin( rates, axis=0)
 	# 3. compute the percentage difference from peak
 	bias = (peaks-trough)/peaks *100 # print ends
 	# 4. group cells by orientation bias
-	hist, _ = numpy.histogram( bias, bins=10 )
-	median = numpy.median(hist)
-	print median
+	hist, edges = numpy.histogram( bias, bins=10 )
+	mean = numpy.mean(bias)
+	mean = (numpy.abs( edges-mean )).argmin() * width # find where to place the mean line in the plot
+	print mean
 	print hist
-	width = 1.
-	ind = numpy.arange(10)
 
 	# read external data to plot as well
 	if data:
 		data_list = numpy.genfromtxt(data, delimiter='\n')
-		data_median = numpy.median(data_list) * width
-		print data_median
+		data_mean = data_list[0] -width/2 # positioning
+		data_list = data_list[1:]
+		print data_mean
 		print data_list
 
 	# PLOTTING
 	fig,ax = plt.subplots()
 	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
-	ax.plot((median/10, median/10), (0,100), 'b:', linewidth=2)
+	ax.plot((mean, mean), (0,100), 'b:', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([ind[0]-width/2, ind[-1], 0, 80])
+	ax.axis([ind[0]-width/2, ind[-1], 0, 60])
 	ax.set_xticks(ind+width/2) 
 	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
 	if data: # in front of the synthetic
 		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
-		ax.plot((data_median, data_median), (0,100), 'k:', linewidth=2)
+		ax.plot((data_mean, data_mean), (0,100), 'k:', linewidth=2)
 	plt.savefig( folder+"/orientation_bias_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
@@ -1159,22 +1165,18 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	print reduction
 
 	# PLOTTING
-	width = 0.35
-	# width = 0.9
+	# width = 0.35
+	width = 0.9
 	ind = numpy.arange(len(reduction))
 	fig, ax = plt.subplots()
-	ax.bar( ind, reduction, width, color='grey', hatch=None)
-	# ax.bar( ind, reduction, width, color='white', hatch='/')
+	ax.bar( ind, reduction, width=width, facecolor='blue', edgecolor='blue')
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
+	ax.spines['bottom'].set_visible(False)
 	ax.set_xticklabels( stimuli_full )
-	ax.axis([ind[0], ind[-1], 0, 50])
-
-	# temporal tuning reduction
-	# ax.spines['bottom'].set_visible(False)
-	# ax.axis([ind[0], ind[-1], -10, 10])
+	ax.axis([0, 8, -1, 1])
 
 	plt.savefig( folder_inactive+"/response_reduction_"+str(sheet)+".png", dpi=200 )
 	plt.close()
@@ -1335,7 +1337,7 @@ def chisquared_test(observed, expected):
 # Execution
 
 full_list = [ 
-	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
@@ -1356,7 +1358,7 @@ full_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
@@ -1367,7 +1369,7 @@ full_list = [
 	]
 
 inac_list = [ 
-	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
+	"Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
@@ -1551,8 +1553,8 @@ else:
 			# 	end=1000., 
 			# 	xlabel="Index of end-inhibition",
 			# 	ylabel="Number of cells",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -1607,18 +1609,18 @@ else:
 			# 	percentile=False,
 			# 	# ylim=[0,50]
 			# )
-			orientation_bias_barplot( 
-				sheet=['X_ON', 'X_OFF'], 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='orientation',
-				start=100., 
-				end=2000., 
-				xlabel="Orientation bias",
-				ylabel="Number of cells",
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
-			)
+			# orientation_bias_barplot( 
+			# 	sheet=['X_ON', 'X_OFF'], 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='orientation',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	xlabel="Orientation bias",
+			# 	ylabel="Number of cells",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
+			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -1654,26 +1656,27 @@ else:
 
 				# # SPONTANEOUS ACTIVITY
 				# #Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
-				# pairwise_scatterplot( 
-				# 	# sheet=s,
-				# 	sheet=['X_ON', 'X_OFF'], # s,
-				# 	folder_full=f, 
-				# 	folder_inactive=l,
-				# 	stimulus="Null",
-				# 	stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
-				# 	parameter='background_luminance',
-				# 	start=100., 
-				# 	end=2000., 
-				# 	xlabel="spontaneous activity before cooling (spikes/s)",
-				# 	ylabel="spontaneous activity during cooling (spikes/s)",
-				# 	withRegression=True,
-				# 	withCorrCoef=True,
-				# 	withCentroid=False,
-				# 	xlim=[0,60],
-				# 	ylim=[0,60],
-				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
-				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
-				# )
+				pairwise_scatterplot( 
+					# sheet=s,
+					# sheet=['X_ON', 'X_OFF'], # s,
+					sheet=['PGN'], # s,
+					folder_full=f, 
+					folder_inactive=l,
+					stimulus="Null",
+					stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+					parameter='background_luminance',
+					start=100., 
+					end=2000., 
+					xlabel="spontaneous activity before cooling (spikes/s)",
+					ylabel="spontaneous activity during cooling (spikes/s)",
+					withRegression=False, #True,
+					withCorrCoef=False, #True,
+					withCentroid=False,
+					xlim=[0,60],
+					ylim=[0,60],
+					# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+					# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+				)
 
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
@@ -1720,7 +1723,7 @@ else:
 				# 	end=10000., 
 				# 	percentage=True,
 				# 	xlabel="Temporal frequency", 
-				# 	ylabel="Response change (sp/s)", 
+				# 	ylabel="Response change (%)", 
 				# )
 
 
