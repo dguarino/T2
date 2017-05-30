@@ -143,7 +143,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
 			ParameterSet({'bin_length' : bin}) 
 		).analyse()
-		# datastore.save()
+		datastore.save()
 
 	mean_rates = []
 	stimuli = []
@@ -153,6 +153,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 		dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sh, st_name=stimulus )
 		# dsv.print_content(full_recordings=False)
 		pnvs = [ dsv.get_analysis_result() ]
+		print pnvs
 		# get stimuli from PerNeuronValues
 		st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
 
@@ -173,6 +174,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 			# print mean_rates.shape, dic.values()[0][1].shape
 			mean_rates = numpy.append( mean_rates, dic.values()[0][1], axis=1 )
 		else:
+			print dic
 			mean_rates = dic.values()[0][1]
 
 		stimuli = dic.values()[0][0]
@@ -1019,6 +1021,8 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 
 	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=False )
 	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=False )
+	# x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=True )
+	# x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=True )
 
 	x_full = x_full_rates[stimulus_band]
 	x_inac = x_inac_rates[stimulus_band]
@@ -1075,7 +1079,7 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
 	if data_full and data_inac:
-		ax.scatter( data_full_list, data_inac_list, marker="o", s=60, facecolor="k", edgecolor="k", label=sheet )
+		ax.scatter( data_full_list, data_inac_list, marker="D", s=60, facecolor="k", edgecolor="k", label=sheet )
 	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="black", label=sheet )
 
 	if withRegression:
@@ -1136,36 +1140,59 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 
 	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, neurons=[], spikecount=False ) 
 	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, neurons=[], spikecount=False ) 
-	print x_full_rates.shape
-	print x_inac_rates.shape
+	# print x_full_rates.shape
+	# print x_inac_rates.shape
+
+	print "1. Test of normality for full (mean p-value must be >>0):", numpy.mean(scipy.stats.normaltest(x_full_rates)[1])
+	print "1. Test of normality for inac (mean p-value must be >>0):", numpy.mean(scipy.stats.normaltest(x_inac_rates)[1])
+
+	x_full_std = x_full_rates.std(axis=1)
+	x_inac_std = x_inac_rates.std(axis=1)
+	print "2. Difference between full and inac std (test whether ANOVA will be meaningful, all values have to be ~0):", x_full_std - x_inac_std
+
+	increased = 0.
+	nochange = 0.
+	decreased = 0.
+	diff = x_full_rates - x_inac_rates
+	for i in range(0,diff.shape[1]):
+		# ANOVA significance test for open vs closed loop conditions
+		# Null-hypothesis: "the rates in the closed- and open-loop conditions are equal"
+		# full_inac_diff = scipy.stats.f_oneway(x_full_rates[:,i], x_inac_rates[:,i])
+		full_inac_diff = scipy.stats.f_oneway(numpy.sqrt(x_full_rates[:,i]), numpy.sqrt(x_inac_rates[:,i]))
+		print full_inac_diff
+		# Custom test for open vs closed loop conditions
+		# Low threshold, on the majority of tested frequencies
+		if   numpy.sum( diff[:,i] > 0.5 ) > 4: increased += 1
+		elif numpy.sum( diff[:,i] < -0.5 ) > 4: decreased += 1
+		else: nochange += 1
+	increased /= diff.shape[1] 
+	nochange /= diff.shape[1]
+	decreased /= diff.shape[1]
+	increased *= 100.
+	nochange *= 100.
+	decreased *= 100.
+	print "increased", increased, "%"
+	print "nochange", nochange, "%"
+	print "decreased", decreased, "%"
 
 	x_full = x_full_rates.mean(axis=1)
 	x_inac = x_inac_rates.mean(axis=1)
 	print x_full.shape
-	x_full_std = x_full_rates.std(axis=1)
-	x_inac_std = x_inac_rates.std(axis=1)
-	if percentage:
-		x_full_max = x_full.max()
-		x_inac_max = x_full.max()
-		x_full = x_full/x_full_max *100
-		x_inac = x_inac/x_inac_max *100
+
+	x_full_max = x_full.max()
+	x_inac_max = x_full.max()
+	x_full = x_full/x_full_max *100
+	x_inac = x_inac/x_inac_max *100
 
 	reduction = numpy.zeros( len(stimuli_full) )
 	# compute the percentage difference at each group
 	for i,(full,inac) in enumerate(zip(x_full, x_inac)):
 		print i, full, inac, full-inac
 		reduction[i] = full-inac
-
-	# reduction = numpy.zeros( int(len(stimuli_full)/2) )
-	# full_by2 = [sum(x_full[current:current+2]) for current in xrange(0,len(x_full),2)]
-	# inac_by2 = [sum(x_inac[current:current+2]) for current in xrange(0,len(x_inac),2)]
-	# for i,(full,inac) in enumerate(zip(full_by2, inac_by2)):
-	# 	reduction[i] = full-inac
-
 	print reduction
 
 	# PLOTTING
-	# width = 0.35
+	# width = 0.35 # spatial
 	width = 0.9
 	ind = numpy.arange(len(reduction))
 	fig, ax = plt.subplots()
@@ -1177,6 +1204,17 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	ax.spines['bottom'].set_visible(False)
 	ax.set_xticklabels( stimuli_full )
 	ax.axis([0, 8, -1, 1])
+
+	ax2 = fig.add_axes([.6, .2, .2, .2])
+	barlist = ax2.bar(numpy.arange(8),[increased,44,0,nochange,36,0,decreased,20], width=0.99) # empty column to separate groups
+	barlist[0].set_color('blue')
+	barlist[1].set_color('black')
+	barlist[3].set_color('blue')
+	barlist[4].set_color('black')
+	barlist[6].set_color('blue')
+	barlist[7].set_color('black')
+	ax2.set_xticklabels(['','incr','','','same','','','decr'])
+	ax2.set_yticklabels(['0','','10','','20','','30','','40',''])
 
 	plt.savefig( folder_inactive+"/response_reduction_"+str(sheet)+".png", dpi=200 )
 	plt.close()
@@ -1337,7 +1375,7 @@ def chisquared_test(observed, expected):
 # Execution
 
 full_list = [ 
-	"Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
@@ -1348,7 +1386,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -1369,14 +1407,14 @@ full_list = [
 	]
 
 inac_list = [ 
-	"Deliverable/ThalamoCorticalModel_data_luminance_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
+	"Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
@@ -1390,8 +1428,8 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
-sheets = ['X_OFF'] 
-# sheets = ['PGN']
+# sheets = ['X_OFF'] 
+sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
 
@@ -1656,27 +1694,27 @@ else:
 
 				# # SPONTANEOUS ACTIVITY
 				# #Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
-				pairwise_scatterplot( 
-					# sheet=s,
-					# sheet=['X_ON', 'X_OFF'], # s,
-					sheet=['PGN'], # s,
-					folder_full=f, 
-					folder_inactive=l,
-					stimulus="Null",
-					stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
-					parameter='background_luminance',
-					start=100., 
-					end=2000., 
-					xlabel="spontaneous activity before cooling (spikes/s)",
-					ylabel="spontaneous activity during cooling (spikes/s)",
-					withRegression=False, #True,
-					withCorrCoef=False, #True,
-					withCentroid=False,
-					xlim=[0,60],
-					ylim=[0,60],
-					# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
-					# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
-				)
+				# pairwise_scatterplot( 
+				# 	# sheet=s,
+				# 	sheet=['X_ON', 'X_OFF'], # s,
+				# 	# sheet=['PGN'], # s,
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="Null",
+				# 	stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+				# 	parameter='background_luminance',
+				# 	start=100., 
+				# 	end=2000., 
+				# 	xlabel="closed-loop ongoing activity (spikes/s)",
+				# 	ylabel="open-loop ongoing activity (spikes/s)",
+				# 	withRegression=True,
+				# 	withCorrCoef=True,
+				# 	withCentroid=True,
+				# 	xlim=[0,40],
+				# 	ylim=[0,40],
+				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+				# )
 
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
@@ -1699,32 +1737,20 @@ else:
 				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
 				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
 				# )
-				# pairwise_response_reduction( 
-				# 	sheet=['X_ON'], 
-				# 	folder_full=f, 
-				# 	folder_inactive=l,
-				# 	stimulus="FullfieldDriftingSinusoidalGrating",
-				# 	parameter='spatial_frequency',
-				# 	start=100., 
-				# 	end=10000., 
-				# 	percentage=True,
-				# 	xlabel="Spatial Frequency",
-				# 	ylabel="Percentage response reduction"
-				# )
 
 				# # TEMPORAL
-				# pairwise_response_reduction( 
-				# 	sheet=['X_ON', 'X_OFF'], 
-				# 	folder_full=f, 
-				# 	folder_inactive=l,
-				# 	stimulus="FullfieldDriftingSinusoidalGrating",
-				# 	parameter='temporal_frequency',
-				# 	start=100., 
-				# 	end=10000., 
-				# 	percentage=True,
-				# 	xlabel="Temporal frequency", 
-				# 	ylabel="Response change (%)", 
-				# )
+				pairwise_response_reduction( 
+					sheet=['X_ON', 'X_OFF'], 
+					folder_full=f, 
+					folder_inactive=l,
+					stimulus="FullfieldDriftingSinusoidalGrating",
+					parameter='temporal_frequency',
+					start=100., 
+					end=10000., 
+					percentage=True,
+					xlabel="Temporal frequency", 
+					ylabel="Response change (%)", 
+				)
 
 
 

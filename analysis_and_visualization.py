@@ -645,7 +645,7 @@ def plot_luminance_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=N
            '*.x_scale':'log', '*.x_scale_base':10,
            '*.fontsize':24,
         })
-    if PGN_ids:
+    if len(PGN_ids)>1:
         PlotTuningCurve(
            dsv,
            ParameterSet({

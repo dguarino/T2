@@ -45,16 +45,15 @@ withFeedback_CxPGN = False # closed loop
 withFeedback_CxLGN = False # closed loop
 
 # Model execution
-if False:
+if True:
     data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_luminance )
     data_store.save()
 # or only load pickled data
 else:
     setup_logging()
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_luminance_open_____', 'store_stimuli' : False}),replace=True)
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_luminance_open_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
-    data_store.save()
-
 
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
