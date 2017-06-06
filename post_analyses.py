@@ -143,7 +143,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
 			ParameterSet({'bin_length' : bin}) 
 		).analyse()
-		datastore.save()
+		# datastore.save()
 
 	mean_rates = []
 	stimuli = []
@@ -153,7 +153,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 		dsv = param_filter_query( datastore, identifier='PerNeuronValue', sheet_name=sh, st_name=stimulus )
 		# dsv.print_content(full_recordings=False)
 		pnvs = [ dsv.get_analysis_result() ]
-		print pnvs
+		# print pnvs
 		# get stimuli from PerNeuronValues
 		st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs[-1]]
 
@@ -809,8 +809,7 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	# find the index (stimulus causing half-max response: c50)
 	c50s = (numpy.abs(rates-halves)).argmin(axis=0)
 	print c50s
-	# hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,7), normed=True, density=True)
-	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(0,13), normed=True, density=True)
+	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), density=True)
 	print hist, bin_edges
 	cumulative = numpy.cumsum(hist)
 	m = numpy.amax(cumulative)
@@ -823,12 +822,11 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 		print data_list
 
 	# PLOTTING
-	# x = [0, .02, .04, .08, .18, .36, .50, 1.]
 	x = [0.0, .05, .1, .15, .20, .25, .30, .35, .40, .45, .50, .55, .60]
 	fig,ax = plt.subplots()
 	if data:
-		barlist = ax.plot( x, data_list, color=data_color, linewidth=2 )
-	# barlist = ax.plot( x, cumulative, color=color, linewidth=2 )
+		ax.plot( x, data_list, color=data_color, linewidth=2 )
+	ax.plot( x, cumulative, color=color, linewidth=2 )
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 	ax.set_xlabel(xlabel)
@@ -1044,6 +1042,8 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 		x_full = _x_full / numpy.amax( _x_full )
 		x_inac = _x_inac / numpy.amax( _x_inac )
 
+	print x_full
+	print x_inac
 	# read external data to plot as well
 	if data_full and data_inac:
 		data_full_list = numpy.genfromtxt(data_full, delimiter='\n')
@@ -1080,6 +1080,7 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
 	if data_full and data_inac:
 		ax.scatter( data_full_list, data_inac_list, marker="D", s=60, facecolor="k", edgecolor="k", label=sheet )
+
 	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="black", label=sheet )
 
 	if withRegression:
@@ -1196,25 +1197,33 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	width = 0.9
 	ind = numpy.arange(len(reduction))
 	fig, ax = plt.subplots()
-	ax.bar( ind, reduction, width=width, facecolor='blue', edgecolor='blue')
-	ax.set_xlabel(xlabel)
-	ax.set_ylabel(ylabel)
-	ax.spines['right'].set_visible(False)
-	ax.spines['top'].set_visible(False)
-	ax.spines['bottom'].set_visible(False)
-	ax.set_xticklabels( stimuli_full )
-	ax.axis([0, 8, -1, 1])
 
-	ax2 = fig.add_axes([.6, .2, .2, .2])
-	barlist = ax2.bar(numpy.arange(8),[increased,44,0,nochange,36,0,decreased,20], width=0.99) # empty column to separate groups
+	barlist = ax.bar(numpy.arange(8),[increased,44,0,nochange,36,0,decreased,20], width=0.99) # empty column to separate groups
 	barlist[0].set_color('blue')
 	barlist[1].set_color('black')
 	barlist[3].set_color('blue')
 	barlist[4].set_color('black')
 	barlist[6].set_color('blue')
 	barlist[7].set_color('black')
-	ax2.set_xticklabels(['','incr','','','same','','','decr'])
-	ax2.set_yticklabels(['0','','10','','20','','30','','40',''])
+	ax.set_xticklabels(['','increased','','','no change','','','decreased'])
+	for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+		label.set_fontsize(18)
+	ax.set_yticklabels(['0','','10','','20','','30','','40',''])
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.set_ylabel("Number of cells", fontsize=18)
+
+	ax2 = fig.add_axes([.7, .7, .2, .2])
+	ax2.bar( ind, reduction, width=width, facecolor='blue', edgecolor='blue')
+	ax2.set_xlabel(xlabel)
+	ax2.set_ylabel(ylabel)
+	# ax2.spines['right'].set_visible(False)
+	# ax2.spines['top'].set_visible(False)
+	# ax2.spines['bottom'].set_visible(False)
+	ax2.set_xticklabels( ['.05', '.2', '1.2', '3.', '6.4', '8', '12', '30'] )
+	ax2.axis([0, 8, -1, 1])
+	for label in (ax2.get_xticklabels() + ax2.get_yticklabels()):
+		label.set_fontsize(9)
 
 	plt.savefig( folder_inactive+"/response_reduction_"+str(sheet)+".png", dpi=200 )
 	plt.close()
@@ -1353,20 +1362,57 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 
 
-def chisquared_test(observed, expected):
+def data_significance(closed_file, open_file, testtype, removefirst=False):
+	closed_data = numpy.genfromtxt(closed_file, delimiter='\n')
+	open_data = numpy.genfromtxt(open_file, delimiter='\n')
+	if removefirst:
+		closed_data = closed_data[1:]
+		open_data = open_data[1:]
+	# print closed_data
+	# print open_data
 
-	# chi2 = numpy.sum( (observed-expected)**2 / expected )
-	# p = 0.0
+	print "\n----------- TESTING PRE-REQUISITE"
+	closed_normality = scipy.stats.normaltest(closed_data)[1]
+	print "1a. Test of normality for closed (mean p-value must be >>0):", closed_normality
+	open_normality = scipy.stats.normaltest(open_data)[1]
+	print "1b. Test of normality for open (mean p-value must be >>0):", open_normality
+	closed_skewness = scipy.stats.skew(closed_data)
+	closed_skewtest = scipy.stats.skewtest(closed_data)[1]
+	print "2a. Test of skewness for closed (must be ~0):", closed_skewness, "with skewtest p-value=", closed_skewtest
+	open_skewness = scipy.stats.skew(open_data)
+	open_skewtest = scipy.stats.skewtest(open_data)[1]
+	print "2b. Test of skewness for open (must be ~0):", open_skewness, "with skewtest p-value=", open_skewtest
+	var_diff = abs(closed_data.var() - open_data.var())
+	print "3. Difference between closed and open variance (must be ~0):", var_diff
 
-	from scipy.stats import chi2_contingency
-	obs = [ observed, expected ]
-	chi2, p, dof, ex = chi2_contingency( obs, correction=True )
-	# print ex
 
-	# from scipy.stats import chisquare
-	# chi2, p = chisquare( f_obs=observed, f_exp=expected )
+	if testtype == 't-test':
 
-	print "chi2:", chi2, "p-value:", p
+		if (closed_normality>0.1 and open_normality>0.1) or (closed_skewtest>0.05 and open_skewtest>0.05 and len(closed_data)>50 and len(open_data)>50): # permissive
+			print "\n----------- t-test"
+			equal_var = not var_diff>0.1 # permissive limit
+			if not equal_var:
+				print "Welch's t-test is performed instead of Student's due to inequality of variances."
+			st, p = scipy.stats.ttest_ind( closed_data, open_data, equal_var=equal_var )
+			print "z-score:", st, "p-value:", p
+		else:
+			print "Test of normality has not been passed (and skewness is not compensated by the number of samples), therefore t-test cannot be applied. Chi-squared will be performed instead."
+			chi2, p = scipy.stats.chisquare( open_data, closed_data )
+			print "z-score:", chi2, "p-value:", p
+
+
+	if testtype == 'anova':
+		# homoscedasticity
+		if ((closed_normality>0.1 and open_normality>0.1) or (closed_skewtest>0.05 and open_skewtest>0.05 and len(closed_data)>50 and len(open_data)>50)) and var_diff<0.1: # permissive
+			print "\n----------- ANOVA"
+			st, p = scipy.stats.f_oneway(closed_data, open_data)
+			print "plain z-score:", st, "p-value:", p
+			st, p = scipy.stats.f_oneway(numpy.sqrt(closed_data), numpy.sqrt(open_data))
+			print "squared z-score:", st, "p-value:", p
+		else:
+			print "Test of normality has not been passed (and skewness is not compensated by the number of samples), therefore ANOVA cannot be applied. Kruskal-Wallis will be performed instead."
+			st, p = scipy.stats.kruskal(closed_data, open_data)
+			print "z-score:", st, "p-value:", p
 
 
 
@@ -1378,7 +1424,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
@@ -1386,7 +1432,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
 
-	"Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -1414,7 +1460,7 @@ inac_list = [
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_temporal_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
@@ -1427,9 +1473,9 @@ inac_list = [
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-# sheets = ['X_ON']
+sheets = ['X_ON']
 # sheets = ['X_OFF'] 
-sheets = ['PGN']
+# sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 
 
@@ -1527,22 +1573,22 @@ else:
 			# 	color="black", 
 			# 	percentile=True 
 			# )
-			# cumulative_distribution_C50_curve( 
-			# 	sheet=[s], 
-			# 	folder=f, 
-			# 	stimulus="FullfieldDriftingSinusoidalGrating",
-			# 	parameter='contrast',
-			# 	start=100., 
-			# 	end=2000., 
-			# 	xlabel="C$_{50}$",
-			# 	ylabel="Percentile",
-			# 	color="blue",
-			# 	# color="black",
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
-			# 	data_color="black",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
-			# 	# data_color="grey",
-			# )
+			cumulative_distribution_C50_curve( 
+				sheet=['X_ON', 'X_OFF'], 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='contrast',
+				start=100., 
+				end=2000., 
+				xlabel="C$_{50}$",
+				ylabel="Percentile",
+				color="blue",
+				# color="cyan",
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+				data_color="black",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
+				# data_color="grey",
+			)
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1692,16 +1738,15 @@ else:
 			for j,l in enumerate(inac_list):
 				print j
 
-				# # SPONTANEOUS ACTIVITY
+				# # ONGOING ACTIVITY
 				# #Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
 				# pairwise_scatterplot( 
 				# 	# sheet=s,
 				# 	sheet=['X_ON', 'X_OFF'], # s,
-				# 	# sheet=['PGN'], # s,
 				# 	folder_full=f, 
 				# 	folder_inactive=l,
 				# 	stimulus="Null",
-				# 	stimulus_band=7, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+				# 	stimulus_band=6, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
 				# 	parameter='background_luminance',
 				# 	start=100., 
 				# 	end=2000., 
@@ -1739,54 +1784,72 @@ else:
 				# )
 
 				# # TEMPORAL
-				pairwise_response_reduction( 
-					sheet=['X_ON', 'X_OFF'], 
-					folder_full=f, 
-					folder_inactive=l,
-					stimulus="FullfieldDriftingSinusoidalGrating",
-					parameter='temporal_frequency',
-					start=100., 
-					end=10000., 
-					percentage=True,
-					xlabel="Temporal frequency", 
-					ylabel="Response change (%)", 
-				)
+				# pairwise_response_reduction( 
+				# 	sheet=['X_ON', 'X_OFF'], 
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="FullfieldDriftingSinusoidalGrating",
+				# 	parameter='temporal_frequency',
+				# 	start=100., 
+				# 	end=10000., 
+				# 	percentage=True,
+				# 	xlabel="", #Temporal frequency", 
+				# 	ylabel="", #Response change (%)", 
+				# )
 
 
 
 
 
-# # STATISTICAL SIGNIFICANCE
-# # For binned histograms, Chi-square distance is the most used method to compare observed and expected data.
+# STATISTICAL SIGNIFICANCE
 
-# # SIZE
-# print
-# print "Size statistical significance"
-# print "chi-square test of null-hypothesis: 'No difference between open and closed loop condition' ..."
-# data_size_open = numpy.array( [0, 0, 5, 1, 10, 19, 8, 7, 3, 3] ) # expected open
-# data_size_closed = numpy.array( [9, 9, 9, 12, 17, 7, 3, 1, 1, 0] ) # expected closed
-# model_size_open = numpy.array( [2, 0.00000000001, 0.0000000001, 1, 6, 5, 11, 21, 66, 21] ) # observed open
-# model_size_closed = numpy.array( [6, 3, 11, 11, 11, 10, 13, 28, 25, 15] ) # observed closed
-# # size contingency of closed vs open in data
-# print "... in data"
-# chisquared_test( data_size_closed, data_size_open )
-# # size contingency of closed vs open in model
-# print "... in model"
-# chisquared_test( model_size_closed, model_size_open )
+# # ONGOING ACTIVITY (WaleszczykBekiszWrobel2005)
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+# 	'anova'
+# )
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/ongoing_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/ongoing_open.csv",
+# 	'anova'
+# )
 
-# # ORIENTATION
-# print
-# print "Orientation statistical significance"
-# print "chi-square test of null-hypothesis: 'No difference between open and closed loop condition' ..."
-# data_orientation_open = numpy.array( [16, 16, 7, 3, 2, 0.00000000001, 2, 0.00000000001, 0.00000000001, 0.00000000001] ) # expected open
-# data_orientation_closed = numpy.array( [22, 39, 20, 10, 4, 2, 0, 0, 0, 0] ) # expected closed
-# model_orientation_open = numpy.array( [30, 25, 24, 11, 15, 14, 8, 2, 3, 1] ) # observed open
-# model_orientation_closed = numpy.array( [16, 22, 20, 14, 18, 11, 10, 11, 8, 3] ) # observed closed
-# # size contingency of closed vs open in data
-# print "... in data"
-# chisquared_test( data_orientation_closed, data_orientation_open )
-# # size contingency of closed vs open in model
-# print "... in model"
-# chisquared_test( model_orientation_closed, model_orientation_open )
+# # CONTRAST (LiYeSongYangZhou2011)
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
+# 	't-test'
+# )
+# data_significance( # synthetic
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_open.csv",
+# 	't-test'
+# )
 
+
+# # SPATIAL (KimuraShimegiHaraOkamotoSato2013)
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
+# 	'anova'
+# )
+
+
+# # SIZE (MurphySillito1987)
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+# 	't-test',
+#	removefirst=True
+# )
+
+
+# # ORIENTATION ()
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
+# 	't-test',
+# 	removefirst=True
+# )
 

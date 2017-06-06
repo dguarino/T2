@@ -26,8 +26,8 @@ def create_experiments_luminance(model):
       # as in PapaioannouWhite1972
       MeasureFlatLuminanceSensitivity(
           model, 
-          # luminances=[.0, .00001, .0001, .001, .01, .1, 1., 10., 100.], # as in BarlowLevick1969, SakmannCreutzfeldt1969
-          luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
+          luminances=[.0, .00001, .0001, .001, .01, .1, 1., 10., 100.], # as in BarlowLevick1969, SakmannCreutzfeldt1969
+          # luminances=[0.0, 0.085, 0.85, 8.5, 85.0], # as in PapaioannouWhite1972
           step_duration=2*147*7,
           num_trials=6
       )

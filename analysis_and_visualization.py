@@ -585,26 +585,26 @@ def plot_luminance_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=N
        '*.x_scale':'log', '*.x_scale_base':10,
        '*.fontsize':24,
     })
-    for lid in Xon_ids:
-        PlotTuningCurve(
-            dsv,
-            ParameterSet({
-                'polar': False,
-                'pool': False,
-                'centered': False,
-                'percent': False,
-                'mean': False,
-                'parameter_name' : 'background_luminance', 
-                'neurons': list([lid]), 
-                'sheet_name' : 'X_ON'
-            }), 
-            fig_param={'dpi' : 100,'figsize': (8,8)}, 
-            plot_file_name="FlatLuminanceSensitivity_LGN_On_"+str(lid)+".png"
-        ).plot({
-           '*.y_lim':(0,30), 
-           '*.x_scale':'log', '*.x_scale_base':10,
-           '*.fontsize':24,
-        })
+    # for lid in Xon_ids:
+    #     PlotTuningCurve(
+    #         dsv,
+    #         ParameterSet({
+    #             'polar': False,
+    #             'pool': False,
+    #             'centered': False,
+    #             'percent': False,
+    #             'mean': False,
+    #             'parameter_name' : 'background_luminance', 
+    #             'neurons': list([lid]), 
+    #             'sheet_name' : 'X_ON'
+    #         }), 
+    #         fig_param={'dpi' : 100,'figsize': (8,8)}, 
+    #         plot_file_name="FlatLuminanceSensitivity_LGN_On_"+str(lid)+".png"
+    #     ).plot({
+    #        '*.y_lim':(0,30), 
+    #        '*.x_scale':'log', '*.x_scale_base':10,
+    #        '*.fontsize':24,
+    #     })
     # OFF
     PlotTuningCurve(
         dsv,
@@ -625,26 +625,26 @@ def plot_luminance_tuning( data_store, Xon_ids, Xoff_ids, PGN_ids=None, V1_ids=N
         '*.x_scale':'log', '*.x_scale_base':10,
         '*.fontsize':24,
     })
-    for lid in Xoff_ids:
-        PlotTuningCurve(
-            dsv,
-            ParameterSet({
-                'polar': False,
-                'pool': False,
-                'centered': False,
-                'percent': False,
-                'mean': False,
-                'parameter_name' : 'background_luminance', 
-                'neurons': list([lid]), 
-                'sheet_name' : 'X_OFF'
-            }), 
-            fig_param={'dpi' : 100,'figsize': (8,8)}, 
-            plot_file_name="FlatLuminanceSensitivity_LGN_Off_"+str(lid)+".png"
-        ).plot({
-           '*.y_lim':(0,30), 
-           '*.x_scale':'log', '*.x_scale_base':10,
-           '*.fontsize':24,
-        })
+    # for lid in Xoff_ids:
+    #     PlotTuningCurve(
+    #         dsv,
+    #         ParameterSet({
+    #             'polar': False,
+    #             'pool': False,
+    #             'centered': False,
+    #             'percent': False,
+    #             'mean': False,
+    #             'parameter_name' : 'background_luminance', 
+    #             'neurons': list([lid]), 
+    #             'sheet_name' : 'X_OFF'
+    #         }), 
+    #         fig_param={'dpi' : 100,'figsize': (8,8)}, 
+    #         plot_file_name="FlatLuminanceSensitivity_LGN_Off_"+str(lid)+".png"
+    #     ).plot({
+    #        '*.y_lim':(0,30), 
+    #        '*.x_scale':'log', '*.x_scale_base':10,
+    #        '*.fontsize':24,
+    #     })
     if len(PGN_ids)>1:
         PlotTuningCurve(
            dsv,

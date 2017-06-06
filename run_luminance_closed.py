@@ -51,6 +51,7 @@ if True:
 # or only load pickled data
 else:
     setup_logging()
+    # data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'Deliverable/ThalamoCorticalModel_data_luminance_closed_____', 'store_stimuli' : False}),replace=True)
     data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_luminance_closed_____', 'store_stimuli' : False}),replace=True)
     logger.info('Loaded data store')
     data_store.save()
