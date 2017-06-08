@@ -14,6 +14,7 @@ import numpy
 import scipy.stats
 import scipy
 import pylab
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
@@ -450,7 +451,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		axes[0,0].spines['bottom'].set_visible(False)
 
 		# plt.show()
-		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+".png", dpi=100 )
+		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+".png", dpi=150 )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -733,7 +734,7 @@ def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, 
 
 
 
-def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", data=None ):
+def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=True)
@@ -747,17 +748,18 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	# END-INHIBITION as in MurphySillito1987:
 	# "The responses of the cell with corticofugal feedback are totally suppressed at bar lenghts of 2deg and above, 
 	#  and those of cell lacking feedback are reduced up to 40% at bar lenghts of 8deg and above."
-	# For each cell
+
 	# 1. find the peak response at large sizes
 	peaks = numpy.amax(rates[5:], axis=0) # print peaks
 	# 2. compute average response at large sizes
 	plateaus = numpy.mean( rates[5:], axis=0) # print plateaus
 	# 3. compute the percentage difference from peak: (peak-plateau)/peak *100
-	ends = (peaks-plateaus)/peaks *100 # print ends
+	ends = (peaks-plateaus)/peaks *100 
+	print ends
 	# 4. group cells by end-inhibition
 	hist, edges = numpy.histogram( ends, bins=10 )
 	mean = numpy.mean(ends)
-	mean = (numpy.abs( edges-mean )).argmin() * width # find where to place the mean line in the plot
+	mean = ((numpy.abs( edges-mean )).argmin() -1) * width # find where to place the mean line in the plot (-1 because the index is plotted starting from 1 and not 0)
 	print mean
 	print hist
 
@@ -770,9 +772,14 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 		print data_list
 
 	# PLOTTING
+	matplotlib.rcParams.update({'font.size':22})
 	fig,ax = plt.subplots()
-	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
-	ax.plot((mean,mean), (0,100), 'b:', linewidth=2)
+	if closed:
+		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
+		ax.plot((mean, mean), (0,100), 'b--', linewidth=2)
+	else:
+		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='cyan', edgecolor='cyan')
+		ax.plot((mean, mean), (0,100), 'c--', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
@@ -781,8 +788,13 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	ax.set_xticks(ind+width/2) 
 	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
 	if data: # in front of the synthetic
-		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
-		ax.plot((data_mean, data_mean), (0,100), 'k:', linewidth=2)
+		if closed:
+			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
+			ax.plot((data_mean, data_mean), (0,100), 'k--', linewidth=2)
+		else:
+			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='grey', edgecolor='grey')
+			ax.plot((data_mean, data_mean), (0,100), '--', linewidth=2, color='grey')
+	plt.tight_layout()
 	plt.savefig( folder+"/suppression_index_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
@@ -806,6 +818,7 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	peaks = numpy.amax(rates, axis=0)
 	# 2. compute c50 for each cell
 	halves = peaks/2 
+	print halves
 	# find the index (stimulus causing half-max response: c50)
 	c50s = (numpy.abs(rates-halves)).argmin(axis=0)
 	print c50s
@@ -842,7 +855,7 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 
 
 
-def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", data=None ):
+def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
@@ -854,46 +867,67 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 
 	width = 1.
 	ind = numpy.arange(10)
-	print ind
-	print ind+width/2
+	# print ind
+	# print ind+width/2
 
 	# ORIENTATION BIAS as in VidyasagarUrbas1982:
 	# For each cell
-	# 1. find the peak response (optimal orientation)
-	peaks = numpy.amax(rates, axis=0) # print peaks
-	# 2. find the least response 
-	trough = numpy.amin( rates, axis=0)
-	# 3. compute the percentage difference from peak
-	bias = (peaks-trough)/peaks *100 # print ends
-	# 4. group cells by orientation bias
+	# 1. find the peak response (optimal orientation response)
+	peaks = numpy.amax(rates, axis=0)
+	# print peaks
+	# 2. find the index of peak response (stimulus preferred orientation)
+	preferred = numpy.argmax(rates, axis=0)
+	# print preferred
+	# 3. find the response to opposite stimulus orientation
+	opposite = (preferred + len(stimuli)/2) % len(stimuli)
+	# print opposite
+	cell_indexes = numpy.arange(len(opposite))
+	trough = []
+	for c in cell_indexes:
+		trough.append( rates[opposite[c]][c] )
+	# print trough
+	# 4. compute the bias ratio
+	bias = peaks/trough
+	print bias
+	# 5. group cells by orientation bias
 	hist, edges = numpy.histogram( bias, bins=10 )
 	mean = numpy.mean(bias)
-	mean = (numpy.abs( edges-mean )).argmin() * width # find where to place the mean line in the plot
+	mean = ((numpy.abs( edges-mean )).argmin() -1) * width # find where to place the mean line in the plot (-1 because the index is plotted starting from 1 and not 0)
 	print mean
 	print hist
 
 	# read external data to plot as well
 	if data:
 		data_list = numpy.genfromtxt(data, delimiter='\n')
-		data_mean = data_list[0] -width/2 # positioning
+		data_mean = data_list[0] -width # positioning
 		data_list = data_list[1:]
 		print data_mean
 		print data_list
 
 	# PLOTTING
+	matplotlib.rcParams.update({'font.size':22})
 	fig,ax = plt.subplots()
-	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
-	ax.plot((mean, mean), (0,100), 'b:', linewidth=2)
+	if closed:
+		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
+		ax.plot((mean, mean), (0,100), 'b--', linewidth=2)
+	else:
+		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='cyan', edgecolor='cyan')
+		ax.plot((mean, mean), (0,100), 'c--', linewidth=2)
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([ind[0]-width/2, ind[-1], 0, 60])
+	ax.axis([ind[0]-width/2, ind[-1], 0, 100])
 	ax.set_xticks(ind+width/2) 
 	ax.set_xticklabels((1,2,3,4,5,6,7,8,9,10))
 	if data: # in front of the synthetic
-		datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
-		ax.plot((data_mean, data_mean), (0,100), 'k:', linewidth=2)
+		if closed:
+			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
+			ax.plot((data_mean, data_mean), (0,100), 'k--', linewidth=2)
+		else:
+			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='grey', edgecolor='grey')
+			ax.plot((data_mean, data_mean), (0,100), '--', linewidth=2, color='grey')
+	plt.tight_layout()
 	plt.savefig( folder+"/orientation_bias_"+str(sheet)+".png", dpi=200 )
 	plt.close()
 	# garbage
@@ -1388,12 +1422,12 @@ def data_significance(closed_file, open_file, testtype, removefirst=False):
 
 	if testtype == 't-test':
 
-		if (closed_normality>0.1 and open_normality>0.1) or (closed_skewtest>0.05 and open_skewtest>0.05 and len(closed_data)>50 and len(open_data)>50): # permissive
+		if (closed_normality<0.1 and open_normality<0.1) or (closed_skewtest<0.05 and open_skewtest<0.05 and len(closed_data)>50 and len(open_data)>50): # permissive
 			print "\n----------- t-test"
-			equal_var = not var_diff>0.1 # permissive limit
+			equal_var = var_diff<0.1 # permissive limit
 			if not equal_var:
 				print "Welch's t-test is performed instead of Student's due to inequality of variances."
-			st, p = scipy.stats.ttest_ind( closed_data, open_data, equal_var=equal_var )
+			st, p = scipy.stats.ttest_ind( closed_data, open_data, equal_var=equal_var ) # if equal_var==False Welch is performed
 			print "z-score:", st, "p-value:", p
 		else:
 			print "Test of normality has not been passed (and skewness is not compensated by the number of samples), therefore t-test cannot be applied. Chi-squared will be performed instead."
@@ -1424,21 +1458,22 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
+	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____old",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
@@ -1466,14 +1501,18 @@ inac_list = [
 
 	# "CombinationParamSearch_large_nonoverlapping",
 	# "CombinationParamSearch_more_focused_nonoverlapping",
+
+	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
+	"Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
+
 	]
 
 
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-# sheets = ['X_ON', 'X_OFF']
-sheets = ['X_ON']
+sheets = ['X_ON', 'X_OFF']
+# sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
@@ -1573,22 +1612,22 @@ else:
 			# 	color="black", 
 			# 	percentile=True 
 			# )
-			cumulative_distribution_C50_curve( 
-				sheet=['X_ON', 'X_OFF'], 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='contrast',
-				start=100., 
-				end=2000., 
-				xlabel="C$_{50}$",
-				ylabel="Percentile",
-				color="blue",
-				# color="cyan",
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
-				data_color="black",
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
-				# data_color="grey",
-			)
+			# cumulative_distribution_C50_curve( 
+			# 	sheet=['X_ON', 'X_OFF'], 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='contrast',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	xlabel="C$_{50}$",
+			# 	ylabel="Percentile",
+			# 	# color="blue",
+			# 	color="cyan",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+			# 	# data_color="black",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
+			# 	data_color="grey",
+			# )
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1637,8 +1676,10 @@ else:
 			# 	end=1000., 
 			# 	xlabel="Index of end-inhibition",
 			# 	ylabel="Number of cells",
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+			# 	# closed=False,
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+			# 	closed=True,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -1702,8 +1743,10 @@ else:
 			# 	end=2000., 
 			# 	xlabel="Orientation bias",
 			# 	ylabel="Number of cells",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
+			# 	# closed=False,
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_open.csv",
+			# 	closed=True,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_closed.csv",
 			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
@@ -1797,6 +1840,24 @@ else:
 				# 	ylabel="", #Response change (%)", 
 				# )
 
+				# # COMPARISON SIZE TUNING
+				#            0     1     2     3     4     5     6     7     8     9
+				sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
+				box = [[-.5, .0],[.5,.5]] # close to the overlapping
+				size_tuning_comparison( 
+					sheet=s, 
+					folder_full=f, 
+					folder_inactive=l,
+					stimulus="DriftingSinusoidalGratingDisk",
+					parameter='radius',
+					reference_position=[[0.0], [0.0], [0.0]],
+					# reverse=True, # True if non-overlapping
+					reverse=False, # False if overlapping
+					sizes = sizes,
+					box = box,
+					# csvfile = csvfile,
+					plotAll = True # plot all barplots per folder?
+				)
 
 
 
@@ -1826,12 +1887,22 @@ else:
 # 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_open.csv",
 # 	't-test'
 # )
+# data_significance( # synthetic cells
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_closed_cells.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_open_cells.csv",
+# 	't-test'
+# )
 
 
 # # SPATIAL (KimuraShimegiHaraOkamotoSato2013)
 # data_significance(
 # 	"/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
 # 	"/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
+# 	'anova'
+# )
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/spatial_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/spatial_open.csv",
 # 	'anova'
 # )
 
@@ -1843,13 +1914,23 @@ else:
 # 	't-test',
 #	removefirst=True
 # )
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/size_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/size_open.csv",
+# 	't-test'
+# )
 
 
 # # ORIENTATION ()
 # data_significance(
-# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_closed.csv",
-# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1984_open.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_open.csv",
 # 	't-test',
 # 	removefirst=True
+# )
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/orientation_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/orientation_open.csv",
+# 	't-test'
 # )
 
