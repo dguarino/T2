@@ -472,11 +472,12 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 def variability( sheet, folder, stimulus, stimulus_parameter ):
-
 	print "folder: ",folder
-	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
 
-	dsv = param_filter_query(data_store,st_name=stimulus,sheet_name=sheet)
+	# dsv = param_filter_query(data_store,st_name=stimulus,sheet_name=sheet)
+	# dsv.print_content(full_recordings=False)
+
 	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 
 	if sheet=='V1_Exc_L4' and stimulus_parameter=='orientation':
@@ -499,90 +500,162 @@ def variability( sheet, folder, stimulus, stimulus_parameter ):
 
 	# Raster + Histogram
 	# RasterPlot(
-	# 	dsv,
+	# 	param_filter_query(data_store,st_name=stimulus,sheet_name=sheet),
 	# 	ParameterSet({'sheet_name' : sheet, 'neurons' : spike_ids, 'trial_averaged_histogram': True, 'spontaneous' : False}),
 	# 	fig_param={'dpi' : 100,'figsize': (200,100)},
 	# 	plot_file_name=folder+"/HistRaster_"+sheet+"_"+stimulus+".png"
 	# ).plot({'SpikeRasterPlot.group_trials':True})
 
-	stimuli, means, variances = get_per_neuron_sliding_window_spike_count( data_store, sheet, stimulus, stimulus_parameter, 100.0, 2000.0, window=50.0, step=10.0, neurons=spike_ids )
+	stimuli, means, variances = get_per_neuron_sliding_window_spike_count( data_store, sheet, stimulus, stimulus_parameter, 100.0, 2000.0, window=20.0, step=10.0, neurons=spike_ids )
 	print "means:", means.shape
 	print "variances:", variances.shape
 
-	# OVERALL CELL COUNT
-	# as in AndolinaJonesWangSillito2007 
-	color = 'black'
-	fanos = numpy.mean(variances, axis=1) / numpy.mean(means, axis=1)
-	print "fanos shape: ",fanos.shape
-	for i,ff in enumerate(fanos):
-		print "max ff: ", numpy.amax(ff) 
-		print "min ff: ", numpy.amin(ff) 
-		counts, bin_edges = numpy.histogram( ff, bins=10 )
-		print counts
-		bin_centres = (bin_edges[:-1] + bin_edges[1:])/2.
-		# Plot
-		fig = plt.figure(1)
-		plt.errorbar(bin_centres, counts, fmt='o', color=color)
-		# Gaussian fit
-		mean = numpy.mean(ff)
-		variance = numpy.var(ff)
-		sigma = numpy.sqrt(variance)
-		x = numpy.linspace(min(ff), max(ff), 300)
-		dx = bin_edges[1] - bin_edges[0]
-		scale = len(ff)*dx
-		plt.xlim([0,3])
-		plt.ylim([0,160])
-		plt.plot(x, mlab.normpdf(x, mean, sigma)*scale, color=color, linewidth=2 )
-		plt.xlabel("Fano Factor")
-		plt.ylabel("Number of Cells")
-		plt.savefig( folder+"/TrialConditionsAveraged_FanoHist_"+stimulus_parameter+"_"+sheet+"_"+str(i)+".png", dpi=200 )
-		plt.close()
+	# # OVERALL CELL COUNT
+	# # as in AndolinaJonesWangSillito2007 
+	# color = 'black'
+	# fanos = numpy.mean(variances, axis=1) / numpy.mean(means, axis=1)
+	# print "fanos shape: ",fanos.shape
+	# for i,ff in enumerate(fanos):
+	# 	print "max ff: ", numpy.amax(ff) 
+	# 	print "min ff: ", numpy.amin(ff) 
+	# 	counts, bin_edges = numpy.histogram( ff, bins=10 )
+	# 	print counts
+	# 	bin_centres = (bin_edges[:-1] + bin_edges[1:])/2.
+	# 	# Plot
+	# 	fig = plt.figure(1)
+	# 	plt.errorbar(bin_centres, counts, fmt='o', color=color)
+	# 	# Gaussian fit
+	# 	mean = numpy.mean(ff)
+	# 	variance = numpy.var(ff)
+	# 	sigma = numpy.sqrt(variance)
+	# 	x = numpy.linspace(min(ff), max(ff), 300)
+	# 	dx = bin_edges[1] - bin_edges[0]
+	# 	scale = len(ff)*dx
+	# 	plt.xlim([0,3])
+	# 	plt.ylim([0,160])
+	# 	plt.plot(x, mlab.normpdf(x, mean, sigma)*scale, color=color, linewidth=2 )
+	# 	plt.xlabel("Fano Factor")
+	# 	plt.ylabel("Number of Cells")
+	# 	plt.savefig( folder+"/TrialConditionsAveraged_FanoHist_"+stimulus_parameter+"_"+sheet+"_"+str(i)+".png", dpi=200 )
+	# 	plt.close()
 
 	# TIME COURSE
-	# PLOTTING
-	fig,ax = plt.subplots(nrows=len(stimuli), ncols=means.shape[1], figsize=(70, 20), sharey=False, sharex=False)
-	fig.tight_layout()
+	# fig,ax = plt.subplots(nrows=len(stimuli), ncols=means.shape[1], figsize=(70, 20), sharey=False, sharex=False)
+	# fig.tight_layout()
 
 	for i,s in enumerate(stimuli):
 		print "stimulus:",s
+
+		csvfile = open(folder+"/TrialAveragedMeanVariance_"+sheet+"_"+stimulus_parameter+"_"+str(s)+".csv", 'w')
+
 		# each column is a different time bin
 		for t in range(means.shape[1]):
-			# print "\nTime bin:", t
-			# each row is a different stimulus
-			# print means[i][t].shape 
-			# print variances[i][t].shape
-			ax[i,t].scatter( means[i][t], variances[i][t], marker="o", facecolor="k", edgecolor="k" )
+			# # print "\nTime bin:", t
+			# # each row is a different stimulus
+			# # print means[i][t].shape 
+			# # print variances[i][t].shape
+			# ax[i,t].scatter( means[i][t], variances[i][t], marker="o", facecolor="k", edgecolor="w" )
 
-			x0,x1 = ax[i,t].get_xlim()
-			y0,y1 = ax[i,t].get_ylim()
-			# to make it squared
-			if x1 >= y1:
-				y1 = x1
-			else:
-				x1 = y1
+			# x0,x1 = ax[i,t].get_xlim()
+			# y0,y1 = ax[i,t].get_ylim()
+			# # to make it squared
+			# if x1 >= y1:
+			# 	y1 = x1
+			# else:
+			# 	x1 = y1
 
-			ax[i,t].tick_params(axis='both', which='both', labelsize=8)
-			ax[i,t].set_xlim( (x0,x1) )
-			ax[i,t].set_ylim( (y0,y1) )
-			ax[i,t].set_aspect( abs(x1-x0)/abs(y1-y0) )
-			# add diagonal
-			ax[i,t].plot( [x0,x1], [y0,y1], linestyle='--', color="orange" )
+			# ax[i,t].tick_params(axis='both', which='both', labelsize=8)
+			# ax[i,t].set_xlim( (x0,x1) )
+			# ax[i,t].set_ylim( (y0,y1) )
+			# ax[i,t].set_aspect( abs(x1-x0)/abs(y1-y0) )
+			# # add diagonal
+			# ax[i,t].plot( [x0,x1], [y0,y1], linestyle='--', color="orange" )
 
-			# add regression line
+			# replace zeros with very small positive values (arbitrary solution to avoid polyfit crash)
+			if not numpy.any(means[i][t]):
+				means[i][t][ means[i][t]==0. ] = 0.000000001
+			if not numpy.any(variances[i][t]):
+				variances[i][t][ variances[i][t]==0. ] = 0.000000001
+
+			# add regression line, whose slope is the Fano Factor
 			k,b = numpy.polyfit( means[i][t], variances[i][t], 1)
-			x = numpy.arange(x0, x1)
-			ax[i,t].plot(x, k*x+b, 'k-')
+			# x = numpy.arange(x0, x1)
+			# ax[i,t].plot(x, k*x+b, 'k-')
+			# ax[i,t].set_title( "Fano:{:.2f}".format(k), fontsize=8 )
 
-			# text
-			ax[i,t].set_title( "Fano:{:.2f}".format(k), fontsize=8 )
-			ax[i,t].set_xlabel( "Count mean "+str(t), fontsize=8 )
-			ax[i,t].set_ylabel( "{:.2f} \nCount variance".format(s), fontsize=8 )
-	# plt.show()
-	plt.savefig( folder+"/TrialAveragedMeanVariance_"+stimulus_parameter+"_"+sheet+".png", dpi=200 )
-	fig.clf()
-	plt.close()
-	# garbage
-	gc.collect()
+			if csvfile:
+				csvfile.write( "{:.3f}\n".format(k) )
+
+			# # text
+			# ax[i,t].set_xlabel( "window "+str(t), fontsize=8 )
+			# ax[i,t].set_ylabel( "{:.2f} \nCount variance".format(s), fontsize=8 )
+
+		csvfile.close()
+
+	# plt.savefig( folder+"/TrialAveragedMeanVariance_"+stimulus_parameter+"_"+sheet+".png", dpi=200 )
+	# fig.clf()
+	# plt.close()
+	# # garbage
+	# gc.collect()
+
+
+
+def fano_comparison_timecourse( closed_files, open_files, sheet, folder, ylim, add_closed_files=[], add_open_files=[] ):
+	closed_data = []
+	for i,c in enumerate(closed_files):
+		closed_data.append( numpy.genfromtxt(c, delimiter='\n') )
+		if len(add_closed_files)>1:
+			closed_data[i] = closed_data[i] + numpy.genfromtxt(add_closed_files[i], delimiter='\n') 
+
+	# print closed_data
+	open_data = []
+	for i,o in enumerate(open_files):
+		open_data.append( numpy.genfromtxt(o, delimiter='\n') )
+		if len(add_open_files)>1:
+			open_data[i] = open_data[i] + numpy.genfromtxt(add_open_files[i], delimiter='\n') 
+	# print open_data
+
+	# PLOTTING
+	x = numpy.arange( len(closed_data[0]) )
+	matplotlib.rcParams.update({'font.size':22})
+
+	for i,(c,o) in enumerate(zip(closed_data,open_data)): 
+		print "stimulus", i
+
+		# replace wrong polyfit with interpolated values
+		err = numpy.argwhere(c>20) # indices of too big values
+		c[err] = numpy.nan
+		nans, idsf = numpy.isnan(c), lambda z: z.nonzero()[0] # logical indices of too big values, function with signature indices to converto logical indices to equivalent indices
+		c[nans] = numpy.interp( idsf(nans), idsf(~nans), c[~nans] )
+
+		err = numpy.argwhere(o>20) # indices of too big values
+		o[err] = numpy.nan
+		nans, idsf = numpy.isnan(o), lambda z: z.nonzero()[0] # logical indices of too big values, function with signature indices to converto logical indices to equivalent indices
+		o[nans] = numpy.interp( idsf(nans), idsf(~nans), o[~nans] )
+
+		std_c = numpy.std(c, ddof=1) 
+		err_max_c = c + std_c
+		err_min_c = c - std_c
+		std_o = numpy.std(o, ddof=1) 
+		err_max_o = o + std_o
+		err_min_o = o - std_o
+
+		fig,ax = plt.subplots()
+		ax.plot((0, len(closed_data[0])), (0,0), color="black")
+		ax.plot( x, c, linewidth=2, color='blue' )
+		ax.fill_between(x, err_max_c, err_min_c, color="blue", alpha=0.3)
+		ax.plot( x, o, linewidth=2, color="cyan" )
+		ax.fill_between(x, err_max_o, err_min_o, color="cyan", alpha=0.3)
+
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+		ax.spines['bottom'].set_visible(False)
+		ax.set_xlabel("Time bin (10 ms)")
+		ax.set_ylabel("Fano Factor")
+		plt.tight_layout()
+		plt.ylim(ylim)
+		plt.savefig( folder+"/fano_comparison"+str(sheet)+"_"+str(i)+".png", dpi=300 )
+		plt.close()
 
 
 
@@ -971,7 +1044,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 	# print "stimuli: ", stimuli
 	# print "final means and stds: ", mean_rates, std_rates
-	print sorted( zip(stimuli, mean_rates, std_rates) )
+	# print sorted( zip(stimuli, mean_rates, std_rates) )
 	final_sorted = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates, std_rates) ) ) ]
 
 	if percentile:
@@ -979,6 +1052,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 		final_sorted[1] = final_sorted[1] / firing_max * 100
 
 	# Plotting tuning curve
+	matplotlib.rcParams.update({'font.size':22})
 	fig,ax = plt.subplots()
 
 	# if data:
@@ -1018,14 +1092,13 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 		ax.set_ylim([0,100+numpy.amax(final_sorted[2])])
 
 	# text
-	ax.set_title( sheet )
 	ax.set_xlabel( xlabel )
 	if percentile:
 		ylabel = "Percentile " + ylabel
 		sheet = sheet + "_percentile"
 	ax.set_ylabel( ylabel )
 	# ax.legend( loc="lower right", shadow=False )
-	# plt.show()
+	plt.tight_layout()
 	plt.savefig( folder+"/TrialAveragedTuningCurve_"+stimulus+"_"+parameter+"_"+sheet+".png", dpi=200 )
 	fig.clf()
 	plt.close()
@@ -1356,21 +1429,25 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		final_sorted_i[1] = final_sorted_i[1] / firing_max * 100
 
 	# Plotting tuning curve
+	matplotlib.rcParams.update({'font.size':22})
 	fig,ax = plt.subplots()
-	ax.plot( final_sorted_e[0], final_sorted_e[1], color='red', linewidth=2 )
+
+	err_max = final_sorted_i[1] + final_sorted_i[2]
+	max_i = numpy.amax(err_max)
+	err_min = final_sorted_i[1] - final_sorted_i[2]
+	ax.fill_between(final_sorted_i[0], err_max, err_min, color='blue', alpha=0.3)
 	ax.plot( final_sorted_i[0], final_sorted_i[1], color='blue', linewidth=2 )
 
 	err_max = final_sorted_e[1] + final_sorted_e[2]
+	max_e = numpy.amax(err_max)
 	err_min = final_sorted_e[1] - final_sorted_e[2]
 	ax.fill_between(final_sorted_e[0], err_max, err_min, color='red', alpha=0.3)
-	err_max = final_sorted_i[1] + final_sorted_i[2]
-	err_min = final_sorted_i[1] - final_sorted_i[2]
-	ax.fill_between(final_sorted_i[0], err_max, err_min, color='blue', alpha=0.3)
+	ax.plot( final_sorted_e[0], final_sorted_e[1], color='red', linewidth=2 )
 
 	if not percentile:
 		ax.set_ylim(ylim)
 	else:
-		ax.set_ylim([0,numpy.amax(final_sorted_i[1])+numpy.amax(final_sorted_i[2])])
+		ax.set_ylim([0, max_i if max_i > max_e else max_e])
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -1384,9 +1461,9 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		ax.set_yscale("log", nonposy='clip')
 
 	# text
-	ax.set_title( "Area response plot V1excL4" )
 	ax.set_xlabel( parameter )
 	ax.set_ylabel( "Conductance change (%)" )
+	plt.tight_layout()
 	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_pop.png", dpi=200 )
 	fig.clf()
 	plt.close()
@@ -1469,13 +1546,15 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____old",
+	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	"Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
@@ -1503,7 +1582,7 @@ inac_list = [
 	# "CombinationParamSearch_more_focused_nonoverlapping",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
-	"Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 
 	]
 
@@ -1511,11 +1590,11 @@ inac_list = [
 
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-sheets = ['X_ON', 'X_OFF']
+# sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4'] 
 
 
 # just for comparison parameter search
@@ -1676,10 +1755,11 @@ else:
 			# 	end=1000., 
 			# 	xlabel="Index of end-inhibition",
 			# 	ylabel="Number of cells",
-			# 	# closed=False,
+			# 	closed=False,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
-			# 	closed=True,
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6E.csv",
+			# 	# closed=True,
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -1690,8 +1770,8 @@ else:
 			# 	end=2000., 
 			# 	xlabel="radius", 
 			# 	ylabel="firing rate (sp/s)", 
-			# 	# color="black", 
-			# 	color="red", 
+			# 	color="black", 
+			# 	# color="red", 
 			# 	useXlog=False, 
 			# 	useYlog=False, 
 			# 	percentile=True,
@@ -1718,22 +1798,22 @@ else:
 			# # #ORIENTATION
 			# # Ex: ThalamoCorticalModel_data_orientation_V1_full_____
 			# # Ex: ThalamoCorticalModel_data_orientation_open_____
-			# trial_averaged_tuning_curve_errorbar( 
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus='FullfieldDriftingSinusoidalGrating',
-			# 	parameter="orientation",
-			# 	start=100., 
-			# 	end=10000., 
-			# 	xlabel="Orientation", 
-			# 	ylabel="firing rate (sp/s)", 
-			# 	# color="black", 
-			# 	color="red", 
-			# 	useXlog=False, 
-			# 	useYlog=False, 
-			# 	percentile=False,
-			# 	# ylim=[0,50]
-			# )
+			trial_averaged_tuning_curve_errorbar( 
+				sheet=s, 
+				folder=f, 
+				stimulus='FullfieldDriftingSinusoidalGrating',
+				parameter="orientation",
+				start=100., 
+				end=10000., 
+				xlabel="Orientation", 
+				ylabel="firing rate (sp/s)", 
+				# color="black", 
+				color="red", 
+				useXlog=False, 
+				useYlog=False, 
+				percentile=False,
+				# ylim=[0,50]
+			)
 			# orientation_bias_barplot( 
 			# 	sheet=['X_ON', 'X_OFF'], 
 			# 	folder=f, 
@@ -1760,8 +1840,8 @@ else:
 			# variability( 
 			# 	sheet=s, 
 			# 	folder=f,
-			# 	stimulus='FullfieldDriftingSinusoidalGrating',
-			# 	stimulus_parameter='orientation'
+			# 	stimulus='FullfieldDriftingSinusoidalGrating', # 'InternalStimulus',
+			# 	stimulus_parameter='orientation' # 'duration',
 			# )
 
 			# #CROSS-CORRELATION
@@ -1842,22 +1922,22 @@ else:
 
 				# # COMPARISON SIZE TUNING
 				#            0     1     2     3     4     5     6     7     8     9
-				sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
-				box = [[-.5, .0],[.5,.5]] # close to the overlapping
-				size_tuning_comparison( 
-					sheet=s, 
-					folder_full=f, 
-					folder_inactive=l,
-					stimulus="DriftingSinusoidalGratingDisk",
-					parameter='radius',
-					reference_position=[[0.0], [0.0], [0.0]],
-					# reverse=True, # True if non-overlapping
-					reverse=False, # False if overlapping
-					sizes = sizes,
-					box = box,
-					# csvfile = csvfile,
-					plotAll = True # plot all barplots per folder?
-				)
+				# sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
+				# box = [[-.5, .0],[.5,.5]] # close to the overlapping
+				# size_tuning_comparison( 
+				# 	sheet=s, 
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="DriftingSinusoidalGratingDisk",
+				# 	parameter='radius',
+				# 	reference_position=[[0.0], [0.0], [0.0]],
+				# 	# reverse=True, # True if non-overlapping
+				# 	reverse=False, # False if overlapping
+				# 	sizes = sizes,
+				# 	box = box,
+				# 	# csvfile = csvfile,
+				# 	plotAll = True # plot all barplots per folder?
+				# )
 
 
 
@@ -1933,4 +2013,188 @@ else:
 # 	"/home/do/Dropbox/PhD/LGN_data/deliverable/orientation_open.csv",
 # 	't-test'
 # )
+
+
+
+
+closed_files = [ 
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.125.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.163713961769.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.214418090225.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.280825880206.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.367800939327.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.481713191357.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.630905399949.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.826304180217.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.08222024776.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.41739651414.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.85638078982.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_2.43132362923.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_3.18433298947.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_4.17055815439.csv",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.82743338823.csv",
+    ]
+
+closed_ON_files = [ 
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.125.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.163713961769.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.214418090225.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.280825880206.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.367800939327.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.481713191357.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.630905399949.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_0.826304180217.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_1.08222024776.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_1.41739651414.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_1.85638078982.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_2.43132362923.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_3.18433298947.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_4.17055815439.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_ON_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_ON_orientation_2.82743338823.csv",
+	]
+closed_OFF_files = [ 
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.125.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.163713961769.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.214418090225.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.280825880206.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.367800939327.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.481713191357.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.630905399949.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_0.826304180217.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_1.08222024776.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_1.41739651414.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_1.85638078982.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_2.43132362923.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_3.18433298947.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_4.17055815439.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____/TrialAveragedMeanVariance_X_OFF_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_X_OFF_orientation_2.82743338823.csv",
+	]
+
+
+
+open_files = [ 
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.125.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.163713961769.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.214418090225.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.280825880206.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.367800939327.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.481713191357.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.630905399949.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_0.826304180217.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.08222024776.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.41739651414.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_1.85638078982.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_2.43132362923.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_3.18433298947.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_4.17055815439.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.82743338823.csv",
+    ]
+
+open_ON_files = [ 
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.125.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.163713961769.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.214418090225.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.280825880206.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.367800939327.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.481713191357.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.630905399949.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_0.826304180217.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_1.08222024776.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_1.41739651414.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_1.85638078982.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_2.43132362923.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_3.18433298947.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_4.17055815439.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_ON_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_ON_orientation_2.82743338823.csv",
+	]
+
+open_OFF_files = [ 
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.125.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.163713961769.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.214418090225.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.280825880206.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.367800939327.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.481713191357.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.630905399949.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_0.826304180217.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_1.08222024776.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_1.41739651414.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_1.85638078982.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_2.43132362923.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_3.18433298947.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_4.17055815439.csv",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____/TrialAveragedMeanVariance_X_OFF_radius_5.46222878595.csv",
+
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_0.0.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_0.314159265359.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_0.628318530718.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_0.942477796077.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_1.25663706144.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_1.57079632679.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_1.88495559215.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_2.19911485751.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_2.51327412287.csv",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_X_OFF_orientation_2.82743338823.csv",
+	]
+
+# fano_comparison_timecourse( closed_files, open_files, sheets, "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", [-3., 15.] ) # cortex
+# fano_comparison_timecourse( closed_ON_files, open_ON_files, sheets, "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", [-2., 5.], closed_OFF_files, open_OFF_files ) # LGN
+
+# fano_comparison_timecourse( closed_files, open_files, sheets, "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____", [-0.5, 2.] )
+# fano_comparison_timecourse( closed_ON_files, open_ON_files, sheets, "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____", [-0.5, 2.], closed_OFF_files, open_OFF_files ) # LGN
 
