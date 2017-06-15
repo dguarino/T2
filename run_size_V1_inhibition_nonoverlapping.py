@@ -65,5 +65,4 @@ else:
         # step = .2
         # for i in numpy.arange(step, 2.+step, step):
         #     perform_analysis_and_visualization_radius( data_store, 'size_radius', [i-step,i], withPGN, withV1 )
-            
-    data_store.save()
+        data_store.save()
