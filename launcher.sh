@@ -33,10 +33,10 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # SIZE full closed loop model
-# python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 
 
@@ -127,12 +127,12 @@
 # mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
 
 
-echo "starting Size"
-echo
-mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
+# echo "starting Size"
+# echo
+# mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
 # mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_nonoverlapping'
 # mpirun -np 1 python run_size_closed_overlapping.py nest 8 param/defaults_mea 'data_size_closed_overlapping'
-mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_overlapping'
+# mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_overlapping'
 
 
 # echo "starting XCorr"
