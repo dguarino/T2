@@ -5,8 +5,13 @@ import matplotlib.pyplot as plt
 import glob
 import os
 
+# directory = "Deliverable/CombinationParamSearch_LGN_PGN"
+# xvalues = [25, 50, 75, 100, 125]
+# yvalues = [100, 130, 150, 170, 200]
+# ticks = [0,1,2,3,4]
 
-directory = "CombinationParamSearch_more_focused_nonoverlapping"
+
+directory = "CombinationParamSearch_altered_nonoverlapping"
 xvalues = [70, 80, 90, 100, 110]
 yvalues = [130, 140, 150, 160, 170]
 ticks = [0,1,2,3,4]
@@ -45,14 +50,22 @@ for name in filenames:
 			yvalue = eval(line)[1]
 			s = eval(line)[2]
 			print xvalue, yvalue, s
-			fit = numpy.polyfit([0,1,2], s, 1)
-			if numpy.amin(s) < -10.: # tolerance on the smallest value
-				fit = [0., 0.]
-			if fit[0] < 0.:
-				fit = [0., 0.]
-			print s, fit
-			colors[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[0] # if fit[0]>0. else 0. # slope
-			alpha[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[1] # in
+
+			# three bars ranked
+			if hasattr(s, "__len__"):
+				fit = numpy.polyfit([0,1,2], s, 1)
+				if numpy.amin(s) < -1.: # tolerance on the smallest value
+					fit = [0., 0.]
+				if fit[0] < 0.:
+					fit = [0., 0.]
+				print s, fit
+				# colors[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[0] # slope
+				colors[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[0] # slope
+				alpha[xvalues.index(xvalue)][yvalues.index(yvalue)] = fit[1] # in
+			else:
+				# mean only
+				colors[xvalues.index(xvalue)][yvalues.index(yvalue)] = s # mean end-inhibition
+				alpha[xvalues.index(xvalue)][yvalues.index(yvalue)] = 1.
 
 	print colors
 	# alpha = numpy.absolute( normalize(alpha) )
@@ -63,15 +76,22 @@ for name in filenames:
 	ca = plt.imshow(colors, interpolation='nearest', cmap='coolwarm')
 	# ca = plt.contourf(colors, cmap='coolwarm')
 	cbara = plt.colorbar(ca, ticks=[numpy.amin(colors), 0, numpy.amax(colors)])
-	cbara.set_label('Regression Slope')
+	if hasattr(s, "__len__"):
+		cbara.set_label('Regression Slope')
+	else:
+		cbara.set_label('Index of end-inhibition')
 	# cb = plt.contour(alpha, cmap='brg')
 	# cbarb = plt.colorbar(cb, ticks=[numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# print cbarb.set_ticklabels([numpy.amin(alpha), 0, numpy.amax(alpha)])
 	# cbarb.set_label('Regression Intercept')
 	plt.xticks(ticks, xvalues)
 	plt.yticks(ticks, yvalues)
-	plt.xlabel('V1-PGN arborization radius')
-	plt.ylabel('PGN-LGN arborization radius')
+	if hasattr(s, "__len__"):
+		plt.xlabel('V1-PGN arborization radius')
+		plt.ylabel('PGN-LGN arborization radius')
+	else:
+		plt.xlabel('LGN-PGN arborization radius')
+		plt.ylabel('PGN-LGN arborization radius')
 	plt.savefig( mapname, dpi=300 )
 	plt.close()
 	# plt.show()

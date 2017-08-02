@@ -33,21 +33,14 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # SIZE full closed loop model
-python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
 python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
-
-
-
-
-################################################
-#PLOTTING
-# echo "starting PLOTTING"
-# echo 
-
-# python parameter_search_analysis.py CombinationParamSearch_more_focused_closed_nonoverlapping
+# ANALYSIS
+# python parameter_search_analysis.py CombinationParamSearch_intact_nonoverlapping
+# python parameter_search_analysis.py CombinationParamSearch_altered_nonoverlapping
 
 
 ################################################
