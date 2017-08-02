@@ -912,14 +912,13 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	for i,r in enumerate(numpy.transpose(rates)):
 		Rmax = numpy.amax(r) + (numpy.amax(r)/100*10) # 
 		# popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, maxfev=10000000 ) # workaround for scipy < 0.17
-		# popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, method='trf', bounds=((1.,.0,.0,-numpy.inf),(2.,Rmax,100.,numpy.inf)) ) 
 		popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, method='trf', bounds=((-numpy.inf,.0,.0,-numpy.inf),(numpy.inf,Rmax,100.,numpy.inf)) ) 
-		print popt
 		c50.append( popt[2] ) # c50 fit
-		plt.plot(stimuli, r, 'b-', label='data')
-		plt.plot(stimuli, NakaRushton(r, *popt), 'r-', label='fit')
-		plt.savefig( folder+"/NakaRushton_fit_"+str(sheet)+"_"+str(i)+".png", dpi=100 )
-		plt.close()
+		# print popt
+		# plt.plot(stimuli, r, 'b-', label='data')
+		# plt.plot(stimuli, NakaRushton(r, *popt), 'r-', label='fit')
+		# plt.savefig( folder+"/NakaRushton_fit_"+str(sheet)+"_"+str(i)+".png", dpi=100 )
+		# plt.close()
 	c50s = numpy.array(c50) 
 	print c50s
 
