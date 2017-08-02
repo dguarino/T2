@@ -894,6 +894,8 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	gc.collect()
 
 
+
+
 from scipy.optimize import curve_fit
 def NakaRushton(c, n, Rmax, c50, m):
 	return Rmax * (c**n / (c**n + c50**n)) + m
@@ -910,9 +912,11 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 	# Naka-Rushton fit to find the c50 of each cell
 	c50 = []
 	for i,r in enumerate(numpy.transpose(rates)):
-		Rmax = numpy.amax(r) + (numpy.amax(r)/100*10) # 
+		Rmax = numpy.amax(r)# + (numpy.amax(r)/100*10) # 
+		Rmax_up = Rmax + (numpy.amax(r)/100*20) # 
+		# print Rmax
 		# popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, maxfev=10000000 ) # workaround for scipy < 0.17
-		popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, method='trf', bounds=((-numpy.inf,.0,.0,-numpy.inf),(numpy.inf,Rmax,100.,numpy.inf)) ) 
+		popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, method='trf', bounds=((-numpy.inf,Rmax,.0,-numpy.inf),(numpy.inf,Rmax_up,100.,numpy.inf)) ) 
 		c50.append( popt[2] ) # c50 fit
 		# print popt
 		# plt.plot(stimuli, r, 'b-', label='data')
@@ -1396,6 +1400,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
 		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.5)[0]]
+		# opposite: l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi,numpy.pi)  for i in analog_ids]) < 0.5)[0]]
 		analog_ids = l4_exc_or_many
 		print "# of V1 cells having orientation close to 0:", len(analog_ids)
 
@@ -1404,8 +1409,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 			print position_V1
 			V1_sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet,neuron_ids=analog_ids)
 			print V1_sheet_ids
-			# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, radius=[0,3])
-			radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.5,-.5],[.5,.5]])
+			radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.6,-.6],[.6,.6]])
 			radius_V1_ids = data_store.get_sheet_ids(sheet_name=sheet,indexes=radius_V1_ids)
 			print "# of V1 cells within radius range having orientation close to 0:", len(radius_V1_ids)
 			analog_ids = radius_V1_ids
@@ -1462,6 +1466,8 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	mean_pop_i = numpy.mean(pop_i, axis=(2,0) ) 
 	std_pop_e = numpy.std(pop_e, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
 	std_pop_i = numpy.std(pop_i, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	print "mean std exc:", mean_pop_e, std_pop_e
+	print "mean std inh:", mean_pop_i, std_pop_i
 
 	final_sorted_e = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_e, std_pop_e) ) ) ]
 	final_sorted_i = [ numpy.array(list(e)) for e in zip( *sorted( zip(ticks, mean_pop_i, std_pop_i) ) ) ]
@@ -1490,8 +1496,10 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 	if not percentile:
 		ax.set_ylim(ylim)
+		ax.set_ylabel( "Conductance (nS)" )
 	else:
 		ax.set_ylim([0, max_i if max_i > max_e else max_e])
+		ax.set_ylabel( "Conductance change (%)" )
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -1506,7 +1514,6 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 	# text
 	ax.set_xlabel( parameter )
-	ax.set_ylabel( "Conductance change (%)" )
 	plt.tight_layout()
 	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_pop.png", dpi=200, transparent=True )
 	fig.clf()
@@ -1643,7 +1650,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_contrast_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
@@ -1657,7 +1664,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 
@@ -1709,11 +1716,11 @@ inac_list = [
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-sheets = ['X_ON', 'X_OFF']
+# sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4'] 
 
 
 # ONLY for comparison parameter search
@@ -1875,12 +1882,8 @@ else:
 			# 	useXlog=True 
 			# )
 
-			# CONTRAST
+			# # CONTRAST
 			# trial_averaged_tuning_curve_errorbar( 
-			# 	# sheet=['X_ON', 'X_OFF'], 
-			# 	# sheet=['X_ON'], 
-			# 	# sheet=['X_OFF'], 
-			# 	# sheet=['PGN'], 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus='FullfieldDriftingSinusoidalGrating',
@@ -1892,25 +1895,24 @@ else:
 			# 	color=color,
 			# 	useXlog=False, 
 			# 	useYlog=False, 
-			# 	percentile=True, #False 
-			# 	ylim=[0,120], #[0,35]
+			# 	percentile=False, #False, # True,
+			# 	ylim=[0,35], #[0,35], # [0,120],
 			# )
-			cumulative_distribution_C50_curve( 
-				# sheet=['X_ON', 'X_OFF'], 
-				sheet=s, 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='contrast',
-				start=100., 
-				end=10000., 
-				xlabel="C$_{50}$",
-				ylabel="Percentile",
-				color=color,
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
-				# data_color="black",
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
-				data_color="grey",
-			)
+			# cumulative_distribution_C50_curve( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='contrast',
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Half maximal contrast response (C$_{50}$)",
+			# 	ylabel="Number of cells (%)",
+			# 	color=color,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+			# 	data_color="black",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
+			# 	# data_color="grey",
+			# )
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -1931,10 +1933,6 @@ else:
 
 			# # SPATIAL
 			# trial_averaged_tuning_curve_errorbar( 
-			# 	# sheet=['X_ON', 'X_OFF'], 
-			# 	# sheet=['X_ON'], 
-			# 	# sheet=['X_OFF'], 
-			# 	# sheet=['PGN'], 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus='FullfieldDriftingSinusoidalGrating',
@@ -1953,8 +1951,6 @@ else:
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
 			# end_inhibition_barplot( 
-			# 	# sheet=['X_ON', 'X_OFF'], 
-			# 	# sheet=['X_ON'], 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus="DriftingSinusoidalGratingDisk",
@@ -1970,7 +1966,6 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
-			# 	# sheet=['X_ON', 'X_OFF'], 
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus='DriftingSinusoidalGratingDisk',
@@ -1988,16 +1983,18 @@ else:
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	data_curve=False,
 			# )
-			# trial_averaged_conductance_tuning_curve( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	#       0      1     2     3     4     5     6     7     8     9
-			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-			# 	percentile=True,
-			# 	ylim=[0,120]
-			# )
+			trial_averaged_conductance_tuning_curve( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				#       0      1     2     3     4     5     6     7     8     9
+				ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+				percentile=False,
+				ylim=[0,30]
+				# percentile=True,
+				# ylim=[0,120]
+			)
 			# variability( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -2026,7 +2023,7 @@ else:
 			# 	ylim=[0,50]
 			# )
 			# orientation_bias_barplot( 
-			# 	sheet=['X_ON', 'X_OFF'], 
+			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus="FullfieldDriftingSinusoidalGrating",
 			# 	parameter='orientation',
