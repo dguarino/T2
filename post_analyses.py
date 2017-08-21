@@ -12,8 +12,10 @@ import operator
 
 import gc
 import numpy
+
 import scipy.stats
 import scipy
+
 import pylab
 import matplotlib
 import matplotlib.pyplot as plt
@@ -896,9 +898,9 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 
 
 
-from scipy.optimize import curve_fit
 def NakaRushton(c, n, Rmax, c50, m):
 	return Rmax * (c**n / (c**n + c50**n)) + m
+from scipy.optimize import curve_fit
 def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", data="", data_color="" ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
@@ -911,27 +913,35 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 
 	# Naka-Rushton fit to find the c50 of each cell
 	c50 = []
+	print sheet
 	for i,r in enumerate(numpy.transpose(rates)):
-		Rmax = numpy.amax(r)# + (numpy.amax(r)/100*10) # 
-		Rmax_up = Rmax + (numpy.amax(r)/100*20) # 
-		# print Rmax
-		# popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, maxfev=10000000 ) # workaround for scipy < 0.17
-		popt, pcov = curve_fit(NakaRushton, numpy.asarray(stimuli), r, method='trf', bounds=((-numpy.inf,Rmax,.0,-numpy.inf),(numpy.inf,Rmax_up,100.,numpy.inf)) ) 
+		# bounds and guesses
+		Rmax = numpy.amax(r) # 
+		Rmax_up = Rmax + ((numpy.amax(r)/100)*10) # 
+		m = numpy.amin(r) # 
+		m_down = m - ((m/100)*10) # 
+		# popt, pcov = curve_fit( NakaRushton, numpy.asarray(stimuli), r, maxfev=10000000 ) # workaround for scipy < 0.17
+		popt, pcov = curve_fit( NakaRushton, numpy.asarray(stimuli), 
+			r, 
+			method='trf', 
+			bounds=((3., Rmax, 20., m_down), (numpy.inf, Rmax_up, 50., m)), 
+			p0=(3., Rmax_up, 30., m), 
+		) 
 		c50.append( popt[2] ) # c50 fit
 		# print popt
 		# plt.plot(stimuli, r, 'b-', label='data')
-		# plt.plot(stimuli, NakaRushton(r, *popt), 'r-', label='fit')
+		# plt.plot(stimuli, NakaRushton(stimuli, *popt), 'r-', label='fit')
 		# plt.savefig( folder+"/NakaRushton_fit_"+str(sheet)+"_"+str(i)+".png", dpi=100 )
 		# plt.close()
 	c50s = numpy.array(c50) 
 	print c50s
 
 	# count how many c50s are for each stimulus variation
-	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), density=True)
+	hist, bin_edges = numpy.histogram(c50s, bins=len(stimuli), range=(.0,60.) )
 	print "histogram", hist, bin_edges
 	# cumulative sum representation
 	cumulative = numpy.cumsum(hist)
-	cumulative = cumulative / numpy.amax(cumulative)
+	cumulative = cumulative.astype(float) / numpy.amax(cumulative)
 	print "cumulative", cumulative
 
 	# read external data to plot as well
@@ -1396,7 +1406,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
 	print "analog_ids (pre): ",analog_ids
 
-	if sheet=='V1_Exc_L4':
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
 		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.5)[0]]
@@ -1410,6 +1420,8 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 			V1_sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet,neuron_ids=analog_ids)
 			print V1_sheet_ids
 			radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.6,-.6],[.6,.6]])
+			# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[-.1,-.1],[.1,.1]]) # Cx2 feedforward center
+			# radius_V1_ids = select_ids_by_position(position_V1, V1_sheet_ids, box=[[.0,.7],[.2,.9]]) # Cx2 feedforward surround
 			radius_V1_ids = data_store.get_sheet_ids(sheet_name=sheet,indexes=radius_V1_ids)
 			print "# of V1 cells within radius range having orientation close to 0:", len(radius_V1_ids)
 			analog_ids = radius_V1_ids
@@ -1664,7 +1676,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	"ThalamoCorticalModel_data_size_cx2_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 
@@ -1676,7 +1689,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
 	# "ThalamoCorticalModel_data_xcorr_closed_____2deg", # 2 trials
 
-	# "Deliverable/CombinationParamSearch_LGN_PGN",
+	# "Deliverable/CombinationParamSearch_LGN_PGN_core",
+	# "Deliverable/CombinationParamSearch_LGN_PGN_2",
 	# "CombinationParamSearch_large_closed",
 	# "CombinationParamSearch_more_focused_closed_nonoverlapping",
 
@@ -1720,7 +1734,8 @@ inac_list = [
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 
 
 # ONLY for comparison parameter search
@@ -1908,8 +1923,8 @@ else:
 			# 	xlabel="Half maximal contrast response (C$_{50}$)",
 			# 	ylabel="Number of cells (%)",
 			# 	color=color,
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
-			# 	data_color="black",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_closed.csv",
+			# 	# data_color="black",
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/LiYeSongYangZhou2011c_open.csv",
 			# 	# data_color="grey",
 			# )
@@ -1960,7 +1975,7 @@ else:
 			# 	xlabel="Index of end-inhibition",
 			# 	ylabel="Number of cells",
 			# 	closed=False,
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
 			# 	# closed=True,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
@@ -2194,8 +2209,8 @@ else:
 # 	't-test'
 # )
 # data_significance( # synthetic cells
-# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_closed_cells.csv",
-# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/contrast_open_cells.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/c50_closed_cells.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/c50_open_cells.csv",
 # 	't-test'
 # )
 

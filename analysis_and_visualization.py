@@ -47,7 +47,7 @@ def perform_analysis_test( data_store ):
 # analog_ids:  [43039]
 # spike_ids:  [42554, 43039, 44519, 44984, 47454, 47630, 48105, 50330, 50603, 50665, 51862, 51957, 52009, 52015]
 
-def select_ids_by_radius(position, radius, sheet_ids, positions, show=False):
+def select_ids_by_radius(position, radius, sheet_ids, positions, show=True):
     radius_ids = []
     min_radius = radius[0] # over: 0. # non: 1.
     max_radius = radius[1] # over: .7 # non: 3.

@@ -33,7 +33,7 @@
                     },
                 'artificial_stimulators' : ref('l4_cortex_exc.params.artificial_stimulators'),
                 'recording_interval'  :  ref('l4_cortex_exc.params.recording_interval'),                                            
-                'recorders' : url("param/l4_inh_rec"),    
+                'recorders' : url("param/l4_inh_rec_mea"),    
     },
         
     'L4InhL4ExcConnection': {
@@ -141,7 +141,7 @@
 	    
             'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh.ExcInhAfferentRatio'),
             'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
-            'short_term_plasticity':  ref('l4_cortex_exc_mea.AfferentConnection.short_term_plasticity'),
+            'short_term_plasticity':  ref('l4_cortex_exc.AfferentConnection.short_term_plasticity'),
         'fan_in' : True,
     }
 }

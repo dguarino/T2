@@ -101,8 +101,6 @@ def create_experiments_temporal(model):
   ]
 
 
-
-
 def create_experiments_orientation(model):
   return [
       #Lets kick the network up into activation
@@ -117,11 +115,9 @@ def create_experiments_orientation(model):
           temporal_frequency=2.0,
           grating_duration=1*147*7,
           contrasts=[80],
-          num_trials=2
+          num_trials=6
       )
   ]
-
-
 
 
 def create_experiments_size(model):
