@@ -138,6 +138,7 @@ def create_experiments_size(model):
           log_spacing=True,
           with_flat=False #use also flat luminance discs
       )
+      # NoStimulation( model, duration=147*7 ),
   ]
 
 def create_experiments_size_overlapping(model):
@@ -243,13 +244,12 @@ def create_experiments_brokenbar(model):
           relative_luminance = 0., # 0. is dark, 1.0 is double the background luminance
           orientation = 0., # 0, pi
           width = 0.5, # cpd
-          length = 10., # cpd, length of the bar
+          length = 5., # cpd, length of the bar
           flash_duration = 300., # ms, duration of the bar presentation
-          gap_radius = .5, # degrees, radius of the gap
+          distance = .5, # degrees, radius of the gap
           x = .0, # degrees, x location of the center of the bar
           y = .0, # degrees, y location of the center of the bar
           duration = 100*7,
-          frame_duration = 7, # ms
           num_trials = 1
       ),
   ]

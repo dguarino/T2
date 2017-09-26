@@ -134,6 +134,12 @@ mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_clos
 # mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
 
 
+# echo "starting Line completion"
+# echo
+# mpirun -np 1 python run_bar_open.py nest 8 param/defaults_mea 'data_bar_open'
+# mpirun -np 1 python run_bar_closed.py nest 8 param/defaults_mea 'data_bar_closed'
+
+
 
 ################################################
 # EXPERIMENTS Closed loop 3 (LGN+PGN+V1)
