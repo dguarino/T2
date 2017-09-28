@@ -538,6 +538,7 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 	# ISI
 	if compute_isi:
 		isis = []
+		print "... Computing ISI"
 		for i,seg in enumerate(segs):
 			print i#, seg[0].annotations
 			isis.append( [s.magnitude for s in seg[0].isi(spike_ids)] )
@@ -551,17 +552,21 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 			isi = numpy.array([])
 			for si in isis[i]:
 				isi = numpy.append(isi, si)
-			hisi = numpy.nan_to_num( numpy.histogram( isi, range=(0.0, 1000.), bins=100, density=True )[0] )
+			# print isi
+			hisi = numpy.nan_to_num( numpy.histogram( isi, range=(0.0, 140.), bins=140 )[0] )
 			# print "hisi: ", hisi
+
 			# PLOTTING
-			plt.bar( range(100), hisi, width=0.8, color=color )
+			plt.bar( range(140), hisi, width=0.8, color=color )
 			plt.tight_layout()
-			# plt.ylim([.0,.1])
-			# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_"+addon+".png", dpi=200, transparent=True )
-			# plt.close()
-			plt.ylim([.0,.02])
-			plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_0.2_"+addon+".png", dpi=200, transparent=True )
+			# plt.ylim([.0,.5])
+			plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_"+addon+".png", dpi=200, transparent=True )
+			# plt.xticks( range(100), range(100)*.8 )
 			plt.close()
+			plt.ylim([.0,100.])
+			plt.xlim([.0,140.])
+			# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_0.2_"+addon+".png", dpi=200, transparent=True )
+			# plt.close()
 			# garbage
 			gc.collect()
 
@@ -575,14 +580,15 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 		window = 200.0
 		step = 50.0
 		slides = int(total/step)
+		json_data = {}
 		for i in range(0,slides):
 			t_start = step*i
 			t_stop = t_start+window
 			print t_start, "< x <", t_stop
 
 			vss = []
-			for i,seg in enumerate(segs):
-				print i #, seg[0].annotations
+			for j,seg in enumerate(segs):
+				print j #, seg[0].annotations
 
 				vs = []
 				sts = seg[0].get_spiketrain( spike_ids )
@@ -609,14 +615,15 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 
 			##MAP
 			cmap = plt.cm.jet
-			cmaplist = [cmap(i) for i in range(cmap.N)]
+			cmaplist = [cmap(j) for j in range(cmap.N)]
 			cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
 			bounds = numpy.linspace(0, len(periods)-1, len(periods))
 			norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
-			for i,s in enumerate(stids):
-				print "{:.3f}".format(s.radius), numpy.histogram(colors[i], range(len(periods)), density=True)
+			dat = {}
+			for j,s in enumerate(stids):
+				dat["{:.3f}".format(s.radius)] = numpy.histogram(colors[j], range(len(periods)), density=True)[0].tolist()
 				# print s.radius
-				for x,y,c in zip(positions_x, positions_y, colors[i]):
+				for x,y,c in zip(positions_x, positions_y, colors[j]):
 					plt.scatter( x, y, c=c, marker="o", edgecolors='none', cmap=cmap, norm=norm )
 				cbar = plt.colorbar()
 				plt.tight_layout()
@@ -624,11 +631,16 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 				plt.close()
 				# garbage
 				gc.collect()
+			json_data[i] = dat
+
+		with open(folder+"/PhaseSynchronyData_"+str(sheet)+"_"+addon+".txt", "w") as outfile:
+			json.dump(json_data, outfile, indent=4)
+			outfile.close()
 
 
 
-
-def phase_synchrony_summary(sheet, folder, json_file, ylim=[], addon=""):
+				
+def phase_synchrony_summary(sheet, folder, json_file, ylim=[], data_labels=False, addon=""):
 	json_data = json.load( open(folder+"/"+json_file) )
 	# print json_closed.keys()
 	json_data = {int(k):v for k,v in json_data.items()} # atoi for json keys
@@ -647,6 +659,8 @@ def phase_synchrony_summary(sheet, folder, json_file, ylim=[], addon=""):
 	bounds = numpy.linspace(0, data.shape[2]-1, data.shape[2])
 	norm = matplotlib.colors.Normalize(vmin=0, vmax=bounds[-1])
 	scalarMap = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+	if not data_labels:
+		data_labels = range(len(data))
 	x = range(20)
 	for i,d in enumerate(data):
 		fig, axs = plt.subplots()
@@ -654,7 +668,7 @@ def phase_synchrony_summary(sheet, folder, json_file, ylim=[], addon=""):
 		# print i,d
 		for c,l in enumerate(d):
 			colorVal = scalarMap.to_rgba(c)
-			axs.plot( x, l, linewidth=2, color=colorVal, label=c )
+			axs.plot( x, l, linewidth=2, color=colorVal, label=data_labels[c] )
 			std_l = numpy.std(l, ddof=1) 
 			err_max_l = l + std_l
 			err_min_l = l - std_l
@@ -669,7 +683,8 @@ def phase_synchrony_summary(sheet, folder, json_file, ylim=[], addon=""):
 		axs.legend(handles, labels, loc='upper right')
 		axs.set_xlabel("Time (ms)")
 		axs.set_ylabel("Phase Synchrony")
-		lgd = axs.legend(bbox_to_anchor=(1.3, 1.1))
+		axs.set_xticklabels(('0','300','600','900','1200'))
+		lgd = axs.legend(bbox_to_anchor=(1.4, 1.1))
 		plt.tight_layout()
 		plt.savefig( folder+"/phase_comparison"+str(sheet)+"_"+addon+"_"+str(stimuli[i])+".png", dpi=300, transparent=True, bbox_extra_artists=(lgd,), bbox_inches='tight' )
 		plt.close()
@@ -2168,12 +2183,12 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	"Thalamocortical_size_closed",
+	# "Thalamocortical_size_closed",
 	# "ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	# "Thalamocortical_size_feedforward",
+	"Thalamocortical_size_feedforward",
 	# "ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
@@ -2677,28 +2692,6 @@ else:
 			# 	color=color,
 			# )
 
-			# phase_synchrony( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	#        # 1K  56    33.3    20    10    5   Hz
-			# 	# periods=[1., 20.,  33.,    50.,  100., 200.], 
-			# 	       # 1K  56    32      24    16    8   Hz
-			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-			# 	# addon=addon, 
-			# 	color=color,
-			# 	compute_isi=False,
-			# 	compute_vectorstrength=True,
-			# 	box = [[-.5,-.5],[.5,.5]], # CENTER
-			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND
-			# 	opposite=False, # SAME
-			# 	# opposite=True, # OPPOSITE
-			# 	# addon = "surround_same",
-			# 	addon = "center_same",
-			# 	# addon = "center_opposite",
-			# 	# addon = "surround_opposite",
-			# )
 			phase_synchrony( 
 				sheet=s, 
 				folder=f,
@@ -2708,8 +2701,10 @@ else:
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
 				# addon=addon, 
 				color=color,
-				compute_isi=False,
-				compute_vectorstrength=True,
+				# compute_isi=False,
+				# compute_vectorstrength=True,
+				compute_isi=True,
+				compute_vectorstrength=False,
 				box = [[-.5,-.5],[.5,.5]], # CENTER
 				opposite=False, # SAME
 				addon = "center_same",
@@ -2723,8 +2718,10 @@ else:
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
 				# addon=addon, 
 				color=color,
-				compute_isi=False,
-				compute_vectorstrength=True,
+				# compute_isi=False,
+				# compute_vectorstrength=True,
+				compute_isi=True,
+				compute_vectorstrength=False,
 				box = [[-.5,-.5],[.5,.5]], # CENTER
 				opposite=True, # OPPOSITE
 				addon = "center_opposite",
@@ -2738,8 +2735,10 @@ else:
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
 				# addon=addon, 
 				color=color,
-				compute_isi=False,
-				compute_vectorstrength=True,
+				# compute_isi=False,
+				# compute_vectorstrength=True,
+				compute_isi=True,
+				compute_vectorstrength=False,
 				box = [[-.5,.5],[.5,1.5]], # SURROUND
 				opposite=False, # SAME
 				addon = "surround_same",
@@ -2753,18 +2752,53 @@ else:
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
 				# addon=addon, 
 				color=color,
-				compute_isi=False,
-				compute_vectorstrength=True,
+				# compute_isi=False,
+				# compute_vectorstrength=True,
+				compute_isi=True,
+				compute_vectorstrength=False,
 				box = [[-.5,.5],[.5,1.5]], # SURROUND
 				opposite=True, # OPPOSITE
 				addon = "surround_opposite",
 			)
+
 			# phase_synchrony_summary(
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	json_file = "phase_slices_V1_"+addon+".txt", 
 			# 	ylim=[0.,1.],
 			# 	addon=addon,
+			# )
+			# phase_synchrony_summary(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_center_opposite.txt", 
+			# 	ylim=[0.,1.],
+			# 	data_labels=["1K", "32", "24", "16", "8"],
+			# 	addon="center_opposite",
+			# )
+			# phase_synchrony_summary(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_center_same.txt", 
+			# 	data_labels=["1K", "32", "24", "16", "8"],
+			# 	ylim=[0.,1.],
+			# 	addon="center_same",
+			# )
+			# phase_synchrony_summary(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_surround_opposite.txt", 
+			# 	data_labels=["1K", "32", "24", "16", "8"],
+			# 	ylim=[0.,1.],
+			# 	addon="surround_opposite",
+			# )
+			# phase_synchrony_summary(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_surround_same.txt", 
+			# 	data_labels=["1K", "32", "24", "16", "8"],
+			# 	ylim=[0.,1.],
+			# 	addon="surround_same",
 			# )
 
 

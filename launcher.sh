@@ -158,9 +158,9 @@ mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_clos
 # mpirun -np 1 python run_bar_feedforward.py nest 1 param/defaults_mea 'data_bar_feedforward'
 
 
-echo "starting Size Feedforward"
-echo
-mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward'
+# echo "starting Size Feedforward"
+# echo
+# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward'
 
 
 # echo "starting Orientation Feedforward"
