@@ -41,6 +41,30 @@ from mozaik.tools.mozaik_parametrized import colapse
 import neo
 
 
+# #from: https://stackoverflow.com/questions/35990467/fit-two-gaussians-to-a-histogram-from-one-set-of-data-python
+def gauss(x,mu,sigma,A):
+	return A * numpy.exp( -(x-mu)**2 / (2*sigma**2) )
+def bimodal(x,mu1,sigma1,A1,mu2,sigma2,A2):
+	return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)
+def bimodal_fit(x, y, sd):
+	from scipy.optimize import curve_fit
+	x=(x[1:]+x[:-1])/2 # for len(x)==len(y)
+	params,_ = curve_fit( gauss, x, y, 
+		bounds=((20.,  0.,     0.),  (60., 100., 100.)), 
+		p0=(30.,  5.,  20.),
+		maxfev=10000000,
+	) 
+	# params,_ = curve_fit( bimodal, x, y, 
+			# method='lm', 
+			# method='trf', 
+			# method='dogbox', 
+		# 	#        mu1, sigma1, A1,  mu2, sigma2, A2 	
+		# 	bounds=((0.,  0.,     0.,  20.,  0.,     0.),  (10., 100., 500., 60., 100., 100.)), 
+		# 	# p0=(3.,  0.3,  50.,  30.,  5.,  1.),
+		# 	sigma=sd,
+		# 	maxfev=10000000,
+		# ) 
+	return params
 
 
 def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=[], reverse=False):
@@ -501,9 +525,13 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 
-def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], addon="", color="black", box=False, opposite=False, compute_isi=False, compute_vectorstrength=True ):
+def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], addon="", color="black", box=False, opposite=False, compute_isi=False, compute_vectorstrength=True, fit='' ):
+	import ast
+	from scipy.stats import norm
 	matplotlib.rcParams.update({'font.size':22})
+
 	print "folder: ",folder
+	print addon
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
 	dsv = queries.param_filter_query(data_store, sheet_name=sheet, st_name=stimulus)
 	segments = dsv.get_segments()
@@ -532,43 +560,77 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 	# print len(positions_x)
 
 	# segs, stids = colapse(dsv.get_segments(), dsv.get_stimuli(), parameter_list=[], allow_non_identical_objects=True)
-	segs, stids = colapse(dsv.get_segments(), dsv.get_stimuli(), parameter_list=['trial'], allow_non_identical_objects=True) # colapse randomply picks from the colapsed dimension
+	segs, stids = colapse(dsv.get_segments(), dsv.get_stimuli(), parameter_list=['trial'], allow_non_identical_objects=True) # colapse() randomly picks from the colapsed dimension?
 	print len(segs), len(stids)
 
 	# ISI
 	if compute_isi:
+		nbins = 140
 		isis = []
-		print "... Computing ISI"
+		d_isi_cvisi_fit = {}
+		print "... Computing ISI, CVisi, curve fit"
 		for i,seg in enumerate(segs):
-			print i#, seg[0].annotations
+			stim = ast.literal_eval( seg[0].annotations['stimulus'] )[stimulus_parameter]
+			print i, stim
+			# isis.append( [s.magnitude for s in seg[0].isi()] )
 			isis.append( [s.magnitude for s in seg[0].isi(spike_ids)] )
+			# cvisis.append( seg[0].cv_isi() )
+			cvisi = numpy.nan_to_num( numpy.array(seg[0].cv_isi(spike_ids)).astype('float') ).mean()
+			print "CVisi: ", cvisi
 
-		# PLOTTING
-		matplotlib.rcParams.update({'font.size':22})
-		isis = numpy.array(isis)
-		# print isis.shape
-		for i,s in enumerate(stids):
-			print i
 			isi = numpy.array([])
 			for si in isis[i]:
 				isi = numpy.append(isi, si)
-			# print isi
-			hisi = numpy.nan_to_num( numpy.histogram( isi, range=(0.0, 140.), bins=140 )[0] )
-			# print "hisi: ", hisi
+			# print "ISI:", isi.shape, isi
+			hisi = numpy.nan_to_num( numpy.histogram( isi, range=(0, nbins), bins=nbins )[0] )
+			hisi_mean = hisi/float(nbins)
+			hisi_std = numpy.sqrt(hisi**2/float(nbins) - hisi_mean*hisi_mean)
+			# print hisi_mean, hisi_std
+			hisi_std[ hisi_std==0. ] = 1.
+			# hisi[ 0:18 ] = 0.
+			print hisi
 
-			# PLOTTING
-			plt.bar( range(140), hisi, width=0.8, color=color )
-			plt.tight_layout()
-			# plt.ylim([.0,.5])
-			plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_"+addon+".png", dpi=200, transparent=True )
-			# plt.xticks( range(100), range(100)*.8 )
-			plt.close()
-			plt.ylim([.0,100.])
-			plt.xlim([.0,140.])
-			# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(s.radius)+"_0.2_"+addon+".png", dpi=200, transparent=True )
+			# #fitting
+			# fits = None
+			# if fit=='gamma':
+			#  	fits = scipy.stats.gamma.fit(hisi)
+			#  	print "Gamma fit:", fits
+			# if fit=='bimodal':
+			# 	fits = bimodal_fit(numpy.array(range(nbins+1)), hisi, hisi_std)
+			# 	# fits[2] = , hisi.max()
+			# 	print "bimodal fit:", fits, hisi.max()
+
+			# d_isi_cvisi_fit[ "{:.3f}".format(ast.literal_eval( seg[0].annotations['stimulus'] )[stimulus_parameter])] =  {'CVisi':cvisi,'fit':fits}
+
+			# # PLOTTING
+			# x = range(nbins)
+			# plt.bar( x, hisi, width=0.8, color=color )
+			# # plt.plot( x, gamma.pdf(x), color=color )
+			# plt.tight_layout()
+			# # plt.ylim([.0,.5])
+			# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(getattr(s, stimulus_parameter))+"_"+addon+".png", dpi=200, transparent=True )
+			# # plt.xticks( range(100), range(100)*.8 )
 			# plt.close()
-			# garbage
-			gc.collect()
+			# plt.ylim([.0,200.])
+			# # plt.xlim([.0, nbins])
+			# # plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(getattr(s, stimulus_parameter))+"_"+addon+".png", dpi=200, transparent=True )
+			# # plt.close()
+			# # garbage
+			# gc.collect()
+		from pprint import pprint
+		pprint(d_isi_cvisi_fit)
+		# PLOTTING
+		for key in sorted(d_isi_cvisi_fit):
+			fit = d_isi_cvisi_fit[key]['fit']
+			plt.scatter(fit[0], fit[2], marker="o", s=fit[1]*100, facecolor=color, edgecolor="white")
+		plt.ylim([.0, 10.])
+		plt.xlim([.0, 40.])
+		plt.tight_layout()
+		plt.xlabel("Fitted Gaussian mean")
+		plt.ylabel("Fitted Amplitude")
+		plt.savefig( folder+"/ISI_Fit_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
+		plt.close()
+		gc.collect()
 
 
 	# VECTOR STRENGTH
@@ -1938,7 +2000,7 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 	if sheet=='V1_Exc_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = sheet)[0]
-		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.1)[0]]
+		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.2)[0]]
 		# l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < 0.9)[0]]
 		analog_ids = list(l4_exc_or_many)
 
@@ -2183,12 +2245,12 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	# "Thalamocortical_size_closed",
+	"Thalamocortical_size_closed",
 	# "ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	"Thalamocortical_size_feedforward",
+	# "Thalamocortical_size_feedforward",
 	# "ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
@@ -2385,6 +2447,7 @@ else:
 			addon = "feedforward"
 			closed = False
 			color = "cyan"
+			fit = "gamma"
 			# color = "red"
 		if "open" in f:
 			color = "cyan"
@@ -2392,6 +2455,7 @@ else:
 			addon = "closed"
 			color = "blue"
 			closed = True
+			fit = "bimodal"
 		if "Kimura" in f:
 			color = "gold"
 		if "LGNonly" in f:
@@ -2607,7 +2671,7 @@ else:
 			# 	#       0      1     2     3     4     5     6     7     8     9
 			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
 			# 	ylim=[0,30],
-			# 	box = [[-.5,-.5],[.5,.5]], # center
+			# 	box = [[-.9,-.9],[.9,.9]], # center
 			# 	addon = "center",
 			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
@@ -2692,6 +2756,20 @@ else:
 			# 	color=color,
 			# )
 
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	addon=addon, 
+			# 	color=color,
+			# 	box = [[-3.5,-3.5],[3.5,3.5]], # ALL
+			# 	opposite=False, # SAME
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
+			# )
 			phase_synchrony( 
 				sheet=s, 
 				folder=f,
@@ -2699,7 +2777,6 @@ else:
 				stimulus_parameter='radius',
 				       # 1K  56    32      24    16    8   Hz
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				# addon=addon, 
 				color=color,
 				# compute_isi=False,
 				# compute_vectorstrength=True,
@@ -2708,6 +2785,7 @@ else:
 				box = [[-.5,-.5],[.5,.5]], # CENTER
 				opposite=False, # SAME
 				addon = "center_same",
+				fit=fit,
 			)
 			phase_synchrony( 
 				sheet=s, 
@@ -2716,7 +2794,6 @@ else:
 				stimulus_parameter='radius',
 				       # 1K  56    32      24    16    8   Hz
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				# addon=addon, 
 				color=color,
 				# compute_isi=False,
 				# compute_vectorstrength=True,
@@ -2725,6 +2802,7 @@ else:
 				box = [[-.5,-.5],[.5,.5]], # CENTER
 				opposite=True, # OPPOSITE
 				addon = "center_opposite",
+				fit=fit,
 			)
 			phase_synchrony( 
 				sheet=s, 
@@ -2733,7 +2811,6 @@ else:
 				stimulus_parameter='radius',
 				       # 1K  56    32      24    16    8   Hz
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				# addon=addon, 
 				color=color,
 				# compute_isi=False,
 				# compute_vectorstrength=True,
@@ -2742,6 +2819,7 @@ else:
 				box = [[-.5,.5],[.5,1.5]], # SURROUND
 				opposite=False, # SAME
 				addon = "surround_same",
+				fit=fit,
 			)
 			phase_synchrony( 
 				sheet=s, 
@@ -2750,7 +2828,6 @@ else:
 				stimulus_parameter='radius',
 				       # 1K  56    32      24    16    8   Hz
 				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				# addon=addon, 
 				color=color,
 				# compute_isi=False,
 				# compute_vectorstrength=True,
@@ -2759,6 +2836,7 @@ else:
 				box = [[-.5,.5],[.5,1.5]], # SURROUND
 				opposite=True, # OPPOSITE
 				addon = "surround_opposite",
+				fit=fit,
 			)
 
 			# phase_synchrony_summary(
@@ -2942,6 +3020,20 @@ else:
 			# 	preferred2=False,
 			# 	addon="opposite_closed",
 			# 	# addon="opposite_feedforward",
+			# )
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	stimulus_parameter='orientation',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	addon=addon, 
+			# 	color=color,
+			# 	box = [[-3.5,-3.5],[3.5,3.5]], # ALL
+			# 	opposite=False, # SAME
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
 			# )
 
 			# #CROSS-CORRELATION
