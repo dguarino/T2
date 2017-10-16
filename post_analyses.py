@@ -525,7 +525,75 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 
-def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], addon="", color="black", box=False, opposite=False, compute_isi=False, compute_vectorstrength=True, fit='' ):
+def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_diameter=10, addon="", color="black" ):
+	import ast
+	matplotlib.rcParams.update({'font.size':22})
+	print "folder: ",folder
+	print "sheet: ",sheet
+	print "addon: ", addon
+	print 
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
+
+	# Spontaneous activity
+	print "Spontaneous firing rate ..."
+	TrialAveragedFiringRate(
+		param_filter_query(data_store, sheet_name=sheet, st_direct_stimulation_name="None", st_name='InternalStimulus'),
+		ParameterSet({})
+	).analyse()
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_direct_stimulation_name="None", st_name='InternalStimulus').get_segments()[0].get_stored_spike_train_ids()
+	print "Total neurons:", len(spike_ids)
+	spont = numpy.array( param_filter_query(data_store, st_name='InternalStimulus', sheet_name=sheet, analysis_algorithm=['TrialAveragedFiringRate'], ads_unique=True).get_analysis_result()[0].get_value_by_id(spike_ids) )
+	mean_spontaneous_rate = numpy.mean(spont)
+	std_spontaneous_rate = numpy.std(spont)
+	print "Mean spontaneous firing rate:", mean_spontaneous_rate, " std:", std_spontaneous_rate
+
+	# Find all cells with rate above mean spontaneous
+	print 
+	print "Evoked firing rate ..."
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
+	TrialAveragedFiringRate(
+		param_filter_query(data_store, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({})
+	).analyse()
+	NeuronAnnotationsToPerNeuronValues(data_store, ParameterSet({})).analyse()
+	above_spontaneous_ids = {}
+	above_spontaneous_perc = {}
+	for dsa in data_store.get_analysis_result(identifier='PerNeuronValue', value_name='Firing rate', sheet_name=sheet):
+		param = ast.literal_eval( dsa.stimulus_id )[stimulus_parameter]
+		above_spontaneous_ids["{:.2f}".format(param)] = numpy.array(spike_ids)[numpy.nonzero(numpy.array([dsa.get_value_by_id(i) for i in spike_ids]) > mean_spontaneous_rate)[0]]
+		above_spontaneous_perc["{:.2f}".format(param)] = (float(len(above_spontaneous_ids["{:.2f}".format(param)]))/len(spike_ids) ) * 100.
+		# print above_spontaneous_ids
+
+	# Plot barplot over sizes
+	x = range(len(above_spontaneous_perc))
+	plt.bar(x, sorted(above_spontaneous_perc.values()), align='center', width=0.8, color=color)
+	plt.xticks(x, sorted(above_spontaneous_perc.keys()), rotation='vertical')
+	plt.tight_layout()
+	plt.savefig( folder+"/Activity_ratio_"+str(sheet)+"_"+stimulus_parameter+"_"+addon+".png", dpi=200, transparent=True )
+	plt.close()
+	gc.collect()
+
+	# Plot scatterplot positions+arborization
+	positions_x = []
+	positions_y = []
+	for key in sorted(above_spontaneous_ids):
+		print key, above_spontaneous_ids[key]
+		if len(above_spontaneous_ids[key]) > 0:
+			sheet_ids = numpy.array( data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=above_spontaneous_ids[key]) ).flatten()
+			positions_x = numpy.take(data_store.get_neuron_postions()[sheet][0], sheet_ids)
+			positions_y = numpy.take(data_store.get_neuron_postions()[sheet][1], sheet_ids)
+		plt.scatter( positions_x, positions_y, c=color, marker="o", s=arborization_diameter, alpha=0.3 )
+		plt.ylim([-2., 2.])
+		plt.xlim([-2., 2.])
+		plt.tight_layout()
+		plt.savefig( folder+"/Activity_Map_"+str(sheet)+"_"+stimulus_parameter+"_"+key+"_"+addon+".png", dpi=200, transparent=True )
+		plt.close()
+		gc.collect()
+
+
+
+
+def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], addon="", color="black", box=False, opposite=False, percentage=False, compute_isi=False, compute_vectorstrength=True, fit='' ):
 	import ast
 	from scipy.stats import norm
 	matplotlib.rcParams.update({'font.size':22})
@@ -540,7 +608,7 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 	if box:
 		if sheet=='V1_Exc_L4':
 			NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-			l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name='V1_Exc_L4')[0]
+			l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name='V1_Exc_L4')[0]
 			if opposite:
 				l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
 			else:
@@ -587,7 +655,6 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 			hisi_std = numpy.sqrt(hisi**2/float(nbins) - hisi_mean*hisi_mean)
 			# print hisi_mean, hisi_std
 			hisi_std[ hisi_std==0. ] = 1.
-			# hisi[ 0:18 ] = 0.
 			print hisi
 
 			# #fitting
@@ -631,7 +698,6 @@ def phase_synchrony( sheet, folder, stimulus, stimulus_parameter, periods=[], ad
 		plt.savefig( folder+"/ISI_Fit_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
 		plt.close()
 		gc.collect()
-
 
 	# VECTOR STRENGTH
 	if compute_vectorstrength:
@@ -754,6 +820,52 @@ def phase_synchrony_summary(sheet, folder, json_file, ylim=[], data_labels=False
 
 
 
+def spontaneous(sheet, folder, ylim=[], color="black", box=None, addon="", opposite=False):
+	print "folder: ",folder
+	print addon
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
+
+	TrialAveragedFiringRate(
+		param_filter_query(data_store, st_direct_stimulation_name="None", st_name='InternalStimulus'),
+		ParameterSet({})
+	).analyse()
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_direct_stimulation_name="None", st_name='InternalStimulus').get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons:", len(spike_ids)
+
+	if sheet=='V1_Exc_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		if opposite:
+			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
+		else:
+			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < .1)[0]]
+		print "# of V1 cells range having orientation 0:", len(l4_exc_or_many)
+		spike_ids = list(l4_exc_or_many)
+
+	spont = numpy.array( param_filter_query(data_store, st_name='InternalStimulus', sheet_name=sheet, analysis_algorithm=['TrialAveragedFiringRate'], ads_unique=True).get_analysis_result()[0].get_value_by_id(spike_ids) )
+	# spont = spont[ spont > 0.0 ] # to have actually spiking units
+
+	matplotlib.rcParams.update({'font.size':22})
+	fig,ax = plt.subplots()
+	ax.bar([0.], [numpy.mean(spont)], color=color, width=0.8)
+	ax.errorbar(0.4, numpy.mean(spont), numpy.std(spont), lw=2, capsize=5, capthick=2, color=color)
+	ax.set_xticklabels(['Spontaneous'])
+	ax.set_ylabel("Response (spikes/s)")
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	ax.spines['bottom'].set_visible(False)
+	ax.set_ylim( ylim )
+	plt.tight_layout()
+	# plt.show()
+	plt.savefig( folder+"/SpontaneousActivity_"+sheet+".png", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
 
 def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, preferred1=True, preferred2=True, addon="", color="black" ):
 	print "folder: ",folder
@@ -860,21 +972,21 @@ def variability( sheet, folder, stimulus, stimulus_parameter, box=None, addon=""
 	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	print "Recorded neurons:", len(spike_ids)
 
-	if sheet=='V1_Exc_L4':
-		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-		if opposite:
-			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
-		else:
-			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < .1)[0]]
-		print "# of V1 cells range having orientation 0:", len(l4_exc_or_many)
-		spike_ids = list(l4_exc_or_many)
+	# if sheet=='V1_Exc_L4':
+	# 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# 	l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+	# 	if opposite:
+	# 		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
+	# 	else:
+	# 		l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < .1)[0]]
+	# 	print "# of V1 cells range having orientation 0:", len(l4_exc_or_many)
+	# 	spike_ids = list(l4_exc_or_many)
 
-	if box:
-		positions = data_store.get_neuron_postions()[sheet]
-		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids)
-		box_ids = select_ids_by_position(positions, sheet_ids, box=box)
-		spike_ids = data_store.get_sheet_ids(sheet_name=sheet,indexes=box_ids)
+	# if box:
+	# 	positions = data_store.get_neuron_postions()[sheet]
+	# 	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids)
+	# 	box_ids = select_ids_by_position(positions, sheet_ids, box=box)
+	# 	spike_ids = data_store.get_sheet_ids(sheet_name=sheet,indexes=box_ids)
 
 	print "Selected neurons:", len(spike_ids)
 
@@ -900,41 +1012,20 @@ def variability( sheet, folder, stimulus, stimulus_parameter, box=None, addon=""
 			variances = variances + v
 	means = means/slides
 	variances = variances/slides
-	print "means:", means.shape
-	print "variances:", variances.shape
+	################## only for spontaneous
+	sp_means = numpy.mean(means, axis=2)
+	sp0_means = numpy.ones(sp_means.shape) * 0.0000000001
+	# print sp_means.shape, sp0_means.shape
+	means = numpy.swapaxes( numpy.array( [numpy.append(sp0_means, sp_means, axis=0)] ), 1,2)
+	variances = numpy.swapaxes( numpy.array( [numpy.append(sp0_means, numpy.ones(sp_means.shape)*numpy.std(means), axis=0 )] ), 1,2)
+	################## only for spontaneous
+	print "means:", means.shape, means
+	print "variances:", variances.shape, variances
 	###############################################
 
-	# # OVERALL CELL COUNT
-	# # as in AndolinaJonesWangSillito2007 
-	# color = 'black'
-	# fanos = numpy.mean(variances, axis=1) / numpy.mean(means, axis=1)
-	# print "fanos shape: ",fanos.shape
-	# for i,ff in enumerate(fanos):
-	# 	print "max ff: ", numpy.amax(ff) 
-	# 	print "min ff: ", numpy.amin(ff) 
-	# 	counts, bin_edges = numpy.histogram( ff, bins=10 )
-	# 	print counts
-	# 	bin_centres = (bin_edges[:-1] + bin_edges[1:])/2.
-	# 	# Plot
-	# 	fig = plt.figure(1)
-	# 	plt.errorbar(bin_centres, counts, fmt='o', color=color)
-	# 	# Gaussian fit
-	# 	mean = numpy.mean(ff)
-	# 	variance = numpy.var(ff)
-	# 	sigma = numpy.sqrt(variance)
-	# 	x = numpy.linspace(min(ff), max(ff), 300)
-	# 	dx = bin_edges[1] - bin_edges[0]
-	# 	scale = len(ff)*dx
-	# 	plt.xlim([0,3])
-	# 	plt.ylim([0,160])
-	# 	plt.plot(x, mlab.normpdf(x, mean, sigma)*scale, color=color, linewidth=2 )
-	# 	plt.xlabel("Fano Factor")
-	# 	plt.ylabel("Number of Cells")
-	# 	plt.savefig( folder+"/TrialConditionsAveraged_FanoHist_"+stimulus_parameter+"_"+sheet+"_"+str(i)+".png", dpi=200 )
-	# 	plt.close()
-
 	# TIME COURSE
-	fig,ax = plt.subplots(nrows=len(stimuli), ncols=means.shape[1], figsize=(70, 20), sharey=False, sharex=False)
+	print len(stimuli)
+	fig,ax = plt.subplots(nrows=len(stimuli)+1, ncols=means.shape[1], figsize=(70, 20), sharey=False, sharex=False)
 	fig.tight_layout()
 
 	for i,s in enumerate(stimuli):
@@ -972,6 +1063,7 @@ def variability( sheet, folder, stimulus, stimulus_parameter, box=None, addon=""
 				variances[i][t][ variances[i][t]==0. ] = 0.000000001
 
 			# add regression line, whose slope is the Fano Factor
+			print [means[i][t]], [variances[i][t]]
 			k,b = numpy.polyfit( means[i][t], variances[i][t], 1)
 			x = numpy.arange(x0, x1)
 			ax[i,t].plot(x, k*x+b, 'k-')
@@ -1270,10 +1362,11 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=True)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
-	print rates.shape # (stimuli, cells)
-	print stimuli
+	# rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
+	# print rates.shape # (stimuli, cells)
+	# print stimuli
 	width = 1.
+	# ind = numpy.arange(11)
 	ind = numpy.arange(10)
 
 	# END-INHIBITION as in MurphySillito1987 and AlittoUsrey2008:
@@ -1311,7 +1404,7 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	# read external data to plot as well
 	if data:
 		data_list = numpy.genfromtxt(data, delimiter='\n')
-		data_mean = data_list[0] -width/2 # positioning
+		data_mean = data_list[0] +width/2 # positioning
 		data_list = data_list[1:]
 		print data_mean
 		print data_list
@@ -1330,16 +1423,18 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	ax.set_ylabel(ylabel)
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	ax.axis([ind[0]-width/2, ind[-1], 0, None])
+	ax.axis([ind[0]-width/2, ind[-1], 0, 160])
 	ax.set_xticks(ind) 
+	# ax.set_xticklabels(('0','','','','','0.5','','','','','1.0'))
 	ax.set_xticklabels(('0.1','','','','0.5','','','','','1.0'))
 	if data: # in front of the synthetic
 		if closed:
 			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
-			ax.plot((data_mean, data_mean), (0,150), 'k--', linewidth=2)
+			ax.plot((data_mean, data_mean), (0,160), 'k--', linewidth=2)
 		else:
 			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='grey', edgecolor='grey')
-			ax.plot((data_mean, data_mean), (0,150), '--', linewidth=2, color='grey')
+			# datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='none', edgecolor='grey', linewidth=2)
+			ax.plot((data_mean, data_mean), (0,160), '--', linewidth=2, color='grey')
 	plt.tight_layout()
 	plt.savefig( folder+"/suppression_index_"+str(sheet)+".png", dpi=200, transparent=True )
 	plt.close()
@@ -2244,13 +2339,13 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	"Thalamocortical_size_closed",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Thalamocortical_size_closed", # BIG
 	# "ThalamoCorticalModel_data_size_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	# "Thalamocortical_size_feedforward",
+	# "Thalamocortical_size_feedforward", # BIG
 	# "ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
@@ -2307,14 +2402,14 @@ addon = ""
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4', 'PGN']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
-# sheets = [ ['X_ON', 'X_OFF'] ]
+sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 
 
@@ -2450,6 +2545,7 @@ else:
 			fit = "gamma"
 			# color = "red"
 		if "open" in f:
+			closed = False
 			color = "cyan"
 		if "closed" in f:
 			addon = "closed"
@@ -2463,14 +2559,35 @@ else:
 
 		for s in sheets:
 
-			if "open" in f and 'PGN' in s:
-				color = "lime"
-			if "closed" in f and 'PGN' in s:
-				color = "darkgreen"
+			if 'PGN' in s:
+				arborization = 300
+				if "open" in f or "feedforward" in f:
+					color = "lime"
+				if "closed" in f:
+					color = "darkgreen"
+			if 'X' in s: # X_ON X_OFF
+				arborization = 150
 
 			print color
 
-			# LUMINANCE
+			# SPONTANEOUS
+			# spontaneous(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	color=color,
+			# 	ylim=[0., 7.],
+			# 	addon=addon
+			# )
+			# variability( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='InternalStimulus',
+			# 	stimulus_parameter='duration', # dummy parameter to make it work with colapse()
+			# 	addon = addon,
+			# 	opposite=False, # SAME
+			# )
+
+			# # LUMINANCE
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -2554,20 +2671,22 @@ else:
 			# SIZE
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
-			# end_inhibition_barplot( 
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus="DriftingSinusoidalGratingDisk",
-			# 	parameter='radius',
-			# 	start=100., 
-			# 	end=1000., 
-			# 	xlabel="Index of end-inhibition",
-			# 	ylabel="Number of cells",
-			# 	closed=closed,
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
-			# )
+			end_inhibition_barplot( 
+				sheet=s, 
+				folder=f, 
+				stimulus="DriftingSinusoidalGratingDisk",
+				parameter='radius',
+				start=100., 
+				end=1000., 
+				xlabel="Index of end-inhibition",
+				ylabel="Number of cells",
+				closed=closed,
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3E.csv", # closed drifting gratings
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3F.csv", # retinal drifting gratings
+			)
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -2624,7 +2743,7 @@ else:
 			# 	useXlog=False, 
 			# 	useYlog=False, 
 			# 	percentile=False, #True,
-			# 	ylim=[0,50],
+			# 	ylim=[0,100],
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
 			# 	box = [[-.5,.5],[.5,1.5]], # surround
 			# 	addon = "surround",
@@ -2656,8 +2775,9 @@ else:
 			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
 			# 	percentile=False,
 			# 	ylim=[0,30],
+			# 	useXlog=True, 
 			# 	# percentile=True,
-			# 	box = [[-.5,-.5],[.5,.5]], # center
+			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	addon = "center",
 			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
@@ -2671,7 +2791,7 @@ else:
 			# 	#       0      1     2     3     4     5     6     7     8     9
 			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
 			# 	ylim=[0,30],
-			# 	box = [[-.9,-.9],[.9,.9]], # center
+			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER
 			# 	addon = "center",
 			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
@@ -2755,7 +2875,6 @@ else:
 			# 	addon="center2surround_opposite_feedforward",
 			# 	color=color,
 			# )
-
 			# phase_synchrony( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -2770,75 +2889,74 @@ else:
 			# 	compute_isi=True,
 			# 	compute_vectorstrength=False,
 			# )
-			phase_synchrony( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				       # 1K  56    32      24    16    8   Hz
-				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				color=color,
-				# compute_isi=False,
-				# compute_vectorstrength=True,
-				compute_isi=True,
-				compute_vectorstrength=False,
-				box = [[-.5,-.5],[.5,.5]], # CENTER
-				opposite=False, # SAME
-				addon = "center_same",
-				fit=fit,
-			)
-			phase_synchrony( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				       # 1K  56    32      24    16    8   Hz
-				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				color=color,
-				# compute_isi=False,
-				# compute_vectorstrength=True,
-				compute_isi=True,
-				compute_vectorstrength=False,
-				box = [[-.5,-.5],[.5,.5]], # CENTER
-				opposite=True, # OPPOSITE
-				addon = "center_opposite",
-				fit=fit,
-			)
-			phase_synchrony( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				       # 1K  56    32      24    16    8   Hz
-				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				color=color,
-				# compute_isi=False,
-				# compute_vectorstrength=True,
-				compute_isi=True,
-				compute_vectorstrength=False,
-				box = [[-.5,.5],[.5,1.5]], # SURROUND
-				opposite=False, # SAME
-				addon = "surround_same",
-				fit=fit,
-			)
-			phase_synchrony( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				       # 1K  56    32      24    16    8   Hz
-				periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
-				color=color,
-				# compute_isi=False,
-				# compute_vectorstrength=True,
-				compute_isi=True,
-				compute_vectorstrength=False,
-				box = [[-.5,.5],[.5,1.5]], # SURROUND
-				opposite=True, # OPPOSITE
-				addon = "surround_opposite",
-				fit=fit,
-			)
-
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	color=color,
+			# 	# compute_isi=False,
+			# 	# compute_vectorstrength=True,
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
+			# 	box = [[-.5,-.5],[.5,.5]], # CENTER
+			# 	opposite=False, # SAME
+			# 	addon = "center_same",
+			# 	fit=fit,
+			# )
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	color=color,
+			# 	# compute_isi=False,
+			# 	# compute_vectorstrength=True,
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
+			# 	box = [[-.5,-.5],[.5,.5]], # CENTER
+			# 	opposite=True, # OPPOSITE
+			# 	addon = "center_opposite",
+			# 	fit=fit,
+			# )
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	color=color,
+			# 	# compute_isi=False,
+			# 	# compute_vectorstrength=True,
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
+			# 	box = [[-.5,.5],[.5,1.5]], # SURROUND
+			# 	opposite=False, # SAME
+			# 	addon = "surround_same",
+			# 	fit=fit,
+			# )
+			# phase_synchrony( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	       # 1K  56    32      24    16    8   Hz
+			# 	periods=[1., 17.8, 31.25,  41.6, 62.5, 125.], 
+			# 	color=color,
+			# 	# compute_isi=False,
+			# 	# compute_vectorstrength=True,
+			# 	compute_isi=True,
+			# 	compute_vectorstrength=False,
+			# 	box = [[-.5,.5],[.5,1.5]], # SURROUND
+			# 	opposite=True, # OPPOSITE
+			# 	addon = "surround_opposite",
+			# 	fit=fit,
+			# )
 			# phase_synchrony_summary(
 			# 	sheet=s, 
 			# 	folder=f,
@@ -2877,6 +2995,15 @@ else:
 			# 	data_labels=["1K", "32", "24", "16", "8"],
 			# 	ylim=[0.,1.],
 			# 	addon="surround_same",
+			# )
+			# activity_ratio( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	addon = addon,
+			# 	color = color, 
+			# 	arborization_diameter = arborization *60 # 
 			# )
 
 
@@ -3868,12 +3995,26 @@ files_center_opposite_feedforward = [
 # 	"ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_orientation_2.83_center_opposite_0.1_feedforward.csv",
 # ]
 
+files_orientation_sponatenous_feedforward = [
+	"ThalamoCorticalModel_data_orientation_feedforward_____/TrialAveragedMeanVariance_V1_Exc_L4_duration_1029.00_feedforward.csv",
+]
+
+files_orientation_sponatenous_closed = [
+	"ThalamoCorticalModel_data_orientation_closed_____/TrialAveragedMeanVariance_V1_Exc_L4_duration_1029.00_closed.csv",
+]
+
 
 # fano_comparison_timecourse( 
+
 # 	sheets, 
-# 	"Thalamocortical_size_feedforward", 
+
+# 	# "Thalamocortical_size_feedforward", 
 # 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large", 
-# 	# "ThalamoCorticalModel_data_orientation_feedforward_____", 
+# 	"ThalamoCorticalModel_data_orientation_feedforward_____", 
+
+# 	files_orientation_sponatenous_closed,
+# 	files_orientation_sponatenous_feedforward,
+# 	addon="all",
 
 # 	# files_center_closed,
 # 	# files_center_feedforward,
@@ -3887,12 +4028,12 @@ files_center_opposite_feedforward = [
 # 	# files_surround_feedforward,
 # 	# addon="surround",
 
-# 	files_surround_opposite_closed,
-# 	files_surround_opposite_feedforward,
-# 	addon="surround_opposite",
+# 	# files_surround_opposite_closed,
+# 	# files_surround_opposite_feedforward,
+# 	# addon="surround_opposite",
 
-# 	# averaged=False, 
-# 	averaged=True, 
+# 	averaged=False, 
+# 	# averaged=True, 
 
 # 	# ORIENTATION
 # 	# sliced=[0,4], # center, optimal
@@ -3904,7 +4045,7 @@ files_center_opposite_feedforward = [
 # 	# sliced=[2,None], # all except the noisy beginning
 # 	# sliced=[0,None], # all
 
-# 	ylim=[.0, 1.5], 
+# 	ylim=[.0, 5], 
 #  ) # cortex
 
 # fano_comparison_timecourse( sheets, "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large", closed_files, open_files, [.0, 1.5], averaged=True ) # cortex
