@@ -1357,17 +1357,110 @@ def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, 
 
 
 
+def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	# data_store.print_content(full_recordings=True)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
+	# print rates.shape # (stimuli, cells)
+	# print stimuli
+
+	# END-INHIBITION as in MurphySillito1987 and AlittoUsrey2008:
+	# "The responses of the cell with corticofugal feedback are totally suppressed at bar lenghts of 2deg and above, 
+	#  and those of cell lacking feedback are reduced up to 40% at bar lenghts of 8deg and above."
+	# 1. find the peak response at large sizes
+	peaks = numpy.amax(rates, axis=0) # as in AlittoUsrey2008
+	# 2. compute average response at large sizes
+	plateaus = numpy.mean( rates[5:], axis=0) 
+	# 3. compute the difference from peak 
+	ends = (peaks-plateaus)/peaks # as in MurphySillito1987
+	# 4. group cells by end-inhibition
+	mean = numpy.mean(ends)
+	# print mean
+	hist, edges = numpy.histogram( ends, bins=11, range=(0.0,1.0), density=True )
+	# print hist
+
+	# read external data to plot as well
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+		data_mean = data_list[0]/10.
+		data_list = data_list[1:]
+		# https://mathoverflow.net/questions/14481/calculate-percentiles-from-a-histogram
+		#1. stack the columns of the histogram on top of each other 
+		tot_freq = data_list.sum()
+		sum_data_list = numpy.cumsum(data_list, dtype=float) # cumulative sum for searching purposes
+		#2. mark the point at a fraction p of the full height from the bottom
+		val_q1 = tot_freq/4 # the 1st quartile is at 1/4 from the bottom
+		val_q2 = val_q1*3 # the 3rd quartile is at 3/4 from the bottom
+		#3. get the column corresponding to the quartile
+		q1 = (numpy.abs(sum_data_list - val_q1)).argmin() / 10.# quartile in the index of end-inhibition
+		q2 = (numpy.abs(sum_data_list - val_q2)).argmin() / 10.# quartile in the index of end-inhibition
+		whislo = (numpy.where(data_list>1)[0][0]) / 10.
+		whishi = (numpy.where(data_list>1)[0][-1]) / 10.
+		bxp = {}
+		bxp["label"] = '2' # not required
+		bxp["mean"] = data_mean # not required
+		bxp["med"] = data_mean #numpy.median(data_list)
+		bxp["q1"] = q1
+		bxp["q3"] = q2
+		bxp["whislo"] = whislo
+		bxp["whishi"] = whishi
+		bxp["fliers"] = [] # required if showfliers=True
+		# print bxp
+
+	# PLOTTING
+	c = 'cyan'
+	cdata = 'grey'
+	if closed:
+		c = 'blue'
+		cdata = 'black'
+	matplotlib.rcParams.update({'font.size':22})
+	fig = plt.figure()
+	box1 = plt.boxplot( ends, positions=[1], notch=False, patch_artist=False, showfliers=False )
+	for item in ['boxes', 'whiskers', 'medians', 'caps']:
+		plt.setp(box1[item], color=c, linewidth=2, linestyle='solid')
+
+	if data: # in front of the synthetic
+		box2 = plt.boxplot( data_list, positions=[2], notch=False, patch_artist=False, showfliers=False)
+		box2['caps'][0].set_ydata([bxp["whislo"], bxp["whislo"]])
+		box2['caps'][1].set_ydata([bxp["whishi"], bxp["whishi"]])
+		box2['whiskers'][0].set_ydata([bxp["whislo"], bxp["q1"]])
+		box2['whiskers'][1].set_ydata([bxp["q3"], bxp["whishi"]])
+		box2['boxes'][0].set_ydata([bxp["q1"],bxp["q1"],bxp["q3"],bxp["q3"],bxp["q1"]])
+		box2['medians'][0].set_ydata([bxp["med"], bxp["med"]])
+		# other styles
+		for item in ['boxes', 'whiskers', 'medians', 'caps']:
+			plt.setp(box2[item], color=cdata, linewidth=2, linestyle='solid')
+
+	plt.xlabel(xlabel)
+	plt.ylabel(ylabel)
+	plt.xlim(0.5,3)
+	plt.ylim(0.,1.)
+	ax = plt.axes()
+	ax.set_frame_on(False)
+	ax.axes.get_xaxis().set_visible(False)
+	ax.axes.get_yaxis().set_visible(True)
+	plt.tight_layout()
+	plt.savefig( folder+"/suppression_index_box_"+str(sheet)+".png", dpi=200, transparent=True )
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
+
 def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None, csvfile=None ):
 	print "folder: ",folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=True)
 
-	# rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
-	# print rates.shape # (stimuli, cells)
-	# print stimuli
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
+	print rates.shape # (stimuli, cells)
+	print stimuli
 	width = 1.
-	# ind = numpy.arange(11)
-	ind = numpy.arange(10)
+	ind = numpy.arange(11)
+	# ind = numpy.arange(10)
 
 	# END-INHIBITION as in MurphySillito1987 and AlittoUsrey2008:
 	# "The responses of the cell with corticofugal feedback are totally suppressed at bar lenghts of 2deg and above, 
@@ -1382,15 +1475,14 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	# print plateaus
 
 	# 3. compute the difference from peak 
-	# ends = (1-plateaus)/peaks # as in AlittoUsrey2008
 	ends = (peaks-plateaus)/peaks # as in MurphySillito1987
 	print ends
 
 	# 4. group cells by end-inhibition
-	hist, edges = numpy.histogram( ends, bins=10, range=(0.0,1.0) )
+	hist, edges = numpy.histogram( ends, bins=11, range=(0.0,1.0) )
 	rawmean = numpy.mean(ends)
-	print rawmean
-	mean = (rawmean*10)-1.
+	print "rawmean:",rawmean
+	mean = (rawmean*11)
 	print mean
 	print hist
 
@@ -1414,10 +1506,10 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	fig,ax = plt.subplots()
 	if closed:
 		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
-		ax.plot((mean, mean), (0,150), 'b--', linewidth=2)
+		ax.plot((mean, mean), (0,160), 'b--', linewidth=2)
 	else:
 		barlist = ax.bar(ind, hist, align='center', width=width, facecolor='cyan', edgecolor='cyan')
-		ax.plot((mean, mean), (0,150), 'c--', linewidth=2)
+		ax.plot((mean, mean), (0,160), 'c--', linewidth=2)
 
 	ax.set_xlabel(xlabel)
 	ax.set_ylabel(ylabel)
@@ -1425,8 +1517,7 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 	ax.spines['top'].set_visible(False)
 	ax.axis([ind[0]-width/2, ind[-1], 0, 160])
 	ax.set_xticks(ind) 
-	# ax.set_xticklabels(('0','','','','','0.5','','','','','1.0'))
-	ax.set_xticklabels(('0.1','','','','0.5','','','','','1.0'))
+	ax.set_xticklabels(('0','','','','','0.5','','','','','1.0'))
 	if data: # in front of the synthetic
 		if closed:
 			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='black', edgecolor='black')
@@ -2339,10 +2430,10 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
 	# "Thalamocortical_size_closed", # BIG
 	# "ThalamoCorticalModel_data_size_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
+	"Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Thalamocortical_size_feedforward", # BIG
@@ -2671,19 +2762,19 @@ else:
 			# SIZE
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
-			end_inhibition_barplot( 
+			# end_inhibition_barplot( 
+			end_inhibition_boxplot( 
 				sheet=s, 
 				folder=f, 
 				stimulus="DriftingSinusoidalGratingDisk",
 				parameter='radius',
 				start=100., 
 				end=1000., 
-				xlabel="Index of end-inhibition",
-				ylabel="Number of cells",
+				xlabel="exp",
+				ylabel="Index of end-inhibition",
 				closed=closed,
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
 				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
 				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3E.csv", # closed drifting gratings
 				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3F.csv", # retinal drifting gratings
 			)
