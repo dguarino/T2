@@ -67,6 +67,7 @@ def bimodal_fit(x, y, sd):
 	return params
 
 
+
 def select_ids_by_position(positions, sheet_ids, position=[], radius=[0,0], box=[], reverse=False):
 	selected_ids = []
 	distances = []
@@ -230,9 +231,9 @@ def select_by_orientation(data_store, sheet, ids, preferred=True):
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 	cell_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = sheet)[0]
 	if preferred:
-		sel_cell_or = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(cell_or.get_value_by_id(i),0.,numpy.pi) for i in ids]) < 0.1)[0]]
+		sel_cell_or = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(cell_or.get_value_by_id(i),0.,numpy.pi) for i in ids]) < .1)[0]]
 	else:
-		sel_cell_or = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(cell_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in ids]) < .6)[0]]
+		sel_cell_or = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(cell_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in ids]) < .1)[0]]
 	# print "Selected cells:", len(sel_cell_or)
 	return list(sel_cell_or)
 
@@ -594,6 +595,232 @@ def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_di
 
 
 
+def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, preferred1=True, preferred2=True, addon="", color="black" ):
+	import ast
+	from matplotlib.ticker import NullFormatter
+	from mozaik.analysis.helper_functions import psth
+	from mozaik.tools.mozaik_parametrized import MozaikParametrized
+
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
+
+	spike_ids1 = param_filter_query(data_store, sheet_name=sheet1, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons 1:", len(spike_ids1)
+	spike_ids2 = param_filter_query(data_store, sheet_name=sheet2, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons 2:", len(spike_ids2)
+
+	if sheet1=='V1_Exc_L4':
+		spike_ids = select_by_orientation(data_store, sheet1, spike_ids1, preferred=preferred1)
+
+	if sheet2=='V1_Exc_L4':
+		spike_ids = select_by_orientation(data_store, sheet2, spike_ids2, preferred=preferred2)
+
+	if box1:
+		spike_ids1 = select_by_box(data_store, sheet1, spike_ids1, box=box1)
+
+	if box2:
+		spike_ids2 = select_by_box(data_store, sheet2, spike_ids2, box=box2)
+
+	print "Selected neurons 1:", len(spike_ids1)
+	print "Selected neurons 2:", len(spike_ids2)
+
+	# collect the spiketrains of each cell, for each trial, for each stimulus
+	# st1 = {
+	#   'stim' = {
+	#      'id' = [] # spiktrains trials
+	#   }
+	# }
+
+	# Spiktrains are collected unrespective of their trial
+	# the resulting matrices are more like shift predictors than rawJPSTH (which assumes identity of trial numbers)
+
+	# to have the real rawJPSTH and the shift predictor to be subtracted, we can add one dimension
+	# or, better, 
+	# - preallocate each cell's spiketrain array (content of the 2D dict) with the number of trials
+	# - store the spiktrain in the right trial order
+	# - retrieve them in order for the rawJPSTH
+	# - from random import shuffle, and shuffle each cell's spiketrain list for the shiftJPSTH
+	# - compute the correctedJPSTH
+
+	print "Collecting spiketrains of spike_ids1 into dictionary ..."
+	dsv1 = queries.param_filter_query(data_store, sheet_name=sheet1, st_name=stimulus)
+	st1 = {}
+	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv1.get_stimuli()], dsv1.get_segments()):
+		# print st, seg
+		stim = ast.literal_eval(str(st))[stimulus_parameter]
+		if not "{:.3f}".format(stim) in st1:
+			st1["{:.3f}".format(stim)] = {}
+		for idd in spike_ids1:
+			if not str(idd) in st1["{:.3f}".format(stim)]:
+				st1["{:.3f}".format(stim)][str(idd)] = []
+			st1["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+
+	print "Collecting spiketrains of spike_ids2 into dictionary ..."
+	dsv2 = queries.param_filter_query(data_store, sheet_name=sheet2, st_name=stimulus)
+	st2 = {}
+	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv2.get_stimuli()], dsv2.get_segments()):
+		stim = ast.literal_eval(str(st))[stimulus_parameter]
+		if not "{:.3f}".format(stim) in st2:
+			st2["{:.3f}".format(stim)] = {}
+		for idd in spike_ids2:
+			if not str(idd) in st2["{:.3f}".format(stim)]:
+				st2["{:.3f}".format(stim)][str(idd)] = []
+			st2["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+
+	# plotting formats
+	nullfmt = NullFormatter()
+	# axes
+	left, width = 0.01, 0.4
+	bottom, height = 0.01, 0.4
+	bottom_s = left_s = left + 0.2 + 0.04
+	bottom_h = left_h = left_s + width + 0.04
+	rect_jpsth = [left_s, bottom_s, left_h, bottom_h]
+	rect_histx = [left_s, bottom, left_h, bottom+0.2]
+	rect_histy = [left, bottom_s, left+0.2, bottom_h]
+	# rect_jdiag = [left_h+0.04, bottom_s, left_h+0.04+width, bottom_h]
+
+	# Compute JPSTH (as in mulab.physiol.upenn.edu/jpst.html)
+	duration = 1029.+1
+	bin_length = 10. # ms
+	nbins = int(round(duration/bin_length)+1)
+	for stim in st1:
+		stackedJPSTH = numpy.zeros( (nbins,nbins) )
+		print stim
+		for cell1 in st1[stim]:
+			JPSTH = numpy.zeros( (nbins,nbins) )
+			print "\t",cell1
+			for cell2 in st2[stim]:
+				print "\t\t",cell2
+				for trial1 in st1[stim][cell1]:
+					for trial2 in st2[stim][cell2]:
+						# print trial1
+						# print trial2
+						for spiketime1 in trial1:
+							x = round(spiketime1/bin_length)
+							for spiketime2 in trial2:
+								y = round(spiketime2/bin_length)
+								JPSTH[x][y] = JPSTH[x][y]+1
+								stackedJPSTH[x][y] = stackedJPSTH[x][y]+1
+				# plot cell-to-cell
+				# print JPSTH
+				# plt.figure()
+				# plt.imshow( JPSTH, interpolation='nearest', cmap='coolwarm', origin='lower' )
+				# plt.savefig( folder+"/JPSTH_"+str(cell1)+"_"+str(cell2)+"_"+stimulus_parameter+stim+"_"+addon+".png", dpi=300, transparent=True )
+				# plt.close()
+				# gc.collect()
+		# print stackedJPSTH
+		fig = plt.figure(1, figsize=(8,8))
+		axJPSTH = plt.axes(rect_jpsth)
+		axHistx = plt.axes(rect_histx)
+		axHisty = plt.axes(rect_histy)
+		# ax1 = plt.subplot(121)
+		# axJPSTH = ax1.axes(rect_jpsth)
+		# axHistx = ax1.axes(rect_histx)
+		# axHisty = ax1.axes(rect_histy)
+		# ax2 = plt.subplot(122)
+		# axDPSTH = ax2.axes(rect_jdiag)
+		# no labels
+		axHistx.xaxis.set_major_formatter(nullfmt)
+		axHisty.yaxis.set_major_formatter(nullfmt)
+		# data
+		axJPSTH.imshow( stackedJPSTH, interpolation='none', cmap='coolwarm', origin='lower' )
+		axHistx.bar(range(nbins), stackedJPSTH.sum(axis=0), width=1.0, align='edge', facecolor=color, edgecolor=color)
+		axHisty.barh(range(nbins), stackedJPSTH.sum(axis=1), align='edge', facecolor=color, edgecolor=color)
+		# graphics
+		axHistx.set_xlim( (0.,nbins) )
+		axHistx.spines['right'].set_visible(False)
+		axHistx.spines['bottom'].set_visible(False)
+		axHisty.set_ylim( (0.,nbins) )
+		axHisty.spines['left'].set_visible(False)
+		axHisty.spines['top'].set_visible(False)
+		axHisty.set_xlim( axHisty.get_xlim()[::-1] )
+		axHistx.set_ylim( axHistx.get_ylim()[::-1] )
+		for label in axHisty.get_xmajorticklabels():
+			label.set_rotation(90)
+		# plt.tight_layout()
+		plt.savefig( folder+"/stackedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+".png", dpi=300, transparent=True )
+		plt.close()
+		gc.collect()
+
+		# Diagonal
+		diag = numpy.diag( numpy.fliplr(stackedJPSTH) )
+		# print diag
+		# from matplotlib.transforms import Affine2D
+		# import mpl_toolkits.axisartist.floating_axes as floating_axes
+		fig = plt.figure(1, figsize=(4,8))
+		# tr = Affine2D().scale(2, 1).rotate_deg(45)
+		# grid_helper = floating_axes.GridHelperCurveLinear(tr, extremes=(0,len(diag),0,max(diag)))
+		# ax1 = floating_axes.FloatingSubplot(fig, 111, grid_helper=grid_helper)
+		# fig.add_subplot(ax1)
+		# aux_ax = ax1.get_aux_axes(tr)
+		# grid_helper.grid_finder.grid_locator1._nbins = 4
+		# grid_helper.grid_finder.grid_locator2._nbins = 4
+		# # spatial_corr = numpy.trace( numpy.fliplr(stackedJPSTH), offset=0 )
+		# aux_ax.bar(range(len(diag)), diag, width=1.0, align='edge', facecolor=color, edgecolor=color)
+		plt.bar(range(len(diag)), diag, width=1.0, align='edge', facecolor=color, edgecolor=color)
+		plt.ylim( (0.,5000) )
+		plt.savefig( folder+"/stackedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+"_diag.png", dpi=300, transparent=True )
+		plt.close()
+		gc.collect()
+
+
+
+
+def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, preferred=True, ylim=[0.,200.] ):
+	import ast
+	from matplotlib.ticker import NullFormatter
+	from mozaik.analysis.helper_functions import psth
+	from mozaik.tools.mozaik_parametrized import MozaikParametrized
+
+	print "folder: ",folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons:", len(spike_ids)
+
+	if sheet=='V1_Exc_L4':
+		spike_ids = select_by_orientation(data_store, sheet, spike_ids, preferred=preferred)
+
+	if box:
+		spike_ids = select_by_box(data_store, sheet, spike_ids, box=box)
+
+	print "Selected neurons:", len(spike_ids)
+
+	stimuli, mean, v = get_per_neuron_window_spike_count( data_store, sheet, stimulus, stimulus_parameter, 0., 1029., window=5.0, neurons=spike_ids )
+	print mean.shape # (stimuli, cells)
+	# print mean
+
+	# MUA
+	mua = numpy.mean( mean, axis=2) 
+	print mua.shape
+	# print mua
+
+	for st,rec in zip(stimuli,mua):
+		# spectrum
+		dt = 0.0001 # sampling interval, PyNN default time is in ms, in defaults_mea time_step=0.1
+		fs = 1/dt # sampling frequency Hz
+
+		fig = plt.figure()
+		ax1 = fig.add_subplot(211)
+		ax1.plot( rec, color=color, linewidth=3,  linestyle='-' )
+		ax1.set_xlabel("Time (bin: 5ms)")
+		ax1.set_ylabel("Normalized response")
+		ax1.set_ylim([0., 1.])
+		ax2 = fig.add_subplot(212)
+		ax2.magnitude_spectrum( rec, Fs=fs, linewidth=3, color=color, linestyle='-' )
+		ax2.set_ylim([0., 10.])
+		ax2.set_xlim([0., 300.])
+		# plt.spines['right'].set_visible(False)
+		# plt.spines['top'].set_visible(False)
+		plt.tight_layout()
+		plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+"{:.3f}".format(st)+"_"+addon+".png", dpi=300, transparent=True )
+		fig.clf()
+		plt.close()
+		gc.collect()
+
+
+
+
 def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, opposite=False, ylim=[0.,200.] ):
 	import ast
 	from scipy.stats import norm
@@ -647,8 +874,8 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 	# {
 	# 	'stim': {
 	#     'start_stop': [ 12,23,45,78, ... isi_hist #nbins ],
-	#     'start_stop': [ [12,23,45,78], ..., #spike_ids ],
-	#     '#  windows': [ [12,23,45,78], ..., #spike_ids ],
+	#     'start_stop': [ 12,23,45,78, ... isi_hist #nbins ],
+	#     '#  windows': [ 12,23,45,78, ... isi_hist #nbins ],
 	#   }
 	#   ...
 	# 	'#stim': [...], 
@@ -659,115 +886,66 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 	# we take the hist(nbins) and save it in isis_chunks['stim']['start_stop']
 	# for the next seg, we add the hist result onto the previous
 
-
 	nbins = 100
 	# isis = []
 	# d_isi_cvisi_fit = {}
 	isis = {}
-	print "... Computing ISI, CVisi, curve fit"
+	# compute chunking
+	trials = 6.
+	total = 1*147*7 # from experiments.py
+	t_start = 0
+	t_stop = 0
+	window = 300
+	step = 150
+	slides = int(total/step)
+	print "... Computing ISI, CVisi"
+
+	# init dict
+	for i,seg in enumerate(segs):
+		stim = ast.literal_eval( seg[0].annotations['stimulus'] )[stimulus_parameter]
+		isis["{:.3f}".format(stim)] = {}
+		for i in range(0,slides):
+			t_start = step*i
+			t_stop = t_start+window
+			isis["{:.3f}".format(stim)][str(t_start)+'_'+str(t_stop)] = numpy.zeros(nbins)
+	# print isis
+
+	# actual computation
 	for i,seg in enumerate(segs):
 		stim = ast.literal_eval( seg[0].annotations['stimulus'] )[stimulus_parameter]
 		print i, stim
 		sts = numpy.array( seg[0].get_spiketrain(spike_ids) )
-		print sts.shape, sts # one spiketrain per recorded neuron per 
+		# print sts.shape #, sts # one spiketrain per recorded neuron 
+		for i in range(0,slides):
+			t_start = step*i
+			t_stop = t_start+window
+			# print t_start, "< t <", t_stop
+			_isi = [list(numpy.diff( st[(st >= t_start) & (st <= t_stop)])) for st in sts]
+			isi = [item for sublist in _isi for item in sublist]
+			# print isi
+			_isis = isis["{:.3f}".format(stim)][str(t_start)+'_'+str(t_stop)]
+			isis["{:.3f}".format(stim)][str(t_start)+'_'+str(t_stop)] = _isis + numpy.nan_to_num( numpy.histogram( isi, range=(0, nbins), bins=nbins )[0] )
+			# cv_isi = numpy.std(isi)/numpy.mean(isi)
+			# isis["{:.3f}".format(stim)][str(t_start)+'_'+str(t_stop)+'_cv'] = cv_isi
 
-		# # total = 1*147*7 # from experiments.py
-		# # t_start = 0.
-		# # t_stop = 0.
-		# # window = 200.0
-		# # step = 50.0
-		# # slides = int(total/step)
-		# # json_data = {}
-		# # for i in range(0,slides):
-		# # 	t_start = step*i
-		# # 	t_stop = t_start+window
-		# # 	print t_start, "< x <", t_stop
-
-		# # 	vss = []
-		# # 	for j,seg in enumerate(segs):
-		# # 		print j #, seg[0].annotations
-
-		# # 		vs = []
-		# # 		sts = seg[0].get_spiketrain( spike_ids )
-		# # 		# print len(sts)
-		# # 		# print sts
-		# # 		for j,st in enumerate(sts):
-		# # 			# print st.annotations
-		# # 			# print st.annotations['source_id']
-		# # 			# print st.t_start, st.t_stop
-		# # 			# if numpy.any()
-		# # 			selected_st = st[numpy.where(numpy.logical_and(st>=t_start, st<=t_stop))]
-		# # [numpy.diff(s) for s in [self.spiketrains[ids.index(i)] for i in neuron_id]]
-		# # 			# print vs
-		# # 		vss.append(vs)
-
-
-		# # isis.append( [s.magnitude for s in seg[0].isi()] )
-		# isis.append( [s.magnitude for s in seg[0].isi(spike_ids)] )
-		# # cvisis.append( seg[0].cv_isi() )
-		# cvisi = numpy.nan_to_num( numpy.array(seg[0].cv_isi(spike_ids)).astype('float') ).mean()
-		# print "CVisi: ", cvisi
-
-		# isi = numpy.array([])
-		# for si in isis[i]:
-		# 	isi = numpy.append(isi, si)
-		# # print "ISI:", isi.shape, isi
-		# hisi = numpy.nan_to_num( numpy.histogram( isi, range=(0, nbins), bins=nbins )[0] )
-		# hisi_mean = hisi/float(nbins)
-		# hisi_std = numpy.sqrt(hisi**2/float(nbins) - hisi_mean*hisi_mean)
-		# # print hisi_mean, hisi_std
-		# hisi_std[ hisi_std==0. ] = 1.
-		# print hisi
-
-		# # #fitting
-		# # fits = None
-		# # if fit=='gamma':
-		# #  	fits = scipy.stats.gamma.fit(hisi)
-		# #  	print "Gamma fit:", fits
-		# # if fit=='bimodal':
-		# # 	fits = bimodal_fit(numpy.array(range(nbins+1)), hisi, hisi_std)
-		# # 	# fits[2] = , hisi.max()
-		# # 	print "bimodal fit:", fits, hisi.max()
-
-		# # d_isi_cvisi_fit[ "{:.3f}".format(ast.literal_eval( seg[0].annotations['stimulus'] )[stimulus_parameter])] =  {'CVisi':cvisi,'fit':fits}
-
-		# # PLOTTING
-		# # x = numpy.logspace(0,3,num=nbins)
-		# # x1 = numpy.logspace(0,3,num=nbins+1)
-		# # print x.shape, hisi.shape, (numpy.diff(x)).shape
-		# # plt.bar( x, hisi, width=numpy.diff(x1), color=color, log=True )
-		# x = range(nbins)
-		# plt.bar( x, hisi, width=0.8, color=color )
-		# # plt.plot( x, gamma.pdf(x), color=color )
-		# plt.tight_layout()
-		# # plt.ylim([.0,.5])
-		# plt.title(cvisi)
-		# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"{:.3f}".format(stim)+"_box"+str(box)+"_"+addon+".png", dpi=200, transparent=True )
-		# # plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(getattr(s, stimulus_parameter))+"_"+addon+".png", dpi=200, transparent=True )
-		# # plt.xticks( range(100), range(100)*.8 )
-		# plt.close()
-		# plt.ylim([.0,200.])
-		# # plt.xscale('log', nonposx='clip')
-		# # plt.yscale('linear')
-		# plt.xlim([0., nbins])
-		# # plt.savefig( folder+"/ISI_"+str(sheet)+"_"+"{:.3f}".format(getattr(s, stimulus_parameter))+"_"+addon+".png", dpi=200, transparent=True )
-		# # plt.close()
-		# # garbage
-		# gc.collect()
-	# from pprint import pprint
-	# pprint(d_isi_cvisi_fit)
-	# # PLOTTING
-	# for key in sorted(d_isi_cvisi_fit):
-	# 	fit = d_isi_cvisi_fit[key]['fit']
-	# 	plt.scatter(fit[0], fit[2], marker="o", s=fit[1]*100, facecolor=color, edgecolor="white")
-	# plt.ylim([.0, 10.])
-	# plt.xlim([.0, 40.])
-	# plt.tight_layout()
-	# plt.xlabel("Fitted Gaussian mean")
-	# plt.ylabel("Fitted Amplitude")
-	# plt.savefig( folder+"/ISI_Fit_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
-	# plt.close()
-	# gc.collect()
+	# plotting
+	for stim,windows in sorted(isis.items()):
+		print stim
+		for start_stop, hisi in sorted(windows.items()):
+			# print start_stop
+			# print max(hisi)
+			x = range(nbins)
+			frame = plt.gca()
+			frame.axison = False
+			frame.axes.get_xaxis().set_visible(False)
+			frame.axes.get_yaxis().set_visible(False)
+			plt.tight_layout()
+					# plt.hist( hisi, bins=x, histtype=u'step', normed=True, linewidth=3, color=color )
+			plt.ylim([0., 60.])
+			plt.hist( hisi, bins=x, histtype=u'step', normed=False, linewidth=3, color=color )
+			plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+stim+"_win"+str(start_stop)+"_"+addon+".png", dpi=200, transparent=True )
+			plt.close()
+			gc.collect()
 
 
 
@@ -1009,17 +1187,7 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	signal1 = numpy.mean( mean1[5:], axis=(0,2) )
 	signal2 = numpy.mean( mean2[5:], axis=(0,2) )
 
-	# CORRELATION COEFFICIENT
-	corrcoef = numpy.corrcoef( signal1, signal2 )
-	print corrcoef
-
 	# AUTOCORRELATION
-	# a1 = numpy.correlate(signal1, signal1, mode='full')[len(signal1)-1:]
-	# a1 = numpy.array( [1]+[numpy.corrcoef( signal1[:-i], signal1[i:])[0,1] for i in range(1,200)] )
-	# print "autocorrelation signal1: ", a1
-	# a2 = numpy.array( [1]+[numpy.corrcoef( signal2[:-i], signal2[i:])[0,1] for i in range(1,200)] )
-	# print "autocorrelation signal2: ", a2
-	# plot
 	matplotlib.rcParams.update({'font.size':22})
 	fig = plt.figure()
 	ax1 = fig.add_subplot(211)
@@ -1038,20 +1206,36 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	plt.savefig( folder+"/autocorrelation_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
-	# garbage
 	gc.collect()
 
-	# LINEAR REGRESSION
-	txtfile = open(folder+"/linear_regression_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".txt", 'w')
-	txtfile.write( "Selected neurons 1: {:.1f}\n".format(len(spike_ids1)) )
-	txtfile.write( "Selected neurons 2: {:.1f}\n".format(len(spike_ids2)) )
-	slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( signal1, signal2 )
-	print "1-2: ", r_value**2, p_value, std_err
-	txtfile.write( "r: {:.4f}\n".format(corrcoef[0][1]) )
-	txtfile.write( "R2: {:.4f}\n".format(r_value**2) )
-	txtfile.write( "p:  {:.1E}\n".format(p_value) )
-	txtfile.write( "er: {:.2f}\n".format(std_err) )
-	txtfile.close()
+	# CROSS CORRELATION COEFFICIENT
+	corrcoef = numpy.corrcoef( signal1, signal2 )
+	print "cross-correlation coefficient: ", corrcoef
+	# plot
+	fig = plt.figure()
+	plt.xcorr( signal1, signal2, usevlines=False, normed=True, maxlags=200, linewidth=4, color=color, marker=None, linestyle='-' )
+	# plt.spines['left'].set_visible(False)
+	# plt.spines['right'].set_visible(False)
+	# plt.spines['top'].set_visible(False)
+	# plt.spines['bottom'].set_visible(False)
+	plt.tight_layout()
+	# plt.axes().set_aspect('equal', 'datalim')
+	plt.savefig( folder+"/correlation_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	gc.collect()
+
+	# # LINEAR REGRESSION
+	# txtfile = open(folder+"/linear_regression_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".txt", 'w')
+	# txtfile.write( "Selected neurons 1: {:.1f}\n".format(len(spike_ids1)) )
+	# txtfile.write( "Selected neurons 2: {:.1f}\n".format(len(spike_ids2)) )
+	# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( signal1, signal2 )
+	# print "1-2: ", r_value**2, p_value, std_err
+	# txtfile.write( "r: {:.4f}\n".format(corrcoef[0][1]) )
+	# txtfile.write( "R2: {:.4f}\n".format(r_value**2) )
+	# txtfile.write( "p:  {:.1E}\n".format(p_value) )
+	# txtfile.write( "er: {:.2f}\n".format(std_err) )
+	# txtfile.close()
 
 
 
@@ -2874,8 +3058,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	"Thalamocortical_size_closed", # BIG
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____",
+	# "Thalamocortical_size_closed", # BIG
 	# "ThalamoCorticalModel_data_size_closed_____",
 	# "ThalamoCorticalModel_data_size_closed_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
@@ -2884,7 +3068,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Thalamocortical_size_feedforward", # BIG
 	# "ThalamoCorticalModel_data_size_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
@@ -3422,19 +3606,118 @@ else:
 			# 	addon = "surround_opposite_0.1",
 			# 	opposite=True, # OPPOSITE
 			# )
-			# correlation( # CORTICO-CORTICAL
+
+			# jpsth( # CORTICO-CORTICAL 
+			# 	sheet1='V1_Exc_L4', 
+			# 	sheet2='V1_Exc_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.5,-.5],[.5,.5]], # center
+			# 	box2=[[-.5,.5],[.5,1.]], # surround
+			# 	addon="center_vs_surround_"+addon,
+			# 	color=color
+			# )
+			# jpsth( # CORTICO-CORTICAL 
+			# 	sheet1='V1_Exc_L4', 
+			# 	sheet2='V1_Exc_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.5,-.5],[.5,.5]], # center
+			# 	box2=[[-.5,-.5],[.5,.5]], # center
+			# 	addon="center_vs_center_"+addon,
+			# 	color=color
+			# )
+			# jpsth( # CORTICO-CORTICAL 
+			# 	sheet1='V1_Exc_L4', 
+			# 	sheet2='V1_Exc_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.5,.5],[.5,1.]], # surround
+			# 	box2=[[-.5,.5],[.5,1.]], # surround
+			# 	addon="surround_vs_surround_"+addon,
+			# 	color=color
+			# )
+			jpsth( # Thalamus 
+				sheet1='X_ON', 
+				sheet2='X_ON', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box1=[[-.5,-.5],[.5,.5]], # all
+				box2=[[-.5,-.5],[.5,.5]], # all
+				addon="all_vs_all_"+addon,
+				color=color
+			)
+			jpsth( # Thalamus 
+				sheet1='X_OFF', 
+				sheet2='X_OFF', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box1=[[-.5,-.5],[.5,.5]], # all
+				box2=[[-.5,-.5],[.5,.5]], # all
+				addon="all_vs_all_"+addon,
+				color=color
+			)
+
+			# spectrum(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box = [[-.5,-.5],[.5,.5]],  # center
+			# 	addon = "center_"+addon,
+			# 	preferred=True, # 
+			# 	color = color,
+			# )
+			# spectrum(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box=[[-.5,.5],[.5,1.]], # surround
+			# 	addon = "surround_"+addon,
+			# 	preferred=True, # 
+			# 	color = color,
+			# )
+
+			# correlation( # CORTICO-CORTICAL 
 			# 	sheet1=s, 
 			# 	sheet2=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	box1=[[-.5,-.5],[.5,.5]], # center
-			# 	# addon="center_feedforward",
-			# 	# addon="center_closed",
 			# 	box2=[[-.5,.5],[.5,1.]], # surround
-			# 	# box2 = [[ -.5,  .0],[ .5, .8]], # mixed surround (more likely to be influenced by the recorded thalamus)
-			# 	# addon="surround_feedforward",
-			# 	addon="center_vs_surround_closed",
+			# 	addon="center_vs_surround",
+			# 	color=color
+			# )
+			# correlation( # CORTICO-CORTICAL 
+			# 	sheet1=s, 
+			# 	sheet2=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.5,-.5],[.5,.5]], # center
+			# 	box2=[[-.5,-.5],[.5,.5]], # center
+			# 	preferred2=False, # opposite
+			# 	addon="center_vs_center_opposite",
+			# 	color=color
+			# )
+			# correlation( # CORTICO-CORTICAL 
+			# 	sheet1=s, 
+			# 	sheet2=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.5,-.5],[.5,.5]], # center
+			# 	box2=[[-.5,.5],[.5,1.]], # surround
+			# 	preferred2=False, # opposite
+			# 	addon="center_vs_surround_opposite",
+			# 	color=color
 			# )
 			# correlation( 
 			# 	# sheet1='X_ON', 
@@ -3464,6 +3747,7 @@ else:
 			# 	addon="center2surround_opposite_feedforward",
 			# 	color=color,
 			# )
+
 			# phase_synchrony( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -3479,16 +3763,48 @@ else:
 			# 	compute_vectorstrength=False,
 			# 	ylim=[0.,5000.]
 			# )
-			isi( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				color=color,
-				box = [[-.5,-.5],[.5,.5]], # CENTER
-				opposite=False, # SAME
-				addon = "center_same",
-			)
+
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	box = [[-3.5,-3.5],[3.5,3.5]], # ALL
+			# 	opposite=False, # SAME
+			# 	addon = "all_same",
+			# )
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	box = [[-.5,-.5],[.5,.5]], # CENTER
+			# 	opposite=False, # SAME
+			# 	addon = "center_same",
+			# )
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	box = [[-.5,-.5],[.5,.5]], # CENTER
+			# 	opposite=True, # OPPOSITE
+			# 	addon = "center_opposite",
+			# )
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	box = [[-.5,.5],[.5,1.5]], # SURROUND
+			# 	opposite=False, # SAME
+			# 	addon = "surround_same",
+			# )
+
 			# isi( 
 			# 	sheet=s, 
 			# 	folder=f,
