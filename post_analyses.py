@@ -595,8 +595,10 @@ def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_di
 
 
 
-def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, preferred1=True, preferred2=True, addon="", color="black" ):
+def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, preferred1=True, preferred2=True, addon="", color="black", trials=6 ):
 	import ast
+	import random
+	import copy
 	from matplotlib.ticker import NullFormatter
 	from mozaik.analysis.helper_functions import psth
 	from mozaik.tools.mozaik_parametrized import MozaikParametrized
@@ -646,26 +648,34 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 	dsv1 = queries.param_filter_query(data_store, sheet_name=sheet1, st_name=stimulus)
 	st1 = {}
 	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv1.get_stimuli()], dsv1.get_segments()):
-		# print st, seg
+		print st, seg
 		stim = ast.literal_eval(str(st))[stimulus_parameter]
+		trial = ast.literal_eval(str(st))['trial']
 		if not "{:.3f}".format(stim) in st1:
 			st1["{:.3f}".format(stim)] = {}
 		for idd in spike_ids1:
 			if not str(idd) in st1["{:.3f}".format(stim)]:
-				st1["{:.3f}".format(stim)][str(idd)] = []
-			st1["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+				# st1["{:.3f}".format(stim)][str(idd)] = []
+				st1["{:.3f}".format(stim)][str(idd)] = [ [] for _ in range(trials) ]
+			# st1["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+			st1["{:.3f}".format(stim)][str(idd)][trial] = seg.get_spiketrain(idd)
 
 	print "Collecting spiketrains of spike_ids2 into dictionary ..."
 	dsv2 = queries.param_filter_query(data_store, sheet_name=sheet2, st_name=stimulus)
 	st2 = {}
 	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv2.get_stimuli()], dsv2.get_segments()):
 		stim = ast.literal_eval(str(st))[stimulus_parameter]
+		trial = ast.literal_eval(str(st))['trial']
 		if not "{:.3f}".format(stim) in st2:
 			st2["{:.3f}".format(stim)] = {}
 		for idd in spike_ids2:
 			if not str(idd) in st2["{:.3f}".format(stim)]:
-				st2["{:.3f}".format(stim)][str(idd)] = []
-			st2["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+				# st2["{:.3f}".format(stim)][str(idd)] = []
+				st2["{:.3f}".format(stim)][str(idd)] = [ [] for _ in range(trials) ]
+			# st2["{:.3f}".format(stim)][str(idd)].append( seg.get_spiketrain(idd) )
+			st2["{:.3f}".format(stim)][str(idd)][trial] = seg.get_spiketrain(idd)
+
+	# st1 and st2 now contain cell-wise, stimulus-wise, trial-wise ordered spiketrains
 
 	# plotting formats
 	nullfmt = NullFormatter()
@@ -677,30 +687,34 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 	rect_jpsth = [left_s, bottom_s, left_h, bottom_h]
 	rect_histx = [left_s, bottom, left_h, bottom+0.2]
 	rect_histy = [left, bottom_s, left+0.2, bottom_h]
-	# rect_jdiag = [left_h+0.04, bottom_s, left_h+0.04+width, bottom_h]
+	rect_cbar = [left_s, bottom_h+0.04, left_h, bottom_h+0.04]
 
 	# Compute JPSTH (as in mulab.physiol.upenn.edu/jpst.html)
 	duration = 1029.+1
-	bin_length = 10. # ms
+	bin_length = 5. # ms
 	nbins = int(round(duration/bin_length)+1)
+
+	# for each stimulus
 	for stim in st1:
-		stackedJPSTH = numpy.zeros( (nbins,nbins) )
+
+		# Raw JPSTH: ordered trials
+		rawJPSTH = numpy.zeros( (nbins,nbins) )
 		print stim
 		for cell1 in st1[stim]:
-			JPSTH = numpy.zeros( (nbins,nbins) )
+			# JPSTH = numpy.zeros( (nbins,nbins) )
 			print "\t",cell1
 			for cell2 in st2[stim]:
 				print "\t\t",cell2
 				for trial1 in st1[stim][cell1]:
+					# print "\t\t\t", len(trial1)
 					for trial2 in st2[stim][cell2]:
-						# print trial1
-						# print trial2
+						# print "\t\t\t\t", len(trial2)
 						for spiketime1 in trial1:
 							x = round(spiketime1/bin_length)
 							for spiketime2 in trial2:
 								y = round(spiketime2/bin_length)
-								JPSTH[x][y] = JPSTH[x][y]+1
-								stackedJPSTH[x][y] = stackedJPSTH[x][y]+1
+								# JPSTH[x][y] = JPSTH[x][y]+1
+								rawJPSTH[x][y] = rawJPSTH[x][y]+1
 				# plot cell-to-cell
 				# print JPSTH
 				# plt.figure()
@@ -708,7 +722,37 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 				# plt.savefig( folder+"/JPSTH_"+str(cell1)+"_"+str(cell2)+"_"+stimulus_parameter+stim+"_"+addon+".png", dpi=300, transparent=True )
 				# plt.close()
 				# gc.collect()
-		# print stackedJPSTH
+		# print rawJPSTH
+
+		# Shift JPSTH: random trials
+		shiftJPSTH = numpy.zeros( (nbins,nbins) )
+		st1_random = random.sample(st1[stim], len(st1[stim]))
+		for cell1 in st1_random: #st1[stim]:
+			# print "\t",cell1
+			for cell2 in st2[stim]:
+				# print "\t\t",cell2
+				st_trial1 = random.sample(st1[stim][cell1], len(st1[stim][cell1]))
+				# print st_trial1
+				# print st1[stim][cell1] # visual inspection: the trials are shuffled
+				# print numpy.array_equal(st1[stim][cell1],st_trial1), # False: they are different
+				for trial1 in st_trial1:
+					for trial2 in st2[stim][cell2]:
+						for spiketime1 in trial1:
+							# x = round(spiketime1/bin_length)
+							x = numpy.clip( (float(spiketime1)+random.uniform(-2*bin_length,2*bin_length))/bin_length, 0, nbins-1)
+							for spiketime2 in trial2:
+								# y = round(spiketime2/bin_length)
+								y = numpy.clip( (float(spiketime2)+random.uniform(-2*bin_length,2*bin_length))/bin_length, 0, nbins-1)
+								shiftJPSTH[x][y] = shiftJPSTH[x][y]+1
+
+		# print numpy.array_equal(rawJPSTH,shiftJPSTH)
+		# 0/0
+
+		# correctedJPSTH = rawJPSTH
+		correctedJPSTH = (rawJPSTH - shiftJPSTH).clip(min=0)
+		# correctedJPSTH = correctedJPSTH / ( rawJPSTH.sum(axis=0).std() * rawJPSTH.sum(axis=1).std() )
+
+		# plotting
 		fig = plt.figure(1, figsize=(8,8))
 		axJPSTH = plt.axes(rect_jpsth)
 		axHistx = plt.axes(rect_histx)
@@ -723,9 +767,9 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 		axHistx.xaxis.set_major_formatter(nullfmt)
 		axHisty.yaxis.set_major_formatter(nullfmt)
 		# data
-		axJPSTH.imshow( stackedJPSTH, interpolation='none', cmap='coolwarm', origin='lower' )
-		axHistx.bar(range(nbins), stackedJPSTH.sum(axis=0), width=1.0, align='edge', facecolor=color, edgecolor=color)
-		axHisty.barh(range(nbins), stackedJPSTH.sum(axis=1), align='edge', facecolor=color, edgecolor=color)
+		cax = axJPSTH.imshow( correctedJPSTH, interpolation='none', cmap='coolwarm', origin='lower' )
+		axHistx.bar(range(nbins), correctedJPSTH.sum(axis=0), width=1.0, align='edge', facecolor=color, edgecolor=color)
+		axHisty.barh(range(nbins), correctedJPSTH.sum(axis=1), align='edge', facecolor=color, edgecolor=color)
 		# graphics
 		axHistx.set_xlim( (0.,nbins) )
 		axHistx.spines['right'].set_visible(False)
@@ -735,15 +779,18 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 		axHisty.spines['top'].set_visible(False)
 		axHisty.set_xlim( axHisty.get_xlim()[::-1] )
 		axHistx.set_ylim( axHistx.get_ylim()[::-1] )
+		for label in axJPSTH.get_ymajorticklabels():
+			label.set_rotation(90)
 		for label in axHisty.get_xmajorticklabels():
 			label.set_rotation(90)
 		# plt.tight_layout()
-		plt.savefig( folder+"/stackedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+".png", dpi=300, transparent=True )
+		# fig.colorbar(cax, orientation="horizontal")
+		plt.savefig( folder+"/correctedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+".png", dpi=300, transparent=True )
 		plt.close()
 		gc.collect()
 
 		# Diagonal
-		diag = numpy.diag( numpy.fliplr(stackedJPSTH) )
+		diag = numpy.diag( numpy.fliplr(correctedJPSTH) )
 		# print diag
 		# from matplotlib.transforms import Affine2D
 		# import mpl_toolkits.axisartist.floating_axes as floating_axes
@@ -755,11 +802,11 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 		# aux_ax = ax1.get_aux_axes(tr)
 		# grid_helper.grid_finder.grid_locator1._nbins = 4
 		# grid_helper.grid_finder.grid_locator2._nbins = 4
-		# # spatial_corr = numpy.trace( numpy.fliplr(stackedJPSTH), offset=0 )
+		# # spatial_corr = numpy.trace( numpy.fliplr(rawJPSTH), offset=0 )
 		# aux_ax.bar(range(len(diag)), diag, width=1.0, align='edge', facecolor=color, edgecolor=color)
 		plt.bar(range(len(diag)), diag, width=1.0, align='edge', facecolor=color, edgecolor=color)
-		plt.ylim( (0.,5000) )
-		plt.savefig( folder+"/stackedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+"_diag.png", dpi=300, transparent=True )
+		plt.ylim( (0,1000) )
+		plt.savefig( folder+"/correctedJPSTH_"+str(sheet1)+"_"+addon+"_"+stimulus_parameter+stim+"_bin"+str(bin_length)+"_diag.png", dpi=300, transparent=True )
 		plt.close()
 		gc.collect()
 
@@ -769,10 +816,10 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, preferred=True, ylim=[0.,200.] ):
 	import ast
 	from matplotlib.ticker import NullFormatter
-	from mozaik.analysis.helper_functions import psth
-	from mozaik.tools.mozaik_parametrized import MozaikParametrized
+	from scipy import signal
 
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
 
 	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
@@ -786,37 +833,104 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 
 	print "Selected neurons:", len(spike_ids)
 
-	stimuli, mean, v = get_per_neuron_window_spike_count( data_store, sheet, stimulus, stimulus_parameter, 0., 1029., window=5.0, neurons=spike_ids )
-	print mean.shape # (stimuli, cells)
-	# print mean
+	# compute PSTH per neuron, per stimulus, per trial
+	PSTH( param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), ParameterSet({'bin_length': 2.0 }) ).analyse()
+	dsv = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='PSTH')
+	asls = dsv.get_analysis_result( sheet_name=sheet )
 
-	# MUA
-	mua = numpy.mean( mean, axis=2) 
-	print mua.shape
-	# print mua
+	# store the mean PSTH (over the selected neurons) in a dict
+	dt = 0.002 # sampling interval, PyNN default time is in ms, 'bin_length': 2.0
+	fs = 1.029/dt # 
+	nfft = int(fs*dt) # closest to 514 number of samples at 
+	noverlap = int((fs*dt)/2.)
+	# print nfft, noverlap
+	psths = {}
+	spectra = {}
+	for asl in asls:
+		# print asl
+		stim = ast.literal_eval(str(asl.stimulus_id))[stimulus_parameter]
+		trial = ast.literal_eval(str(asl.stimulus_id))['trial']
+		# print stim, trial
 
-	for st,rec in zip(stimuli,mua):
+		psth = []
+		for idd in set(asl.ids).intersection(spike_ids): # get only the slected neurons
+			psth.append( asl.get_asl_by_id(idd) )
+		psth = numpy.mean(psth, axis=0) # mean over neurons
+
+		if not "{:.3f}".format(stim) in psths:
+			psths["{:.3f}".format(stim)] = []
+		psths["{:.3f}".format(stim)].append( psth )
+
+	powers = []
+	for stim, ps in psths.items():
+		print stim
+
+		# mps = numpy.mean(ps, axis=0)
+		# # trial-averaged psth spectrogram
+		# plt.figure()
+		# plt.specgram( mps, Fs=fs, NFFT=nfft, noverlap=noverlap )
+		# plt.tight_layout()
+		# plt.savefig( folder+"/spectrogram_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+		# plt.close()
+		# gc.collect()
+
 		# spectrum
-		dt = 0.0001 # sampling interval, PyNN default time is in ms, in defaults_mea time_step=0.1
-		fs = 1/dt # sampling frequency Hz
+		spectra = []
+		for psth in ps:
+			spectra.append( numpy.abs(numpy.fft.fft(psth))**2 )
+			freqs = numpy.fft.fftfreq(psth.size, dt)
 
-		fig = plt.figure()
-		ax1 = fig.add_subplot(211)
-		ax1.plot( rec, color=color, linewidth=3,  linestyle='-' )
-		ax1.set_xlabel("Time (bin: 5ms)")
-		ax1.set_ylabel("Normalized response")
-		ax1.set_ylim([0., 1.])
-		ax2 = fig.add_subplot(212)
-		ax2.magnitude_spectrum( rec, Fs=fs, linewidth=3, color=color, linestyle='-' )
-		ax2.set_ylim([0., 10.])
-		ax2.set_xlim([0., 300.])
-		# plt.spines['right'].set_visible(False)
-		# plt.spines['top'].set_visible(False)
+		power = numpy.mean(spectra, axis=0)
+		
+		powers.append( power )
+
+		plt.figure()
+		idx = numpy.argsort(freqs) # last one is as all the others
+		plt.plot( freqs[idx], power[idx], linewidth=3, color=color, linestyle='-' )
+		plt.ylim([0., 8000000.])
+		plt.xlim([0., 150.])
 		plt.tight_layout()
-		plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+"{:.3f}".format(st)+"_"+addon+".png", dpi=300, transparent=True )
-		fig.clf()
+		plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
 		plt.close()
 		gc.collect()
+
+		# # find peaks
+		# peakind = signal.find_peaks_cwt(power, [1,2,3,4,5,6,7,8] )
+		# # print peakind, power[peakind]
+		# # amount of power in each band (computed from peaks)
+		# hist = []
+		# bands = [0, 4, 7, 13, 30, 100]
+		# for i in range(len(bands)-1):
+		# 	# print bands[i], bands[i+1]
+		# 	# sum the powers of peaks
+		# 	idxs = numpy.logical_and( peakind>=bands[i], peakind<=bands[i+1] )
+		# 	raw = numpy.sum( power[ idxs ] )
+		# 	band = raw / len(nidxs)
+		# 	hist.append( band )
+		# hist = hist / numpy.max(hist)
+		# # plotting
+		# plt.figure()
+		# plt.bar(range(5), hist, width=0.35, color=color)
+		# # plt.ylim([0., 200000000.])
+		# plt.tight_layout()
+		# plt.savefig( folder+"/hist_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+		# plt.close()
+		# gc.collect()
+
+	powers = numpy.array(powers)
+	print powers.shape
+
+	powers = numpy.mean(powers, axis=0)
+	idx = numpy.argsort(freqs) # last one is as all the others
+	plt.figure()
+	idx = numpy.argsort(freqs) # last one is as all the others
+	plt.plot( freqs[idx], powers[idx], linewidth=3, color=color, linestyle='-' )
+	plt.ylim([0., 8000000.])
+	plt.xlim([0., 150.])
+	plt.tight_layout()
+	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
 
 
 
@@ -3273,6 +3387,7 @@ else:
 			color_data = "grey"
 			fit = "gamma"
 			# color = "red"
+			trials = 12
 		if "open" in f:
 			closed = False
 			color = "cyan"
@@ -3283,6 +3398,7 @@ else:
 			color_data = "black"
 			closed = True
 			fit = "bimodal"
+			trials = 6
 		if "Kimura" in f:
 			color = "gold"
 		if "LGNonly" in f:
@@ -3607,6 +3723,30 @@ else:
 			# 	opposite=True, # OPPOSITE
 			# )
 
+			# jpsth( # Thalamus 
+			# 	sheet1='X_ON', 
+			# 	sheet2='X_ON', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.2,-.2],[.2,.2]], # center
+			# 	box2=[[-.2,.3],[.2,.7]], # surround
+			# 	addon="center_vs_surround_"+addon,
+			# 	color=color,
+			# 	trials=trials
+			# )
+			# jpsth( # Thalamus 
+			# 	sheet1='X_OFF', 
+			# 	sheet2='X_OFF', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	box1=[[-.2,-.2],[.2,.2]], # center
+			# 	box2=[[-.2,.3],[.2,.7]], # surround
+			# 	addon="center_vs_surround_"+addon,
+			# 	color=color,
+			# 	trials=trials
+			# )
 			# jpsth( # CORTICO-CORTICAL 
 			# 	sheet1='V1_Exc_L4', 
 			# 	sheet2='V1_Exc_L4', 
@@ -3616,7 +3756,8 @@ else:
 			# 	box1=[[-.5,-.5],[.5,.5]], # center
 			# 	box2=[[-.5,.5],[.5,1.]], # surround
 			# 	addon="center_vs_surround_"+addon,
-			# 	color=color
+			# 	color=color,
+			# 	trials=trials
 			# )
 			# jpsth( # CORTICO-CORTICAL 
 			# 	sheet1='V1_Exc_L4', 
@@ -3627,7 +3768,8 @@ else:
 			# 	box1=[[-.5,-.5],[.5,.5]], # center
 			# 	box2=[[-.5,-.5],[.5,.5]], # center
 			# 	addon="center_vs_center_"+addon,
-			# 	color=color
+			# 	color=color,
+			# 	trials=trials
 			# )
 			# jpsth( # CORTICO-CORTICAL 
 			# 	sheet1='V1_Exc_L4', 
@@ -3638,51 +3780,90 @@ else:
 			# 	box1=[[-.5,.5],[.5,1.]], # surround
 			# 	box2=[[-.5,.5],[.5,1.]], # surround
 			# 	addon="surround_vs_surround_"+addon,
-			# 	color=color
+			# 	color=color,
+			# 	trials=trials
 			# )
-			jpsth( # Thalamus 
-				sheet1='X_ON', 
-				sheet2='X_ON', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				box1=[[-.5,-.5],[.5,.5]], # all
-				box2=[[-.5,-.5],[.5,.5]], # all
-				addon="all_vs_all_"+addon,
-				color=color
-			)
-			jpsth( # Thalamus 
-				sheet1='X_OFF', 
-				sheet2='X_OFF', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				stimulus_parameter='radius',
-				box1=[[-.5,-.5],[.5,.5]], # all
-				box2=[[-.5,-.5],[.5,.5]], # all
-				addon="all_vs_all_"+addon,
-				color=color
-			)
 
-			# spectrum(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	box = [[-.5,-.5],[.5,.5]],  # center
-			# 	addon = "center_"+addon,
-			# 	preferred=True, # 
-			# 	color = color,
-			# )
-			# spectrum(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	box=[[-.5,.5],[.5,1.]], # surround
-			# 	addon = "surround_"+addon,
-			# 	preferred=True, # 
-			# 	color = color,
-			# )
+			spectrum(
+				sheet='X_OFF', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,-.2],[.2,.2]], # center
+				addon = "center_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='X_OFF', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,.3],[.2,.7]], # surround
+				addon = "surround_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='X_ON', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,-.2],[.2,.2]], # center
+				addon = "center_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='X_ON', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,.3],[.2,.7]], # surround
+				addon = "surround_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='PGN', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,-.2],[.2,.2]], # center
+				addon = "center_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='PGN', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box = [[-.2,.3],[.2,.7]], # surround
+				addon = "surround_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='V1_Exc_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box=[[-.5,-.5],[.5,.5]], # center
+				addon = "center_"+addon,
+				preferred=True, # 
+				color = color,
+			)
+			spectrum(
+				sheet='V1_Exc_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				box=[[-.5,.5],[.5,1.]], # surround
+				addon = "surround_"+addon,
+				preferred=True, # 
+				color = color,
+			)
 
 			# correlation( # CORTICO-CORTICAL 
 			# 	sheet1=s, 
