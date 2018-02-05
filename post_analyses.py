@@ -973,6 +973,7 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 	plt.xlim([0., 150.])
 	plt.tight_layout()
 	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
 
@@ -1054,6 +1055,7 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 	plt.ylim(ylim)
 	plt.plot( x, hisi, linewidth=3, color=color) 
 	plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_x"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_x"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
 
@@ -2750,6 +2752,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	plt.tight_layout()
 	dist = box if not radius else radius
 	plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	# garbage
@@ -3320,6 +3323,256 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 
+def Xcorr_LFP_SUA(sheet, folder, stimulus, parameter, ticks, ylim=[0.,100.], box=False, radius=False, opposite=False, addon="", color="black"):
+	import ast
+	from scipy import signal
+	print folder
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	# data_store.print_content(full_recordings=False)
+
+	# # LFP
+	# neurons = []
+	# neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	# print "LFP neurons:", len(neurons)
+
+	# num_ticks = len( ticks )
+	# segs = sorted( 
+	# 	param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+	# 	# key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
+	# 	key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	# )
+	# trials = len(segs) / num_ticks
+	# print "trials:",trials
+
+	# pop_vm = []
+	# pop_gsyn_e = []
+	# pop_gsyn_i = []
+	# for n,idd in enumerate(neurons):
+	# 	print "idd", idd
+	# 	full_vm = [s.get_vm(idd) for s in segs]
+	# 	full_gsyn_es = [s.get_esyn(idd) for s in segs]
+	# 	full_gsyn_is = [s.get_isyn(idd) for s in segs]
+	# 	# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_ticks
+	# 	# print "shape gsyn_e/i", full_gsyn_es[0].shape
+	# 	# mean input over trials
+	# 	mean_full_vm = numpy.zeros((num_ticks, full_vm[0].shape[0])) # init
+	# 	mean_full_gsyn_e = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0])) # init
+	# 	mean_full_gsyn_i = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0]))
+	# 	# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
+	# 	sampling_period = full_gsyn_es[0].sampling_period
+	# 	t_stop = float(full_gsyn_es[0].t_stop - sampling_period) # 200.0
+	# 	t_start = float(full_gsyn_es[0].t_start)
+	# 	time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
+	# 	# sum by size
+	# 	t = 0
+	# 	for v,e,i in zip(full_vm, full_gsyn_es, full_gsyn_is):
+	# 		s = int(t/trials)
+	# 		v = v.rescale(mozaik.tools.units.mV) 
+	# 		e = e.rescale(mozaik.tools.units.nS) #e=e*1000
+	# 		i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+	# 		mean_full_vm[s] = mean_full_vm[s] + numpy.array(v.tolist())
+	# 		mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
+	# 		mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
+	# 		t = t+1
+
+	# 	# average by trials
+	# 	for s in range(num_ticks):
+	# 		mean_full_vm[s] = mean_full_vm[s] / trials
+	# 		mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
+	# 		mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
+
+	# 	pop_vm.append(mean_full_vm)
+	# 	pop_gsyn_e.append(mean_full_gsyn_e)
+	# 	pop_gsyn_i.append(mean_full_gsyn_i)
+
+	# pop_v = numpy.array(pop_vm)
+	# pop_e = numpy.array(pop_gsyn_e)
+	# pop_i = numpy.array(pop_gsyn_i)
+
+	# # mean and std over cells
+	# # print pop_e.shape
+	# mean_pop_v = numpy.mean(pop_v, axis=0 )
+	# mean_pop_e = numpy.mean(pop_e, axis=0 )
+	# mean_pop_i = numpy.mean(pop_i, axis=0 ) 
+	# std_pop_v = numpy.std(pop_v, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# std_pop_e = numpy.std(pop_e, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# std_pop_i = numpy.std(pop_i, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# # print "mean std:", mean_pop_v.shape, mean_pop_e.shape, std_pop_e.shape
+	# # print "mean std exc:", mean_pop_e, std_pop_e
+	# # print "mean std inh:", mean_pop_i, std_pop_i
+
+	# # We produce the current for each cell for this time interval, with the Ohm law:
+	# # I = g(V-E), where E is the equilibrium for exc, which usually is 0.0 (we can change it)
+	# # (and we also have to consider inhibitory condictances)
+	# i = pop_e*pop_v + pop_i*pop_v
+	# # the LFP is the result of cells' currents
+	# avg_i = numpy.mean( i, axis=0 )
+	# sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
+	# lfp = (1/(4*numpy.pi*sigma)) * avg_i
+	# print "LFP:", lfp.shape
+	# print lfp
+
+	# for s in range(num_ticks):
+	# 	# for each stimulus plot the average conductance per cell over time
+	# 	matplotlib.rcParams.update({'font.size':22})
+	# 	fig,ax = plt.subplots()
+
+	# 	ax.plot( range(0,len(lfp[s])), lfp[s], color=color, linewidth=3 )
+
+	# 	# ax.set_ylim(ylim)
+	# 	ax.set_ylabel( "LFP (mV)" )
+	# 	ax.set_xlabel( "Time (ms)" )
+
+	# 	ax.spines['right'].set_visible(False)
+	# 	ax.spines['top'].set_visible(False)
+	# 	ax.xaxis.set_ticks_position('bottom')
+	# 	ax.xaxis.set_ticks(ticks, ticks)
+	# 	ax.yaxis.set_ticks_position('left')
+
+	# 	# text
+	# 	plt.tight_layout()
+	# 	plt.savefig( folder+"/TimecourseLFP_"+sheet+"_"+parameter+"_"+str(ticks[s])+".png", dpi=200, transparent=True )
+	# 	fig.clf()
+	# 	plt.close()
+	# 	# garbage
+	# 	gc.collect()
+
+	# SUA
+	neurons = []
+	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+
+	if sheet=='V1_Exc_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
+		neurons = list(l4_exc_or_many)
+
+	if radius or box:
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
+		positions = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids = select_ids_by_position(positions, sheet_ids, box=box)
+		if radius:
+			ids = select_ids_by_position(positions, sheet_ids, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)
+
+	print "SUA neurons:", len(neurons)
+
+	print "Collecting spiketrains of selected neurons into dictionary ..."
+	dsv1 = queries.param_filter_query(data_store, sheet_name=sheet, st_name=stimulus)
+	sts = {}
+	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv1.get_stimuli()], dsv1.get_segments()):
+		# print st, seg
+		stim = ast.literal_eval(str(st))[parameter]
+		trial = ast.literal_eval(str(st))['trial']
+		if not "{:.3f}".format(stim) in sts:
+			sts["{:.3f}".format(stim)] = {}
+		for idd in neurons:
+			if not str(idd) in sts["{:.3f}".format(stim)]:
+				sts["{:.3f}".format(stim)][str(idd)] = [ [] for _ in range(trials) ]
+			sts["{:.3f}".format(stim)][str(idd)][trial] = seg.get_spiketrain(idd)
+	# print sts
+
+	# STA
+	print "starting STA"
+	# Short segments of fixed duration are selected from the LFP, based on the timing of occurrence of spikes and then averaged on the number of spikes
+	duration = 300 # ms
+	# STA = 
+	for st,neurons in sts.items():
+		print st
+		for idd,spiketrains in neurons.items():
+			print "\t", idd
+			for spiketrain in spiketrains:
+				# print spiketrain
+				for time in spiketrain:
+					start = max(0., time.item() - duration)
+					end = min(spiketrain.t_stop, time.item() + duration)
+					# print "\t\t", start, time, end
+
+	
+	# PSTH( param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), ParameterSet({'bin_length':1.0, 'neurons':list(neurons) }) ).analyse()
+	# dsv = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='PSTH')
+	# asls = dsv.get_analysis_result( sheet_name=sheet )
+
+	# # store the mean PSTH (over the selected neurons) in a dict
+	# shift_predictors = {}
+	# correlations = {}
+	# psths = {}
+	# for asl in asls:
+	# 	stim = ast.literal_eval(str(asl.stimulus_id))[parameter]
+	# 	psth = []
+	# 	# for idd in set(asl.ids).intersection(spike_ids1): # get only the slected neurons
+	# 	for idd in neurons: # get only the slected neurons
+	# 		psth.append( asl.get_asl_by_id(idd) )
+	# 	psth = numpy.mean(psth, axis=0) # mean over neurons
+	# 	if not "{:.3f}".format(stim) in psths1:
+	# 		psths["{:.3f}".format(stim)] = []
+	# 		correlations["{:.3f}".format(stim)] = []
+	# 		shift_predictors["{:.3f}".format(stim)] = []
+	# 	psths["{:.3f}".format(stim)].append( psth )
+
+	# # create all combinations
+	# psthsitems = psths.items()
+	# print "psthsitems:", len(psthsitems)
+	# combinations = [(x,y) for x in psthsitems for y in psthsitems]
+	# print "combinations:", len(combinations)
+	# # print combinations
+
+	# # perform correlation for each combination
+	# # for signal1, signal2 in zip( sorted(psths1.items()), sorted(psths2.items()) ):
+	# for signal1, signal2 in combinations:
+	# 	# print signal1[1][0].shape, signal2[1][0].shape
+	# 	# print numpy.array(signal1[1]).mean(axis=0).shape, numpy.array(signal2[1]).mean(axis=0).shape
+	# 	# shift_predictors[signal1[0]].append( numpy.correlate(numpy.array(signal1[1]).mean(axis=0), numpy.array(signal2[1]).mean(axis=0), "same") )
+	# 	for s1, s2 in zip(signal1[1], signal2[1]):
+	# 		correlations[signal1[0]].append( numpy.correlate(s1, s2, "same") )
+	# 		shift_predictors[signal1[0]].append( numpy.correlate(s1, numpy.roll(s2, int(len(s2)/tf)), "same" ) )
+
+	# final = []
+	# diag = {}
+	# for corr, shift in zip( sorted(correlations.items()), sorted(shift_predictors.items()) ):
+	# 	# print corr[0], corr[1], len(corr[1])
+	# 	diag[corr[0]] = []
+	# 	for i,(c,s) in enumerate(zip(corr[1],shift[1])):
+	# 		# print len(c), len(shift[1][0])
+	# 		final.append( c-s )
+	# 		diag[corr[0]].append( c-s ) 
+	# 		# # plot
+	# 		x = range(len(c))
+	# 		# fig = plt.figure()
+	# 		# plt.plot( x, c, color="green", linewidth=1 )
+	# 		# plt.plot( x, c, color="green", linewidth=1 )
+	# 		# plt.plot( x, s, color="red", linewidth=1 )
+	# 		# plt.plot( x, c-s, color=color, linewidth=3 )
+	# 		# plt.axvline( x=int(len(c)/2.), color="black", linewidth=1 )
+	# 		# plt.ylim([-1000000, 3000000])
+	# 		# plt.tight_layout()
+	# 		# plt.savefig( folder+"/xcorr_rawshift_"+str(sheet1)+"_"+str(sheet2)+"_"+corr[0]+"_"+str(i)+"_"+addon+".png", dpi=300, transparent=True )
+	# 		# fig.clf()
+	# 		# plt.close()
+	# 		# gc.collect()
+
+	# final = numpy.array(final).mean(axis=0)
+	# fig = plt.figure()
+	# plt.plot( x, final, color=color, linewidth=3 )
+	# plt.axvline( x=int(len(final)/2.), color="black", linewidth=1 )
+	# plt.ylim([-1000, 5000])
+	# plt.tight_layout()
+	# plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
+	# plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".svg", dpi=300, transparent=True )
+	# fig.clf()
+	# plt.close()
+	# gc.collect()
+
+
+
+
+
 def data_significance(closed_file, open_file, testtype, removefirst=False):
 	closed_data = numpy.genfromtxt(closed_file, delimiter='\n')
 	open_data = numpy.genfromtxt(open_file, delimiter='\n')
@@ -3438,10 +3691,6 @@ def comparison_tuning_map(directory, xvalues, yvalues, ticks):
 
 
 
-
-
-
-
 ###################################################
 # Execution
 
@@ -3462,7 +3711,7 @@ full_list = [
 
 	# "Thalamocortical_size_closed", # BIG
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	# "ThalamoCorticalModel_data_size_closed_____",
+	"ThalamoCorticalModel_data_size_closed_____",
 	# "ThalamoCorticalModel_data_size_closed_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -3470,7 +3719,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 
 	# "Thalamocortical_size_feedforward", # BIG
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
 	# "ThalamoCorticalModel_data_size_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
@@ -3484,10 +3733,10 @@ full_list = [
 	# "/data1/do/ThalamoCorticalModel_data_size_nonoverlapping_many_____",
 	# "/data1/do/ThalamoCorticalModel_data_size_overlapping_many_____",
 
+	# "ThalamoCorticalModel_data_orientation_feedforward_____2",
+	# "ThalamoCorticalModel_data_orientation_closed_____2",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	"ThalamoCorticalModel_data_orientation_feedforward_____2",
-	"ThalamoCorticalModel_data_orientation_closed_____2",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
@@ -3970,7 +4219,7 @@ else:
 			# 	ylim=[0,100],
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
 			# 	# box = [[-.8,1.],[.8,2.5]], # surround
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
@@ -3990,7 +4239,7 @@ else:
 			# 	ylim=[0,50],
 			# 	opposite=True, #
 			# 	# box = [[-.8,1.],[.8,2.5]], # surround
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround",
 			# )
 			# trial_averaged_conductance_tuning_curve( 
@@ -4027,6 +4276,20 @@ else:
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 
+			Xcorr_LFP_SUA(
+				sheet=s, 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+				ylim=[0,50],
+				opposite=False, #
+				# box = [[-.8,1.],[.8,2.5]], # surround
+				radius = [1.,1.8], # surround
+				addon = addon + "_surround",
+				color = color,
+			)
+
 			# variability( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4045,11 +4308,11 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND
-			# 	radius = [1.,2.5], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_same_",
 			# 	opposite=False, # SAME
-			# 	nulltime=True, # True for spontaneous activity before stimulus
-			# 	# nulltime=False, # True for spontaneous activity before stimulus
+			# 	# nulltime=True, # True for spontaneous activity before stimulus
+			# 	nulltime=False, # True for spontaneous activity before stimulus
 			# )
 			# variability( 
 			# 	sheet=s, 
@@ -4067,7 +4330,7 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_opposite_",
 			# 	opposite=True, # OPPOSITE
 			# )
@@ -4216,7 +4479,7 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	# box=[[-.5,.5],[.5,1.]], # surround
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_same_"+addon,
 			# 	preferred=True, # 
 			# 	color = color,
@@ -4238,7 +4501,7 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	# box=[[-.5,.5],[.5,1.]], # surround
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_opposite_"+addon,
 			# 	preferred=False, # 
 			# 	color = color,
@@ -4279,57 +4542,11 @@ else:
 			# 	# box1=[[-.5,-.5],[.5,.5]], # center
 			# 	# box2=[[-.5,.5],[.5,1.]], # surround
 			# 	radius1 = [.0,.7], # center
-			# 	radius2 = [1.,4.], # surround
+			# 	radius2 = [1.,1.8], # surround
 			# 	addon="center2surround_"+addon,
 			# 	color=color
 			# )
 
-			# phase_synchrony( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	       # 32      24    10    2           Hz
-			# 	periods=[31.25,  41.6, 100., 500.], 
-			# 	addon=addon, 
-			# 	color=color,
-			# 	box = [[-3.5,-3.5],[3.5,3.5]], # ALL
-			# 	opposite=False, # SAME
-			# 	ylim=[0.,5000.]
-			# )
-			# phase_synchrony_summary(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_closed.txt", 
-			# 	# json_file = "PhaseSynchronyData_V1_Exc_L4_feedforward.txt", 
-			# 	ylim=[0.,1.],
-			# 	data_labels=["32", "24", "10", "2"],
-			# 	addon="all_same",
-			# )
-			# phase_synchrony_summary(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_center_same.txt", 
-			# 	data_labels=["1K", "32", "24", "16", "8"],
-			# 	ylim=[0.,1.],
-			# 	addon="center_same",
-			# )
-			# phase_synchrony_summary(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_surround_opposite.txt", 
-			# 	data_labels=["1K", "32", "24", "16", "8"],
-			# 	ylim=[0.,1.],
-			# 	addon="surround_opposite",
-			# )
-			# phase_synchrony_summary(
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	json_file = "PhaseSynchronyData_V1_Exc_L4_surround_same.txt", 
-			# 	data_labels=["1K", "32", "24", "16", "8"],
-			# 	ylim=[0.,1.],
-			# 	addon="surround_same",
-			# )
 
 			# isi( 
 			# 	sheet=s, 
@@ -4354,7 +4571,7 @@ else:
 			# 	# box = [[-.3,.3],[.3,.7]], # surround thalamus
 			# 	# box = [[-.2,.3],[.2,.7]], # surround
 			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
-			# 	radius = [1.,4.], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	opposite=False, # SAME
 			# 	addon = "surround_same_"+addon,
 			# 	ylim=[0.,1.]
@@ -4495,78 +4712,78 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
 			# )
-			trial_averaged_tuning_curve_errorbar( 
-				sheet=s, 
-				folder=f, 
-				stimulus='FullfieldDriftingSinusoidalGrating',
-				parameter="orientation",
-				start=100., 
-				end=10000., 
-				xlabel="Orientation", 
-				ylabel="firing rate (sp/s)", 
-				color=color, 
-				useXlog=False, 
-				useYlog=False, 
-				percentile=False,
-				ylim=[0,50],
-				opposite=False, # to select cortical cells with SAME orientation preference
-				radius = [.0,.7], # center
-				addon = "center",
-			)
-			trial_averaged_tuning_curve_errorbar( 
-				sheet=s, 
-				folder=f, 
-				stimulus='FullfieldDriftingSinusoidalGrating',
-				parameter="orientation",
-				start=100., 
-				end=10000., 
-				xlabel="Orientation", 
-				ylabel="firing rate (sp/s)", 
-				color=color, 
-				useXlog=False, 
-				useYlog=False, 
-				percentile=False,
-				ylim=[0,50],
-				opposite=True, # to select cortical cells with OPPOSITE orientation preference
-				radius = [.0,.7], # center
-				addon = "center",
-			)
-			trial_averaged_tuning_curve_errorbar( 
-				sheet=s, 
-				folder=f, 
-				stimulus='FullfieldDriftingSinusoidalGrating',
-				parameter="orientation",
-				start=100., 
-				end=10000., 
-				xlabel="Orientation", 
-				ylabel="firing rate (sp/s)", 
-				color=color, 
-				useXlog=False, 
-				useYlog=False, 
-				percentile=False,
-				ylim=[0,100],
-				opposite=False, # to select cortical cells with SAME orientation preference
-				radius = [1.,4.], # surround
-				addon = "surround",
-			)
-			trial_averaged_tuning_curve_errorbar( 
-				sheet=s, 
-				folder=f, 
-				stimulus='FullfieldDriftingSinusoidalGrating',
-				parameter="orientation",
-				start=100., 
-				end=10000., 
-				xlabel="Orientation", 
-				ylabel="firing rate (sp/s)", 
-				color=color, 
-				useXlog=False, 
-				useYlog=False, 
-				percentile=False,
-				ylim=[0,50],
-				opposite=True, #
-				radius = [1.,4.], # surround
-				addon = "surround",
-			)
+			# trial_averaged_tuning_curve_errorbar( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Orientation", 
+			# 	ylabel="firing rate (sp/s)", 
+			# 	color=color, 
+			# 	useXlog=False, 
+			# 	useYlog=False, 
+			# 	percentile=False,
+			# 	ylim=[0,50],
+			# 	opposite=False, # to select cortical cells with SAME orientation preference
+			# 	radius = [.0,.7], # center
+			# 	addon = "center",
+			# )
+			# trial_averaged_tuning_curve_errorbar( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Orientation", 
+			# 	ylabel="firing rate (sp/s)", 
+			# 	color=color, 
+			# 	useXlog=False, 
+			# 	useYlog=False, 
+			# 	percentile=False,
+			# 	ylim=[0,50],
+			# 	opposite=True, # to select cortical cells with OPPOSITE orientation preference
+			# 	radius = [.0,.7], # center
+			# 	addon = "center",
+			# )
+			# trial_averaged_tuning_curve_errorbar( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Orientation", 
+			# 	ylabel="firing rate (sp/s)", 
+			# 	color=color, 
+			# 	useXlog=False, 
+			# 	useYlog=False, 
+			# 	percentile=False,
+			# 	ylim=[0,100],
+			# 	opposite=False, # to select cortical cells with SAME orientation preference
+			# 	radius = [1.,4.], # surround
+			# 	addon = "surround",
+			# )
+			# trial_averaged_tuning_curve_errorbar( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	start=100., 
+			# 	end=10000., 
+			# 	xlabel="Orientation", 
+			# 	ylabel="firing rate (sp/s)", 
+			# 	color=color, 
+			# 	useXlog=False, 
+			# 	useYlog=False, 
+			# 	percentile=False,
+			# 	ylim=[0,50],
+			# 	opposite=True, #
+			# 	radius = [1.,4.], # surround
+			# 	addon = "surround",
+			# )
 			# orientation_bias_barplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
