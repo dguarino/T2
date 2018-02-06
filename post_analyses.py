@@ -3323,94 +3323,98 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 
-def Xcorr_LFP_SUA(sheet, folder, stimulus, parameter, ticks, ylim=[0.,100.], box=False, radius=False, opposite=False, addon="", color="black"):
+def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], box=False, radius=False, opposite=False, addon="", color="black"):
 	import ast
 	from scipy import signal
 	print folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=False)
 
-	# # LFP
-	# neurons = []
-	# neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
-	# print "LFP neurons:", len(neurons)
+	# LFP
+	neurons = []
+	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	print "LFP neurons:", len(neurons)
 
-	# num_ticks = len( ticks )
-	# segs = sorted( 
-	# 	param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
-	# 	# key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
-	# 	key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
-	# )
-	# trials = len(segs) / num_ticks
-	# print "trials:",trials
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+	ticks = set([])
+	for x in segs:
+		ticks.add( getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) )
+	ticks = sorted(ticks)
+	num_ticks = len( ticks )
+	print ticks
+	trials = len(segs) / num_ticks
+	print "trials:",trials
 
-	# pop_vm = []
-	# pop_gsyn_e = []
-	# pop_gsyn_i = []
-	# for n,idd in enumerate(neurons):
-	# 	print "idd", idd
-	# 	full_vm = [s.get_vm(idd) for s in segs]
-	# 	full_gsyn_es = [s.get_esyn(idd) for s in segs]
-	# 	full_gsyn_is = [s.get_isyn(idd) for s in segs]
-	# 	# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_ticks
-	# 	# print "shape gsyn_e/i", full_gsyn_es[0].shape
-	# 	# mean input over trials
-	# 	mean_full_vm = numpy.zeros((num_ticks, full_vm[0].shape[0])) # init
-	# 	mean_full_gsyn_e = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0])) # init
-	# 	mean_full_gsyn_i = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0]))
-	# 	# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
-	# 	sampling_period = full_gsyn_es[0].sampling_period
-	# 	t_stop = float(full_gsyn_es[0].t_stop - sampling_period) # 200.0
-	# 	t_start = float(full_gsyn_es[0].t_start)
-	# 	time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
-	# 	# sum by size
-	# 	t = 0
-	# 	for v,e,i in zip(full_vm, full_gsyn_es, full_gsyn_is):
-	# 		s = int(t/trials)
-	# 		v = v.rescale(mozaik.tools.units.mV) 
-	# 		e = e.rescale(mozaik.tools.units.nS) #e=e*1000
-	# 		i = i.rescale(mozaik.tools.units.nS) #i=i*1000
-	# 		mean_full_vm[s] = mean_full_vm[s] + numpy.array(v.tolist())
-	# 		mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
-	# 		mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
-	# 		t = t+1
+	pop_vm = []
+	pop_gsyn_e = []
+	pop_gsyn_i = []
+	for n,idd in enumerate(neurons):
+		print "idd", idd
+		full_vm = [s.get_vm(idd) for s in segs]
+		full_gsyn_es = [s.get_esyn(idd) for s in segs]
+		full_gsyn_is = [s.get_isyn(idd) for s in segs]
+		# print "len full_gsyn_e/i", len(full_gsyn_es) # 61 = 1 spontaneous + 6 trial * 10 num_ticks
+		# print "shape gsyn_e/i", full_gsyn_es[0].shape
+		# mean input over trials
+		mean_full_vm = numpy.zeros((num_ticks, full_vm[0].shape[0])) # init
+		mean_full_gsyn_e = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0])) # init
+		mean_full_gsyn_i = numpy.zeros((num_ticks, full_gsyn_es[0].shape[0]))
+		# print "shape mean_full_gsyn_e/i", mean_full_gsyn_e.shape
+		sampling_period = full_gsyn_es[0].sampling_period
+		t_stop = float(full_gsyn_es[0].t_stop - sampling_period) # 200.0
+		t_start = float(full_gsyn_es[0].t_start)
+		time_axis = numpy.arange(0, len(full_gsyn_es[0]), 1) / float(len(full_gsyn_es[0])) * abs(t_start-t_stop) + t_start
+		# sum by size
+		t = 0
+		for v,e,i in zip(full_vm, full_gsyn_es, full_gsyn_is):
+			s = int(t/trials)
+			v = v.rescale(mozaik.tools.units.mV) 
+			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
+			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+			mean_full_vm[s] = mean_full_vm[s] + numpy.array(v.tolist())
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
+			t = t+1
 
-	# 	# average by trials
-	# 	for s in range(num_ticks):
-	# 		mean_full_vm[s] = mean_full_vm[s] / trials
-	# 		mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
-	# 		mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
+		# average by trials
+		for s in range(num_ticks):
+			mean_full_vm[s] = mean_full_vm[s] / trials
+			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] / trials
+			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] / trials
 
-	# 	pop_vm.append(mean_full_vm)
-	# 	pop_gsyn_e.append(mean_full_gsyn_e)
-	# 	pop_gsyn_i.append(mean_full_gsyn_i)
+		pop_vm.append(mean_full_vm)
+		pop_gsyn_e.append(mean_full_gsyn_e)
+		pop_gsyn_i.append(mean_full_gsyn_i)
 
-	# pop_v = numpy.array(pop_vm)
-	# pop_e = numpy.array(pop_gsyn_e)
-	# pop_i = numpy.array(pop_gsyn_i)
+	pop_v = numpy.array(pop_vm)
+	pop_e = numpy.array(pop_gsyn_e)
+	pop_i = numpy.array(pop_gsyn_i)
 
-	# # mean and std over cells
-	# # print pop_e.shape
-	# mean_pop_v = numpy.mean(pop_v, axis=0 )
-	# mean_pop_e = numpy.mean(pop_e, axis=0 )
-	# mean_pop_i = numpy.mean(pop_i, axis=0 ) 
-	# std_pop_v = numpy.std(pop_v, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# std_pop_e = numpy.std(pop_e, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# std_pop_i = numpy.std(pop_i, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# # print "mean std:", mean_pop_v.shape, mean_pop_e.shape, std_pop_e.shape
-	# # print "mean std exc:", mean_pop_e, std_pop_e
-	# # print "mean std inh:", mean_pop_i, std_pop_i
+	# mean and std over cells
+	# print pop_e.shape
+	mean_pop_v = numpy.mean(pop_v, axis=0 )
+	mean_pop_e = numpy.mean(pop_e, axis=0 )
+	mean_pop_i = numpy.mean(pop_i, axis=0 ) 
+	std_pop_v = numpy.std(pop_v, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	std_pop_e = numpy.std(pop_e, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	std_pop_i = numpy.std(pop_i, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# print "mean std:", mean_pop_v.shape, mean_pop_e.shape, std_pop_e.shape
+	# print "mean std exc:", mean_pop_e, std_pop_e
+	# print "mean std inh:", mean_pop_i, std_pop_i
 
-	# # We produce the current for each cell for this time interval, with the Ohm law:
-	# # I = g(V-E), where E is the equilibrium for exc, which usually is 0.0 (we can change it)
-	# # (and we also have to consider inhibitory condictances)
-	# i = pop_e*pop_v + pop_i*pop_v
-	# # the LFP is the result of cells' currents
-	# avg_i = numpy.mean( i, axis=0 )
-	# sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
-	# lfp = (1/(4*numpy.pi*sigma)) * avg_i
-	# print "LFP:", lfp.shape
-	# print lfp
+	# We produce the current for each cell for this time interval, with the Ohm law:
+	# I = g(V-E), where E is the equilibrium for exc, which usually is 0.0 (we can change it)
+	# (and we also have to consider inhibitory condictances)
+	i = (pop_e/1000)*pop_v + (pop_i/1000)*pop_v # NEST is in nS, PyNN is in uS
+	# the LFP is the result of cells' currents
+	avg_i = numpy.mean( i, axis=0 )
+	sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
+	lfp = (1/(4*numpy.pi*sigma)) * avg_i
+	print "LFP:", lfp.shape
+	print lfp
 
 	# for s in range(num_ticks):
 	# 	# for each stimulus plot the average conductance per cell over time
@@ -3479,22 +3483,60 @@ def Xcorr_LFP_SUA(sheet, folder, stimulus, parameter, ticks, ylim=[0.,100.], box
 	# print sts
 
 	# STA
-	print "starting STA"
+	print "Computing Spike Triggered Average"
 	# Short segments of fixed duration are selected from the LFP, based on the timing of occurrence of spikes and then averaged on the number of spikes
 	duration = 300 # ms
-	# STA = 
-	for st,neurons in sts.items():
-		print st
-		for idd,spiketrains in neurons.items():
-			print "\t", idd
+	STA = numpy.zeros( (len(sts), len(neurons), 2*duration) )
+	print STA.shape
+	for i,(st,neurons) in enumerate(sorted(sts.items())):
+		# print st
+		for j,(idd,spiketrains) in enumerate(neurons.items()):
+			# print "\t", idd
 			for spiketrain in spiketrains:
 				# print spiketrain
 				for time in spiketrain:
 					start = max(0., time.item() - duration)
-					end = min(spiketrain.t_stop, time.item() + duration)
-					# print "\t\t", start, time, end
+					end = min(spiketrain.t_stop.item(), time.item() + duration)
+					# print "\t\t", start, time, end, "=", end-start
+					segment = lfp[i][int(start):int(end)]
+					if len(segment) < 2*duration:
+						if start==0.0:
+							segment = numpy.pad(segment, (duration-time.item()+1,0), 'constant', constant_values=(0.,0.))
+						if end>=spiketrain.t_stop.item():
+							segment = numpy.pad(segment, (0,time.item()-duration), 'constant', constant_values=(0.,0.))
+					# print len(segment)
+					STA[i][j] = STA[i][j] + segment[:2*duration]
+			STA[i][j] = STA[i][j] / len(spiketrains)
 
-	
+	# print STA
+	STA_tuning = []
+	for i,(st,neurons) in enumerate(sorted(sts.items())):
+		STA_tuning.append( STA[i].min() )
+		sta_mean = STA[i].mean(axis=0) - STA[i].mean() # mean corrected
+		# sta_std = STA[i].std(axis=0) - STA[i].std()
+		fig = plt.figure()
+		x = range(-duration, duration)
+		plt.plot( x, sta_mean, color=color, linewidth=3 )
+		# plt.fill_between(x, sta_mean-sta_std, sta_mean+sta_std, color=color, alpha=0.3)
+		plt.tight_layout()
+		plt.ylim([-4., 1.5])
+		plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
+		plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
+		fig.clf()
+		plt.close()
+
+	print STA_tuning
+	fig = plt.figure()
+	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 )
+	plt.ylim([0, 100])
+	plt.tight_layout()
+	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".png", dpi=300, transparent=True )
+	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".svg", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	gc.collect()
+
+
 	# PSTH( param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), ParameterSet({'bin_length':1.0, 'neurons':list(neurons) }) ).analyse()
 	# dsv = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='PSTH')
 	# asls = dsv.get_analysis_result( sheet_name=sheet )
@@ -4276,12 +4318,11 @@ else:
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 
-			Xcorr_LFP_SUA(
+			SpikeTriggeredAverage(
 				sheet=s, 
 				folder=f, 
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
-				ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
 				ylim=[0,50],
 				opposite=False, #
 				# box = [[-.8,1.],[.8,2.5]], # surround
