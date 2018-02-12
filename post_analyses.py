@@ -1394,7 +1394,7 @@ def spontaneous(sheet, folder, ylim=[], color="black", box=None, addon="", oppos
 
 
 
-def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, radius1=None, radius2=None, preferred1=True, preferred2=True, addon="", color="black" ):
+def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, radius1=None, radius2=None, preferred1=True, preferred2=True, sizes=[], addon="", color="black" ):
 	import ast
 	from matplotlib.ticker import NullFormatter
 	from scipy import signal
@@ -1407,10 +1407,13 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	print "Recorded neurons 2:", len(spike_ids2)
 
 	if sheet1=='V1_Exc_L4':
-		spike_ids = select_by_orientation(data_store, sheet1, spike_ids1, preferred=preferred1)
+		spike_ids1 = select_by_orientation(data_store, sheet1, spike_ids1, preferred=preferred1)
 
 	if sheet2=='V1_Exc_L4':
-		spike_ids = select_by_orientation(data_store, sheet2, spike_ids2, preferred=preferred2)
+		spike_ids2 = select_by_orientation(data_store, sheet2, spike_ids2, preferred=preferred2)
+
+	print "Oriented neurons 1:", len(spike_ids1)
+	print "Oriented neurons 2:", len(spike_ids2)
 
 	# if box1:
 	# 	spike_ids1 = select_by_box(data_store, sheet1, spike_ids1, box=box1)
@@ -1482,11 +1485,10 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	# create all combinations
 	psths1items = psths1.items()
 	psths2items = psths2.items()
-	print "psths1items:", len(psths1items)
-	print "psths2items:", len(psths2items)
+	# print "psths1items:", len(psths1items)
+	# print "psths2items:", len(psths2items)
 	combinations = [(x,y) for x in psths1items for y in psths2items]
-	print "combinations:", len(combinations)
-	# print combinations
+	# print "combinations:", len(combinations)
 
 	# perform correlation for each combination
 	# for signal1, signal2 in zip( sorted(psths1.items()), sorted(psths2.items()) ):
@@ -1498,15 +1500,34 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 			correlations[signal1[0]].append( numpy.correlate(s1, s2, "same") )
 			shift_predictors[signal1[0]].append( numpy.correlate(s1, numpy.roll(s2, int(len(s2)/tf)), "same" ) )
 
+	# # CROSS CORRELATION COEFFICIENT
+	# corrcoef = numpy.corrcoef( signal1, signal2 )
+	# print "cross-correlation coefficient: ", corrcoef
+
+	# # LINEAR REGRESSION
+	# txtfile = open(folder+"/linear_regression_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".txt", 'w')
+	# txtfile.write( "Selected neurons 1: {:.1f}\n".format(len(spike_ids1)) )
+	# txtfile.write( "Selected neurons 2: {:.1f}\n".format(len(spike_ids2)) )
+	# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( signal1, signal2 )
+	# print "1-2: ", r_value**2, p_value, std_err
+	# txtfile.write( "r: {:.4f}\n".format(corrcoef[0][1]) )
+	# txtfile.write( "R2: {:.4f}\n".format(r_value**2) )
+	# txtfile.write( "p:  {:.1E}\n".format(p_value) )
+	# txtfile.write( "er: {:.2f}\n".format(std_err) )
+	# txtfile.close()
+	summary = {}
+	xcraw = []
 	final = []
-	diag = {}
+	shpre = []
 	for corr, shift in zip( sorted(correlations.items()), sorted(shift_predictors.items()) ):
 		# print corr[0], corr[1], len(corr[1])
-		diag[corr[0]] = []
+		summary[corr[0]] = []
 		for i,(c,s) in enumerate(zip(corr[1],shift[1])):
 			# print len(c), len(shift[1][0])
+			xcraw.append( c )
 			final.append( c-s )
-			diag[corr[0]].append( c-s ) 
+			shpre.append( s )
+			summary[corr[0]].append( c-s ) 
 			# # plot
 			x = range(len(c))
 			# fig = plt.figure()
@@ -1522,33 +1543,61 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 			# plt.close()
 			# gc.collect()
 
+	xcraw = numpy.array(xcraw).mean(axis=0)
 	final = numpy.array(final).mean(axis=0)
+	shpre = numpy.array(shpre).mean(axis=0)
 	fig = plt.figure()
+	# full
+	x = range(-len(x)/2, len(x)/2)
+	plt.plot( x, xcraw, color='black', linewidth=2 )
+	plt.plot( x, shpre, color='red', linewidth=2 )
 	plt.plot( x, final, color=color, linewidth=3 )
-	plt.axvline( x=int(len(final)/2.), color="black", linewidth=1 )
-	plt.ylim([-1000, 5000])
+	plt.axvline( x=0.0, color="black", linewidth=1 )
+	# plt.axvline( x=int(len(final)/2.), color="black", linewidth=1 )
+	# plt.ylim([-1500, 5000])
 	plt.tight_layout()
 	plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
 	plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	gc.collect()
+	# zoom
+	x = range(-50, 50)
+	mid = int(len(final)/2.)
+	plt.plot( x, xcraw[mid-50:mid+50], color='black', linewidth=2 )
+	plt.plot( x, shpre[mid-50:mid+50], color='red', linewidth=2 )
+	plt.plot( x, final[mid-50:mid+50], color=color, linewidth=3 )
+	plt.axvline( x=0.0, color="black", linewidth=1 )
+	# plt.ylim([-1500, 5000])
+	plt.tight_layout()
+	plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+"_zoom.png", dpi=300, transparent=True )
+	plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+"_zoom.svg", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	gc.collect()
 
-	print len(diag), diag.keys()
+	print len(summary), summary.keys()
 	maxi = []
 	std = []
-	for k in sorted(diag.keys()):
-		maxi.append(numpy.array(diag[k]).max())
-		std.append(numpy.array(diag[k]).std())
+	for k in sorted(summary.keys()):
+		maxi.append(numpy.array(summary[k]).max())
+		std.append(numpy.array(summary[k]).std())
 	maxi = numpy.array(maxi)
+	# maxi = (maxi - maxi.mean()) / maxi.std() # normalization
 	std = numpy.array(std)
-	
+	# std = (std - std.mean()) / std.std()
+
 	fig = plt.figure()
-	plt.plot( range(len(maxi)), maxi, color=color, linewidth=3 )
+	print "xcorr tuning:"
+	print maxi 
+	print std
+	x = sizes #[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711]
+	plt.plot( x, maxi, color=color, linewidth=3 )
 	err_max = maxi + std
 	err_min = maxi - std
-	plt.fill_between(range(len(maxi)), err_max, err_min, color=color, alpha=0.3)
-	plt.ylim([0, 45000])
+	plt.fill_between( x, err_max, err_min, color=color, alpha=0.3 )
+	plt.ylim([0, 200000])
+	# plt.xscale('log')
 	plt.tight_layout()
 	plt.savefig( folder+"/xcorr_summary_max_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
 	plt.savefig( folder+"/xcorr_summary_max_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".svg", dpi=300, transparent=True )
@@ -1576,22 +1625,6 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	# fig.clf()
 	# plt.close()
 	# gc.collect()
-
-	# # CROSS CORRELATION COEFFICIENT
-	# corrcoef = numpy.corrcoef( signal1, signal2 )
-	# print "cross-correlation coefficient: ", corrcoef
-
-	# # # LINEAR REGRESSION
-	# # txtfile = open(folder+"/linear_regression_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".txt", 'w')
-	# # txtfile.write( "Selected neurons 1: {:.1f}\n".format(len(spike_ids1)) )
-	# # txtfile.write( "Selected neurons 2: {:.1f}\n".format(len(spike_ids2)) )
-	# # slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( signal1, signal2 )
-	# # print "1-2: ", r_value**2, p_value, std_err
-	# # txtfile.write( "r: {:.4f}\n".format(corrcoef[0][1]) )
-	# # txtfile.write( "R2: {:.4f}\n".format(r_value**2) )
-	# # txtfile.write( "p:  {:.1E}\n".format(p_value) )
-	# # txtfile.write( "er: {:.2f}\n".format(std_err) )
-	# # txtfile.close()
 
 
 
@@ -2013,74 +2046,6 @@ def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, 
 		fig.clf()
 		plt.close()
 		gc.collect()
-
-
-
-
-def trial2trial_cross_correlation( sheet, folder, stimulus, orientation_box1=0., box1=False, orientation_box2=0., box2=False, addon='' ):
-	print folder
-	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	data_store.print_content(full_recordings=False)
-
-	all_neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-	positions = data_store.get_neuron_postions()[sheet]
-	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	or_pn = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
-	print "Recorded neurons:", len(all_neurons)
-	or_neurons = list(all_neurons)
-	neurons = []
-
-	if box1:
-		# or_neurons = list( numpy.array(all_neurons)[numpy.nonzero(numpy.array([circular_dist(or_pn.get_value_by_id(i),orientation_box1,numpy.pi)  for i in all_neurons]) < .1)[0]] )
-		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=or_neurons)
-		ids = select_ids_by_position(positions, sheet_ids, box=box1)
-		neurons.extend( data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)[:] )
-
-	if box2:
-		# or_neurons = list( numpy.array(all_neurons)[numpy.nonzero(numpy.array([circular_dist(or_pn.get_value_by_id(i),orientation_box2,numpy.pi)  for i in all_neurons]) < .1)[0]] )
-		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=or_neurons)
-		ids = select_ids_by_position(positions, sheet_ids, box=box2)
-		neurons.extend( data_store.get_sheet_ids(sheet_name=sheet, indexes=ids) )
-
-	print "Selected neurons:", len(neurons)#, neurons
-
-	# TrialAveragedFiringRate(
-	# 	param_filter_query( data_store,sheet_name=sheet,st_name=stimulus),
-	# 	ParameterSet({})
-	# ).analyse()
-	
-	# SpikeCount( 
-	# 	param_filter_query(data_store,sheet_name=sheet), 
-	# 	ParameterSet({'bin_length':13.0})
-	# ).analyse()
-
-	# CrossCorrelationOfExcitatoryAndInhibitoryConductances(
-	# 	param_filter_query( data_store, sheet_name=sheet, st_name=stimulus),
-	# 	ParameterSet({})
-	# ).analyse()
-
-	# dsv = param_filter_query(data_store,value_name=['Mean(ECond)','Mean(ICond)','Mean(VM)','Mean(ECond)/Mean(ICond)'],sheet_name=sheet)   
-	# PerNeuronValuePlot(
-	# 	dsv,
-	# 	ParameterSet({"cortical_view" : False}), 
-	# 	plot_file_name=folder+"/Xcorr"+str(sheet)+".png",
-	# 	fig_param={'dpi' : 200,'figsize': (16,8)}
-	# ).plot({
-	# 	'*.title':None,
-	# 	'HistogramPlot.plot[0,1].x_label': 'Inh Cond (micro siemens)',
-	# 	'HistogramPlot.plot[1,1].x_label': 'Exc Cond (micro siemens)',
-	# 	'HistogramPlot.plot[2,1].x_label': 'Exc/Inh Cond',
-	# 	'HistogramPlot.plot[3,1].x_label': 'Membrane potential (mV)'
-	# })
-
-	PSTH( param_filter_query(data_store),ParameterSet({'bin_length': 2.0 }) ).analyse()
-	NeuronToNeuronAnalogSignalCorrelations(
-		param_filter_query(data_store, analysis_algorithm='PSTH'),
-		ParameterSet({'convert_nan_to_zero' : True})
-	).analyse()
-
-	# TrialToTrialCrossCorrelationOfAnalogSignalList(param_filter_query(data_store,sheet_name='V1_Exc_L4',st_name="NaturalImageWithEyeMovement",analysis_algorithm='ActionPotentialRemoval'),ParameterSet({'neurons' : list(analog_ids)})).analyse()
-	# CrossCorrelationOfExcitatoryAndInhibitoryConductances(param_filter_query(data_store,st_direct_stimulation_name="None"),ParameterSet({})).analyse()
 
 
 
@@ -3414,7 +3379,7 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 	sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
 	lfp = (1/(4*numpy.pi*sigma)) * avg_i
 	print "LFP:", lfp.shape
-	print lfp
+	# print lfp
 
 	# for s in range(num_ticks):
 	# 	# for each stimulus plot the average conductance per cell over time
@@ -3466,6 +3431,8 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)
 
 	print "SUA neurons:", len(neurons)
+	if len(neurons) < 1:
+		return
 
 	print "Collecting spiketrains of selected neurons into dictionary ..."
 	dsv1 = queries.param_filter_query(data_store, sheet_name=sheet, st_name=stimulus)
@@ -3527,90 +3494,14 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 
 	print STA_tuning
 	fig = plt.figure()
-	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 )
-	plt.ylim([0, 100])
+	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 ) # reversed
+	plt.ylim([0, 160])
 	plt.tight_layout()
 	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".png", dpi=300, transparent=True )
 	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	gc.collect()
-
-
-	# PSTH( param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), ParameterSet({'bin_length':1.0, 'neurons':list(neurons) }) ).analyse()
-	# dsv = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='PSTH')
-	# asls = dsv.get_analysis_result( sheet_name=sheet )
-
-	# # store the mean PSTH (over the selected neurons) in a dict
-	# shift_predictors = {}
-	# correlations = {}
-	# psths = {}
-	# for asl in asls:
-	# 	stim = ast.literal_eval(str(asl.stimulus_id))[parameter]
-	# 	psth = []
-	# 	# for idd in set(asl.ids).intersection(spike_ids1): # get only the slected neurons
-	# 	for idd in neurons: # get only the slected neurons
-	# 		psth.append( asl.get_asl_by_id(idd) )
-	# 	psth = numpy.mean(psth, axis=0) # mean over neurons
-	# 	if not "{:.3f}".format(stim) in psths1:
-	# 		psths["{:.3f}".format(stim)] = []
-	# 		correlations["{:.3f}".format(stim)] = []
-	# 		shift_predictors["{:.3f}".format(stim)] = []
-	# 	psths["{:.3f}".format(stim)].append( psth )
-
-	# # create all combinations
-	# psthsitems = psths.items()
-	# print "psthsitems:", len(psthsitems)
-	# combinations = [(x,y) for x in psthsitems for y in psthsitems]
-	# print "combinations:", len(combinations)
-	# # print combinations
-
-	# # perform correlation for each combination
-	# # for signal1, signal2 in zip( sorted(psths1.items()), sorted(psths2.items()) ):
-	# for signal1, signal2 in combinations:
-	# 	# print signal1[1][0].shape, signal2[1][0].shape
-	# 	# print numpy.array(signal1[1]).mean(axis=0).shape, numpy.array(signal2[1]).mean(axis=0).shape
-	# 	# shift_predictors[signal1[0]].append( numpy.correlate(numpy.array(signal1[1]).mean(axis=0), numpy.array(signal2[1]).mean(axis=0), "same") )
-	# 	for s1, s2 in zip(signal1[1], signal2[1]):
-	# 		correlations[signal1[0]].append( numpy.correlate(s1, s2, "same") )
-	# 		shift_predictors[signal1[0]].append( numpy.correlate(s1, numpy.roll(s2, int(len(s2)/tf)), "same" ) )
-
-	# final = []
-	# diag = {}
-	# for corr, shift in zip( sorted(correlations.items()), sorted(shift_predictors.items()) ):
-	# 	# print corr[0], corr[1], len(corr[1])
-	# 	diag[corr[0]] = []
-	# 	for i,(c,s) in enumerate(zip(corr[1],shift[1])):
-	# 		# print len(c), len(shift[1][0])
-	# 		final.append( c-s )
-	# 		diag[corr[0]].append( c-s ) 
-	# 		# # plot
-	# 		x = range(len(c))
-	# 		# fig = plt.figure()
-	# 		# plt.plot( x, c, color="green", linewidth=1 )
-	# 		# plt.plot( x, c, color="green", linewidth=1 )
-	# 		# plt.plot( x, s, color="red", linewidth=1 )
-	# 		# plt.plot( x, c-s, color=color, linewidth=3 )
-	# 		# plt.axvline( x=int(len(c)/2.), color="black", linewidth=1 )
-	# 		# plt.ylim([-1000000, 3000000])
-	# 		# plt.tight_layout()
-	# 		# plt.savefig( folder+"/xcorr_rawshift_"+str(sheet1)+"_"+str(sheet2)+"_"+corr[0]+"_"+str(i)+"_"+addon+".png", dpi=300, transparent=True )
-	# 		# fig.clf()
-	# 		# plt.close()
-	# 		# gc.collect()
-
-	# final = numpy.array(final).mean(axis=0)
-	# fig = plt.figure()
-	# plt.plot( x, final, color=color, linewidth=3 )
-	# plt.axvline( x=int(len(final)/2.), color="black", linewidth=1 )
-	# plt.ylim([-1000, 5000])
-	# plt.tight_layout()
-	# plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
-	# plt.savefig( folder+"/xcorr_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".svg", dpi=300, transparent=True )
-	# fig.clf()
-	# plt.close()
-	# gc.collect()
-
 
 
 
@@ -3753,16 +3644,16 @@ full_list = [
 
 	# "Thalamocortical_size_closed", # BIG
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	"ThalamoCorticalModel_data_size_closed_____",
-	# "ThalamoCorticalModel_data_size_closed_____old",
+	"ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence
+	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 
 	# "Thalamocortical_size_feedforward", # BIG
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	# "ThalamoCorticalModel_data_size_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
+	"ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
@@ -4318,13 +4209,47 @@ else:
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=False, # ISO
+			# 	radius = [.0,.7], # center
+			# 	addon = addon + "_center",
+			# 	color = color,
+			# )
 			SpikeTriggeredAverage(
 				sheet=s, 
 				folder=f, 
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
 				ylim=[0,50],
-				opposite=False, #
+				opposite=True, # ORTHO
+				radius = [.0,.7], # center
+				addon = addon + "_center",
+				color = color,
+			)
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=False, # ISO
+			# 	# box = [[-.8,1.],[.8,2.5]], # surround
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_surround",
+			# 	color = color,
+			# )
+			SpikeTriggeredAverage(
+				sheet=s, 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				opposite=True, # ORTHO
 				# box = [[-.8,1.],[.8,2.5]], # surround
 				radius = [1.,1.8], # surround
 				addon = addon + "_surround",
@@ -4580,11 +4505,26 @@ else:
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
-			# 	# box1=[[-.5,-.5],[.5,.5]], # center
-			# 	# box2=[[-.5,.5],[.5,1.]], # surround
 			# 	radius1 = [.0,.7], # center
 			# 	radius2 = [1.,1.8], # surround
-			# 	addon="center2surround_"+addon,
+			# 	preferred1=True, # SAME
+			# 	preferred2=True, # SAME
+			# 	addon="center2surround_iso_"+addon,
+			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	color=color
+			# )
+			# correlation( # CORTICO-CORTICAL 
+			# 	sheet1=s, 
+			# 	sheet2=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [.0,.7], # center
+			# 	radius2 = [1.,1.8], # surround
+			# 	preferred1=False, # OPPOSITE
+			# 	preferred2=False, # OPPOSITE
+			# 	addon="center2surround_ortho_"+addon,
+			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711],
 			# 	color=color
 			# )
 
@@ -4599,8 +4539,8 @@ else:
 			# 	# box = [[-.3,-.3],[.3,.3]], # center thalamus
 			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER V1
 			# 	radius = [.0,.7], # center
-			# 	opposite=False, # SAME
-			# 	addon = "center_same_"+addon,
+			# 	opposite=False, # ISO
+			# 	addon = "center_iso_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 			# isi( 
@@ -4613,8 +4553,36 @@ else:
 			# 	# box = [[-.2,.3],[.2,.7]], # surround
 			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
 			# 	radius = [1.,1.8], # surround
-			# 	opposite=False, # SAME
-			# 	addon = "surround_same_"+addon,
+			# 	opposite=False, # ISO
+			# 	addon = "surround_iso_"+addon,
+			# 	ylim=[0.,1.]
+			# )
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	# box = [[-.2,-.2],[.2,.2]], # center
+			# 	# box = [[-.3,-.3],[.3,.3]], # center thalamus
+			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER V1
+			# 	radius = [.0,.7], # center
+			# 	opposite=True, # ORTHO
+			# 	addon = "center_ortho_"+addon,
+			# 	ylim=[0.,1.]
+			# )
+			# isi( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	color=color,
+			# 	# box = [[-.3,.3],[.3,.7]], # surround thalamus
+			# 	# box = [[-.2,.3],[.2,.7]], # surround
+			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
+			# 	radius = [1.,1.8], # surround
+			# 	opposite=True, # ORTHO
+			# 	addon = "surround_ortho_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 
