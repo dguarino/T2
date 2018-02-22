@@ -164,6 +164,12 @@ def get_per_neuron_window_spike_count( datastore, sheet, stimulus, stimulus_para
 
 
 def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus_parameter, bin=10.0, neurons=[], spikecount=True ):
+	if not len(neurons)>0:
+		spike_ids = param_filter_query(datastore, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+		sheet_ids = datastore.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+		neurons = datastore.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
+	print "SpikeCount neurons", len(neurons)
+
 	if not spikecount:
 		TrialAveragedFiringRateCutout( 
 			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
@@ -172,7 +178,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 	else:
 		SpikeCount( 
 			param_filter_query(datastore, sheet_name=sheet, st_name=stimulus), 
-			ParameterSet({'bin_length' : bin}) 
+			ParameterSet({'bin_length' : bin, 'neurons':list(neurons)}) 
 		).analyse()
 		# datastore.save()
 
@@ -860,7 +866,7 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	print "Recorded neurons:", len(spike_ids)
 
-	if sheet=='V1_Exc_L4':
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 		spike_ids = select_by_orientation(data_store, sheet, spike_ids, preferred=preferred)
 
 	if radius or box:
@@ -969,7 +975,7 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 	plt.figure()
 	idx = numpy.argsort(freqs) # last one is as all the others
 	plt.plot( freqs[idx], powers[idx], linewidth=3, color=color, linestyle='-' )
-	plt.ylim([0., 8000000.])
+	plt.ylim([0., 30000000.])
 	plt.xlim([0., 150.])
 	plt.tight_layout()
 	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
@@ -994,15 +1000,15 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 	print "Recorded neurons :", len(spike_ids)
 
 	if radius or box:
-		if sheet=='V1_Exc_L4':
+		if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 			NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-			l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name='V1_Exc_L4')[0]
+			l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
 			if opposite:
-				l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
+				l4_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in spike_ids]) < .1)[0]]
 			else:
-				l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < .1)[0]]
-			print "# of V1 cells range having orientation 0:", len(l4_exc_or_many)
-			spike_ids = list(l4_exc_or_many)
+				l4_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0.,numpy.pi) for i in spike_ids]) < .1)[0]]
+			print "# of V1 cells range having orientation 0:", len(l4_many)
+			spike_ids = list(l4_many)
 
 		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
 		positions = data_store.get_neuron_postions()[sheet]
@@ -1596,7 +1602,7 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	err_max = maxi + std
 	err_min = maxi - std
 	plt.fill_between( x, err_max, err_min, color=color, alpha=0.3 )
-	plt.ylim([0, 200000])
+	plt.ylim([0, err_max.max()])
 	# plt.xscale('log')
 	plt.tight_layout()
 	plt.savefig( folder+"/xcorr_summary_max_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
@@ -2604,12 +2610,13 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	print "Recorded neurons:", len(neurons)
 
-	if sheet=='V1_Exc_L4':
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+		l4_exc_or_many = l4_exc_or # init
 		if opposite:
 			addon = addon +"_opposite"
-			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
+			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .8)[0]]
 		else:
 			addon = addon +"_same"
 			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
@@ -2624,7 +2631,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
-	print "Selected neurons:", len(neurons)
+	print "Selected neurons:", len(neurons), neurons
 
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False ) 
 	# print rates
@@ -2650,7 +2657,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 	if percentile:
 		firing_max = numpy.amax( final_sorted[1] )
-		final_sorted[1] = final_sorted[1] / firing_max * 100
+		final_sorted[1] = (final_sorted[1] / firing_max) * 100
 
 	# Plotting tuning curve
 	matplotlib.rcParams.update({'font.size':22})
@@ -2705,7 +2712,8 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 		ax.set_ylim(ylim)
 
 	if percentile:
-		ax.set_ylim([0,100+numpy.amax(final_sorted[2])+10])
+		ax.set_ylim([0,100+10])
+		# ax.set_ylim([0,100+numpy.amax(final_sorted[2])+10])
 
 	# text
 	ax.set_xlabel( xlabel )
@@ -2994,28 +3002,32 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 
 
 
-def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], box=[], addon="", inputoutputratio=False, dashed=False ):
+def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", inputoutputratio=False, dashed=False ):
 	print folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
 	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
-	print "analog_ids (pre): ",analog_ids
-
-	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
 	print "Recorded neurons:", len(analog_ids)
 
-	if sheet=='V1_Exc_L4':
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = sheet)[0]
-		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < 0.1)[0]]
-		# l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < 0.9)[0]]
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < .1)[0]]
 		analog_ids = list(l4_exc_or_many)
 
-	if box:
+	if radius or box:
 		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 		positions = data_store.get_neuron_postions()[sheet]
-		ids1 = select_ids_by_position(positions, sheet_ids, box=box)
+		if box:
+			ids1 = select_ids_by_position(positions, sheet_ids, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
 		analog_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	print "Selected neurons:", len(analog_ids)
@@ -3144,6 +3156,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	ax.set_xlabel( parameter )
 	plt.tight_layout()
 	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	# garbage
@@ -3165,6 +3178,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		ax.set_ylabel( "Spike probability" )
 		plt.tight_layout()
 		plt.savefig( folder+"/TrialAveragedInputOutputRatio_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".png", dpi=200, transparent=True )
+		plt.savefig( folder+"/TrialAveragedInputOutputRatio_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -3407,12 +3421,13 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 	# 	gc.collect()
 
 	# SUA
+	# data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':'Thalamocortical_size_closed', 'store_stimuli' : False}),replace=True)
 	neurons = []
 	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 
-	if sheet=='V1_Exc_L4':
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name = 'V1_Exc_L4')[0]
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
 		if opposite:
 			addon = addon +"_opposite"
 			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
@@ -3643,22 +3658,23 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Thalamocortical_size_closed", # BIG
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____",
-	"ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____old",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____nocorr",
 
 	# "Thalamocortical_size_feedforward", # BIG
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____",
-	"ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____nocorr",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____nocorr",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",
@@ -3711,7 +3727,7 @@ inac_list = [
 
 
 addon = ""
-# sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4']
+# sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
@@ -3720,9 +3736,10 @@ addon = ""
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
-# sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+sheets = ['PGN']
+# sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = ['V1_Inh_L4'] 
 
 
 # ONLY for comparison parameter search
@@ -3851,22 +3868,22 @@ else:
 
 		# color = "saddlebrown"
 		color = "black"
+		color_data = "black"
 		if "feedforward" in f:
 			addon = "feedforward"
 			closed = False
-			color = "cyan"
+			color = "grey"
 			color_data = "grey"
 			fit = "gamma"
 			# color = "red"
 			trials = 12
 		if "open" in f:
+			addon = "open"
 			closed = False
-			color = "cyan"
+			color = "grey"
 			color_data = "grey"
 		if "closed" in f:
 			addon = "closed"
-			color = "blue"
-			color_data = "black"
 			closed = True
 			fit = "bimodal"
 			trials = 6
@@ -3879,11 +3896,11 @@ else:
 
 			if 'PGN' in s:
 				arborization = 300
-				color = "darkgreen"
+				color = "black"
 				if "open" in f or "feedforward" in f:
-					color = "lime"
+					color = "grey"
 				if "closed" in f:
-					color = "darkgreen"
+					color = "black"
 			if 'X' in s: # X_ON X_OFF
 				arborization = 150
 
@@ -4091,7 +4108,7 @@ else:
 			# 	opposite=True, #
 			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,4.], # surround
-			# 	addon = "surround",
+			# 	addon = "surround" + addon,
 			# )
 
 			# trial_averaged_tuning_curve_errorbar( 
@@ -4111,7 +4128,7 @@ else:
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
 			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
-			# 	addon = "center",
+			# 	addon = "center_iso_" + addon,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
 			# )
@@ -4127,13 +4144,12 @@ else:
 			# 	color=color, 
 			# 	useXlog=False, 
 			# 	useYlog=False, 
-			# 	# percentile=False, #True,
 			# 	percentile=True,
 			# 	ylim=[0,50],
 			# 	opposite=True, # to select cortical cells with OPPOSITE orientation preference
 			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
-			# 	addon = "center",
+			# 	addon = "center_ortho_" + addon,
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -4153,7 +4169,7 @@ else:
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
 			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,1.8], # surround
-			# 	addon = "surround",
+			# 	addon = "surround_iso_" + addon,
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -4167,13 +4183,12 @@ else:
 			# 	color=color, 
 			# 	useXlog=False, 
 			# 	useYlog=False, 
-			# 	# percentile=False, #True,
 			# 	percentile=True,
 			# 	ylim=[0,50],
 			# 	opposite=True, #
 			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,1.8], # surround
-			# 	addon = "surround",
+			# 	addon = "surround_ortho_" + addon,
 			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
@@ -4182,16 +4197,60 @@ else:
 			# 	parameter="radius",
 			# 	percentile=False,
 			# 	ylim=[0,30],
-			# 	useXlog=True, 
+			# 	useXlog=False, 
 			# 	# percentile=True,
-			# 	box = [[-.5,-.5],[.5,.5]], # center
+			# 	radius = [.0, 0.7], # center
+			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
+			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	# percentile=True,
+			# 	radius = [1.,1.8], # surround
 			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# 	# box = [[-.5,.0],[.5,.5]], # surround nonoverlapping
 			# 	# box = [[-.5,.2],[.2,.5]], # surround nonoverlapping
-			# 	addon = "center",
+			# 	addon = "surround_",
+			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	# box = [[-.5,-.5],[.5,.5]], # center
+			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
+			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
+			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
+			# 	# box = [[-0.1,.6],[.3,1.]], # surround
+			# 	# box = [[-.5,.0],[.5,.5]], # surround nonoverlapping
+			# 	# box = [[-.5,.2],[.2,.5]], # surround nonoverlapping
+			# 	addon = "surround_",
 			# )
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
@@ -4220,27 +4279,15 @@ else:
 			# 	addon = addon + "_center",
 			# 	color = color,
 			# )
-			SpikeTriggeredAverage(
-				sheet=s, 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				opposite=True, # ORTHO
-				radius = [.0,.7], # center
-				addon = addon + "_center",
-				color = color,
-			)
 			# SpikeTriggeredAverage(
 			# 	sheet=s, 
 			# 	folder=f, 
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	parameter="radius",
 			# 	ylim=[0,50],
-			# 	opposite=False, # ISO
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
-			# 	radius = [1.,1.8], # surround
-			# 	addon = addon + "_surround",
+			# 	opposite=True, # ORTHO
+			# 	radius = [.0,.7], # center
+			# 	addon = addon + "_center",
 			# 	color = color,
 			# )
 			SpikeTriggeredAverage(
@@ -4249,12 +4296,24 @@ else:
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
 				ylim=[0,50],
-				opposite=True, # ORTHO
+				opposite=False, # ISO
 				# box = [[-.8,1.],[.8,2.5]], # surround
 				radius = [1.,1.8], # surround
 				addon = addon + "_surround",
 				color = color,
 			)
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=True, # ORTHO
+			# 	# box = [[-.8,1.],[.8,2.5]], # surround
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_surround",
+			# 	color = color,
+			# )
 
 			# variability( 
 			# 	sheet=s, 
@@ -4423,7 +4482,7 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	# box = [[-.2,.3],[.2,.7]], # surround
-			# 	radius = [.5,.8], # surround
+			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_"+addon,
 			# 	preferred=True, # 
 			# 	color = color,
@@ -4451,7 +4510,8 @@ else:
 			# 	color = color,
 			# )
 			# spectrum(
-			# 	sheet='V1_Exc_L4', 
+			# 	# sheet='V1_Exc_L4', 
+			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
@@ -4462,7 +4522,8 @@ else:
 			# 	color = color,
 			# )
 			# spectrum(
-			# 	sheet='V1_Exc_L4', 
+			# 	# sheet='V1_Exc_L4', 
+			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
@@ -4498,6 +4559,37 @@ else:
 			# 	radius2 = [.5,.8], # surround
 			# 	addon="center2surround_"+addon,
 			# 	color=color,
+			# )
+			# correlation( # CORTICO-CORTICAL 
+			# 	sheet1='V1_Exc_L4', 
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [.0,.7], # center
+			# 	radius2 = [1.,1.8], # surround
+			# 	preferred1=True, # ISO
+			# 	preferred2=False, # ORTHO
+			# 	addon="center_iso_2_surround_ortho_"+addon,
+			# 	# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color
+			# )
+			# correlation( # CORTICO-CORTICAL 
+			# 	sheet1='PGN', 
+			# 	sheet2='X_OFF', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [1.,1.8], # center
+			# 	radius2 = [.0,.7], # center
+			# 	# radius2 = [1.,1.8], # surround
+			# 	preferred1=True, # 
+			# 	preferred2=True, # 
+			# 	addon="surround_2_center_"+addon,
+			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+			# 	# sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color
 			# )
 			# correlation( # CORTICO-CORTICAL 
 			# 	sheet1=s, 
@@ -4540,7 +4632,8 @@ else:
 			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER V1
 			# 	radius = [.0,.7], # center
 			# 	opposite=False, # ISO
-			# 	addon = "center_iso_"+addon,
+			# 	addon = "center_"+addon,
+			# 	# addon = "center_iso_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 			# isi( 
@@ -4554,7 +4647,8 @@ else:
 			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
 			# 	radius = [1.,1.8], # surround
 			# 	opposite=False, # ISO
-			# 	addon = "surround_iso_"+addon,
+			# 	addon = "surround_"+addon,
+			# 	# addon = "surround_iso_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 			# isi( 
