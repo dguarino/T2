@@ -3675,7 +3675,7 @@ full_list = [
 
 	# "Thalamocortical_size_closed", # BIG
 	# "ThalamoCorticalModel_data_size_closed_conductances_____", # New
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
@@ -3686,8 +3686,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____nocorr",
 
 	# "Thalamocortical_size_feedforward", # BIG
-	"ThalamoCorticalModel_data_size_feedforward_conductances_____", # New
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "ThalamoCorticalModel_data_size_feedforward_conductances_____", # New
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
@@ -3744,7 +3744,7 @@ inac_list = [
 addon = ""
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
-sheets = ['X_ON', 'PGN']
+# sheets = ['X_ON', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
@@ -3752,7 +3752,7 @@ sheets = ['X_ON', 'PGN']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
-# sheets = ['PGN']
+sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = ['V1_Inh_L4'] 
@@ -4224,18 +4224,18 @@ else:
 			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_iso_",
 			# )
-			trial_averaged_conductance_tuning_curve( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				percentile=False,
-				ylim=[0,30],
-				useXlog=False, 
-				opposite=True, #
-				radius = [.0, 0.7], # center
-				addon = "center_ortho_" + addon,
-			)
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "center_ortho_" + addon,
+			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4702,6 +4702,66 @@ else:
 			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
 			# 	color=color
 			# )
+			correlation( # Exc center iso 2 Inh center iso
+				sheet1='V1_Exc_L4', 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				radius1 = [.0,.7], # center
+				radius2 = [.0,.7], # center
+				preferred1=True, # ISO
+				preferred2=True, # ORTHO
+				addon="center_iso_2_center_iso_"+addon,
+				# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+				sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+				color=color
+			)
+			correlation( # Inh center iso 2 Exc center iso
+				sheet1='V1_Inh_L4', 
+				sheet2='V1_Exc_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				radius1 = [.0,.7], # center
+				radius2 = [.0,.7], # center
+				preferred1=True, # ISO
+				preferred2=True, # ORTHO
+				addon="center_iso_2_center_iso_"+addon,
+				# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+				sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+				color=color
+			)
+			correlation( # Exc center iso 2 Inh center iso
+				sheet1='V1_Exc_L4', 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				radius1 = [.0,.7], # center
+				radius2 = [.0,.7], # center
+				preferred1=True, # ISO
+				preferred2=False, # ORTHO
+				addon="center_iso_2_center_ortho_"+addon,
+				# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+				sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+				color=color
+			)
+			correlation( # Inh center iso 2 Exc center iso
+				sheet1='V1_Inh_L4', 
+				sheet2='V1_Exc_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				stimulus_parameter='radius',
+				radius1 = [.0,.7], # center
+				radius2 = [.0,.7], # center
+				preferred1=False, # ISO
+				preferred2=True, # ORTHO
+				addon="center_ortho_2_center_iso_"+addon,
+				# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big folder
+				sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+				color=color
+			)
 			# correlation( # Surround iso 2 Center iso
 			# 	sheet1='V1_Exc_L4',
 			# 	sheet2='V1_Inh_L4', 
