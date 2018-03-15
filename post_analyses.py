@@ -7,6 +7,7 @@ import ast
 import re
 import glob
 import json
+import inspect
 
 from functools import reduce # forward compatibility
 import operator
@@ -247,6 +248,7 @@ def select_by_orientation(data_store, sheet, ids, preferred=True):
 
 
 def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, box=[], csvfile=None, plotAll=False ):
+	print inspect.stack()[0][3]
 	print folder_full
 	folder_nums = re.findall(r'\d+', folder_full)
 	print folder_nums
@@ -525,6 +527,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 
 
 def mean_confidence_interval(data, confidence=0.95):
+	print inspect.stack()[0][3]
 	import scipy.stats
 	a = 1.0*numpy.array(data)
 	n = len(a)
@@ -536,6 +539,7 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_diameter=10, addon="", color="black" ):
+	print inspect.stack()[0][3]
 	import ast
 	matplotlib.rcParams.update({'font.size':22})
 	print "folder: ",folder
@@ -604,6 +608,7 @@ def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_di
 
 
 def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, preferred1=True, preferred2=True, addon="", color="black", trials=6 ):
+	print inspect.stack()[0][3]
 	import ast
 	import random
 	import copy
@@ -855,6 +860,7 @@ def jpsth( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2
 
 
 def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, radius=None, preferred=True, ylim=[0.,200.] ):
+	print inspect.stack()[0][3]
 	import ast
 	from matplotlib.ticker import NullFormatter
 	from scipy import signal
@@ -934,38 +940,16 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 		
 		powers.append( power )
 
-	# 	plt.figure()
-	# 	idx = numpy.argsort(freqs) # last one is as all the others
-	# 	plt.plot( freqs[idx], power[idx], linewidth=3, color=color, linestyle='-' )
-	# 	plt.ylim([0., 8000000.])
-	# 	plt.xlim([0., 150.])
-	# 	plt.tight_layout()
-	# 	plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
-	# 	plt.close()
-	# 	gc.collect()
-
-	# 	# # find peaks
-	# 	# peakind = signal.find_peaks_cwt(power, [1,2,3,4,5,6,7,8] )
-	# 	# # print peakind, power[peakind]
-	# 	# # amount of power in each band (computed from peaks)
-	# 	# hist = []
-	# 	# bands = [0, 4, 7, 13, 30, 100]
-	# 	# for i in range(len(bands)-1):
-	# 	# 	# print bands[i], bands[i+1]
-	# 	# 	# sum the powers of peaks
-	# 	# 	idxs = numpy.logical_and( peakind>=bands[i], peakind<=bands[i+1] )
-	# 	# 	raw = numpy.sum( power[ idxs ] )
-	# 	# 	band = raw / len(nidxs)
-	# 	# 	hist.append( band )
-	# 	# hist = hist / numpy.max(hist)
-	# 	# # plotting
-	# 	# plt.figure()
-	# 	# plt.bar(range(5), hist, width=0.35, color=color)
-	# 	# # plt.ylim([0., 200000000.])
-	# 	# plt.tight_layout()
-	# 	# plt.savefig( folder+"/hist_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
-	# 	# plt.close()
-	# 	# gc.collect()
+		# if float(stim) > 4.:
+		# 	plt.figure()
+		# 	idx = numpy.argsort(freqs) # last one is as all the others
+		# 	plt.plot( freqs[idx], power[idx], linewidth=3, color=color, linestyle='-' )
+		# 	plt.ylim([0., 30000000.])
+		# 	plt.xlim([0., 150.])
+		# 	plt.tight_layout()
+		# 	plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
+		# 	plt.close()
+		# 	gc.collect()
 
 	powers = numpy.array(powers)
 	# print powers.shape
@@ -978,7 +962,7 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 	plt.ylim([0., 30000000.])
 	plt.xlim([0., 150.])
 	plt.tight_layout()
-	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+	# plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
 	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
@@ -987,11 +971,13 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 
 
 def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, radius=False, opposite=False, ylim=[0.,5.] ):
+	print inspect.stack()[0][3]
 	import ast
 	from scipy.stats import norm
 	matplotlib.rcParams.update({'font.size':22})
 
 	print "folder: ",folder
+	print "sheet: ",sheet
 	print addon
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
 	dsv = queries.param_filter_query(data_store, sheet_name=sheet, st_name=stimulus)
@@ -1019,6 +1005,8 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 		spike_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	print "Selected neurons :", len(spike_ids)
+	if len(spike_ids) < 1:
+		return
 
 	segs, stids = colapse(dsv.get_segments(), dsv.get_stimuli(), parameter_list=[], allow_non_identical_objects=True ) # ALL spiketrains from all trials
 	print len(segs), len(stids)
@@ -1033,10 +1021,12 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 		cv = seg[0].cv_isi(neuron_id=spike_ids)
 
 		for i,c in zip(isi,cv):
-			if stim > 0.6:
-			 isis.append( numpy.nan_to_num( numpy.histogram( i, range=(0, nbins), bins=nbins )[0] ) )
-			 if c==None: c = 0.
-			 cvs.append( numpy.nan_to_num(c) )
+			# center iso inh: 1.082, 4.171
+			# center ortho inh: 1.082, 4.171
+			if stim > 0.6: # 4.:
+				isis.append( numpy.nan_to_num( numpy.histogram( i, range=(0, nbins), bins=nbins )[0] ) )
+				if c==None: c = 0.
+				cvs.append( numpy.nan_to_num(c) )
 
 	# plot
 	x = range(nbins)
@@ -1057,11 +1047,11 @@ def isi( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", b
 	frame.axes.yaxis.set_ticks_position('left')
 	frame.axes.xaxis.set_ticks_position('bottom')
 	plt.title("{:.2f}".format(avg_cv)+" +- "+"{:.2f}".format(std_cv))
-	plt.tight_layout()
+	# plt.tight_layout()
 	plt.ylim(ylim)
 	plt.plot( x, hisi, linewidth=3, color=color) 
-	plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_x"+addon+".png", dpi=200, transparent=True )
-	plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_x"+addon+".svg", dpi=300, transparent=True )
+	# plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_x"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/ISI_"+str(sheet)+"_"+stimulus_parameter+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
 
@@ -1401,6 +1391,10 @@ def spontaneous(sheet, folder, ylim=[], color="black", box=None, addon="", oppos
 
 
 def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None, box2=None, radius1=None, radius2=None, preferred1=True, preferred2=True, sizes=[], addon="", color="black" ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet1: ",sheet1
+	print "sheet2: ",sheet2
 	import ast
 	from matplotlib.ticker import NullFormatter
 	from scipy import signal
@@ -1412,10 +1406,10 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	spike_ids2 = param_filter_query(data_store, sheet_name=sheet2, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	print "Recorded neurons 2:", len(spike_ids2)
 
-	if sheet1=='V1_Exc_L4':
+	if sheet1=='V1_Exc_L4' or sheet1=='V1_Inh_L4':
 		spike_ids1 = select_by_orientation(data_store, sheet1, spike_ids1, preferred=preferred1)
 
-	if sheet2=='V1_Exc_L4':
+	if sheet2=='V1_Exc_L4' or sheet2=='V1_Inh_L4':
 		spike_ids2 = select_by_orientation(data_store, sheet2, spike_ids2, preferred=preferred2)
 
 	print "Oriented neurons 1:", len(spike_ids1)
@@ -1615,19 +1609,20 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 	# matplotlib.rcParams.update({'font.size':22})
 	# fig = plt.figure()
 	# ax1 = fig.add_subplot(211)
-	# ax1.acorr( signal1, usevlines=True, normed=True, maxlags=200, linewidth=2, color=color )
+	# ax1.acorr( signal1, usevlines=True, normed=True, maxlags=300, linewidth=2, color=color )
 	# ax1.spines['left'].set_visible(False)
 	# ax1.spines['right'].set_visible(False)
 	# ax1.spines['top'].set_visible(False)
 	# ax1.spines['bottom'].set_visible(False)
 	# ax2 = fig.add_subplot(212, sharex=ax1)
-	# ax2.acorr( signal2, usevlines=True, normed=True, maxlags=200, linewidth=2, color=color )
+	# ax2.acorr( signal2, usevlines=True, normed=True, maxlags=300, linewidth=2, color=color )
 	# ax2.spines['left'].set_visible(False)
 	# ax2.spines['right'].set_visible(False)
 	# ax2.spines['top'].set_visible(False)
 	# ax2.spines['bottom'].set_visible(False)
 	# plt.tight_layout()
-	# plt.savefig( folder+"/autocorrelation_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
+	# # plt.savefig( folder+"/autocorrelation_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".png", dpi=300, transparent=True )
+	# plt.savefig( folder+"/autocorrelation_"+str(sheet1)+"_"+str(sheet2)+"_"+addon+".svg", dpi=300, transparent=True )
 	# fig.clf()
 	# plt.close()
 	# gc.collect()
@@ -1636,7 +1631,9 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 
 
 def variability( sheet, folder, stimulus, stimulus_parameter, box=None, radius=None, addon="", opposite=False, nulltime=False ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}), replace=True )
 
 	namef = ""
@@ -1909,155 +1906,10 @@ def fano_comparison_timecourse( sheet, folder, closed_files, open_files, ylim=[]
 
 
 
-def trial_averaged_corrected_xcorrelation( sheet, folder, stimulus, start, end, bin=10.0, xlabel="", ylabel="" ):
-	# following Brody1998a: "Correlations Without Synchrony"
-	# shuffe-corrected cross-correlogram
-	from scipy import signal
-
-	print "folder: ",folder
-	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	# data_store.print_content(full_recordings=False)
-
-	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
-	positions = data_store.get_neuron_postions()[sheet]
-	neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_ids)
-	print "neurons", len(neurons)
-
-	# compute binned spiketrains per cell per trial
-	SpikeCount( 
-		param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), 
-		ParameterSet({'bin_length' : bin }) 
-	).analyse()
-
-	dsvS = param_filter_query( data_store, identifier='AnalogSignalList', sheet_name=sheet, st_name=stimulus, analysis_algorithm=['SpikeCount'] )
-	# dsvS.print_content(full_recordings=False)
-
-	# get S1 binned spiketrains
-	box1 = [[-3,-.5],[-1.,.5]]
-	ids1 = select_ids_by_position(positions, sheet_ids, box=box1)
-	neurons1 = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
-	s1 = []
-	for idd in sorted(neurons1):
-		# print idd
-		s1.append( [ads.get_asl_by_id(idd).magnitude for ads in dsvS.get_analysis_result()] ) # 3D (cells, counts, trials)
-	S1 = numpy.array(s1)
-	P1 = numpy.mean( numpy.array(s1), axis=1 )
-	datapoints = P1.shape[1] # actual number of points to show after convolution, centered on its middle point
-	print "datapoints", datapoints
-	print "S1",S1.shape
-	print "P1",P1.shape
-	# print P1
-
-	# get S2 binned spiketrains
-	box2 = [[1.,-.5],[3.,.5]]
-	ids2 = select_ids_by_position(positions, sheet_ids, box=box2)
-	neurons2 = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids2)
-	s2 = []
-	for idd in sorted(neurons2):
-		s2.append( [ads.get_asl_by_id(idd).magnitude for ads in dsvS.get_analysis_result()] )
-	S2 = numpy.array(s2)
-	P2 = numpy.mean( numpy.array(s2), axis=1 )
-	print "S2",S2.shape
-	print "P2",P2.shape
-	# print S2
-
-	# take the smallest number of ids
-	num_ids = len(S1)
-	if num_ids > len(S2):
-		num_ids = len(S2)
-	# print num_ids
-
-	# correlation of one-vs-one cell 
-	c = []
-	k = []
-	for i in range(num_ids):
-		# cross-correlations per cell, trials
-		# "full": The output is the full discrete linear cross-correlation of the inputs. (Default)
-		# "fill": pad input arrays with fillvalue. (default)
-		# "fillvalue": Value to fill pad input arrays with. Default is 0.
-		c.append( signal.correlate2d(S1[i], S2[i], mode='full', boundary='fill', fillvalue=0) )
-		# Shuffle corrector (aka K)
-		k.append( numpy.correlate(P1[i], P2[i], "full") )
-
-	C = numpy.array(c)
-	K = numpy.array(k)
-	print "C = S1*S2 ", C.shape
-	print "K = P1*P2 ", K.shape
-	# print K
-
-	# the covariogram is the average of single-trials correlations minus the correlation of trial-averaged PSTHs
-	R = numpy.mean( C, axis=1 )
-	print "R = <S1*S2> ", R.shape
-
-	V = R-K
-	print "V = R - K", V.shape
-	# print V
-	# Vmean = numpy.mean( R-K, axis=0)
-
-	timescale_side = int(datapoints/2)
-
-	# Significance interval: (quotation from Brody1998a)
-	# Significant departures of V from zero indicate that the two cells
-	# were not independent, regardless of what distributions that S1 and S2 were
-	# drawn from. Estimating the significance of departures of V from 0 requires
-	# some assumptions. For the null hypothesis, it will be assumed that S1 is
-	# independent of S2, different trials of S1 are independent of each other, and
-	# different bins within each trial of S1 are independent of each other (similar
-	# assumptions for the trials and bins of S2 will also be made). If P and sigma2
-	# are the mean and variance of S over trials r and N trials is the number of
-	# trials in the experiment, then the variance in the null hypothesis for V is (2.4)
-	Vmean, err_max, err_min = mean_confidence_interval(V)
-	print "Vmean", Vmean.shape
-	print "err_max", err_max.shape
-	print "err_min", err_min.shape
-
-	# Plotting
-	x = range(len(Vmean[timescale_side:datapoints+timescale_side]))
-	fig,ax = plt.subplots()
-	ax.plot(x, Vmean[timescale_side:datapoints+timescale_side], color="black", linewidth=3)
-	ax.fill_between(x, err_max[timescale_side:datapoints+timescale_side], err_min[timescale_side:datapoints+timescale_side], color='grey', alpha=0.3)
-	ax.spines['right'].set_visible(False)
-	ax.spines['top'].set_visible(False)
-	ax.xaxis.set_ticks_position('bottom')
-	ax.yaxis.set_ticks_position('left')
-	ax.set_ylim([-10,40])
-	ax.set_xlim([0, datapoints])
-	ax.set_xticks([0, timescale_side, datapoints])
-	ax.set_xticklabels([timescale_side*-1,0,timescale_side])
-	ax.set_title( sheet )
-	ax.set_xlabel( xlabel )
-	ax.set_ylabel( ylabel )
-	plt.savefig( folder+"/Covariogram_"+stimulus+"_"+sheet+".png", dpi=200, transparent=True )
-	fig.clf()
-	plt.close()
-	gc.collect()
-
-	for i in range(num_ids):
-		# Plotting
-		fig,ax = plt.subplots()
-		ax.plot(range(len(V[i][timescale_side:datapoints+timescale_side])), V[i][timescale_side:datapoints+timescale_side], color="black", linewidth=3)
-		ax.spines['right'].set_visible(False)
-		ax.spines['top'].set_visible(False)
-		ax.xaxis.set_ticks_position('bottom')
-		ax.yaxis.set_ticks_position('left')
-		ax.set_ylim([-10,40])
-		ax.set_xlim([0, datapoints])
-		ax.set_xticks([0, timescale_side, datapoints])
-		ax.set_xticklabels([timescale_side*-1,0,timescale_side])
-		ax.set_title( sheet )
-		ax.set_xlabel( xlabel )
-		ax.set_ylabel( ylabel )
-		plt.savefig( folder+"/Covariogram_"+stimulus+"_"+sheet+"_"+str(i)+".png", dpi=200, transparent=True )
-		fig.clf()
-		plt.close()
-		gc.collect()
-
-
-
-
 def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None, opposite=False, box=None, radius=None, addon="" ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=True)
 
@@ -2086,6 +1938,8 @@ def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlab
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	print "Selected neurons:", len(neurons)
+	if len(neurons) < 1:
+		return
 
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False  )
 	# print rates.shape # (stimuli, cells)
@@ -2163,7 +2017,8 @@ def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlab
 	ax.axes.get_xaxis().set_visible(False)
 	ax.axes.get_yaxis().set_visible(True)
 	plt.tight_layout()
-	plt.savefig( folder+"/suppression_index_box_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
+	# plt.savefig( folder+"/suppression_index_box_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/suppression_index_box_"+str(sheet)+"_"+addon+".svg", dpi=200, transparent=True )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -2172,7 +2027,9 @@ def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlab
 
 
 def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None, csvfile=None ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=True)
 
@@ -2260,7 +2117,9 @@ def NakaRushton(c, n, Rmax, c50, m):
 	return Rmax * (c**n / (c**n + c50**n)) + m
 from scipy.optimize import curve_fit
 def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", data="", data_color="" ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -2330,7 +2189,9 @@ def cumulative_distribution_C50_curve( sheet, folder, stimulus, parameter, start
 
 
 def orientation_selectivity_index_boxplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", color_data="grey", data=None ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -2424,7 +2285,9 @@ def orientation_selectivity_index_boxplot( sheet, folder, stimulus, parameter, s
 
 
 def orientation_bias_boxplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -2525,7 +2388,9 @@ def orientation_bias_boxplot( sheet, folder, stimulus, parameter, start, end, xl
 
 
 def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
+	print inspect.stack()[0][3]
 	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -2602,7 +2467,9 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 
 
 def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", data=None, data_curve=True ):
-	print folder
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -2632,6 +2499,8 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	print "Selected neurons:", len(neurons), neurons
+	if len(neurons) < 1:
+		return
 
 	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False ) 
 	# print rates
@@ -3002,12 +2871,17 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 
 
 
-def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", inputoutputratio=False, dashed=False ):
-	print folder
+def trial_averaged_Vm( sheet, folder, stimulus, parameter, opposite=False, box=None, radius=None, addon="" ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
+	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	if analog_ids == None:
+		print "No Vm recorded.\n"
+		return
 	print "Recorded neurons:", len(analog_ids)
 
 	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
@@ -3031,6 +2905,127 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		analog_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	print "Selected neurons:", len(analog_ids)
+	if len(analog_ids) < 1:
+		return
+
+	dsv = param_filter_query( data_store, sheet_name=sheet, st_name=stimulus )
+
+	dist = box if not radius else radius
+	for n in analog_ids:
+		VmPlot(
+			dsv,
+			ParameterSet({
+				'neuron': n, 
+				'sheet_name' : sheet,
+				'spontaneous' : True,
+			}), 
+			fig_param={'dpi' : 300, 'figsize': (40,5)}, 
+			# plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_"+str(dist)+"_"+str(n)+"_"+addon+".png"
+			plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+str(n)+"_"+addon+".svg"
+		).plot({
+			# '*.y_lim':(0,60), 
+			# '*.x_scale':'log', '*.x_scale_base':2,
+			# '*.y_ticks':[5, 10, 25, 50, 60], 
+			# # '*.y_scale':'linear', 
+			# '*.y_scale':'log', '*.y_scale_base':2,
+			# '*.fontsize':24
+		})
+
+
+
+
+def trial_averaged_raster( sheet, folder, stimulus, parameter, opposite=False, box=None, radius=None, addon="" ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	spike_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	if spike_ids == None:
+		print "No spikes recorded.\n"
+		return
+	print "Recorded neurons:", len(spike_ids)
+
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in spike_ids]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(spike_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in spike_ids]) < .1)[0]]
+		spike_ids = list(l4_exc_or_many)
+
+	if radius or box:
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids)
+		positions = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions, sheet_ids, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
+		spike_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	print "Selected neurons:", len(spike_ids)
+	if len(spike_ids) < 1:
+		return
+
+	dsv = param_filter_query( data_store, sheet_name=sheet, st_name=stimulus )
+	dist = box if not radius else radius
+
+	# Raster + Histogram
+	RasterPlot(
+		dsv,
+		ParameterSet({
+			'sheet_name':sheet, 
+			'neurons':list(spike_ids), 
+			'trial_averaged_histogram':True,
+			'spontaneous' : True
+		}),
+		fig_param={'dpi' : 100,'figsize': (100,50)},
+		plot_file_name=folder+"/HistRaster_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+addon+".svg"
+	).plot({'SpikeRasterPlot.group_trials':True})
+
+
+
+
+def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", inputoutputratio=False, dashed=False ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	if analog_ids == None:
+		print "No Vm recorded.\n"
+		return
+	print "Recorded neurons:", len(analog_ids)
+
+	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < .1)[0]]
+		analog_ids = list(l4_exc_or_many)
+
+	if radius or box:
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
+		positions = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions, sheet_ids, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
+		analog_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	print "Selected neurons:", len(analog_ids)
+	if len(analog_ids)<1:
+		return
 
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
@@ -3108,9 +3103,25 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 		firing_max = numpy.amax( final_sorted_i[1] )
 		final_sorted_i[1] = final_sorted_i[1] / firing_max * 100
 
-	# Plotting tuning curve
 	matplotlib.rcParams.update({'font.size':22})
+	# Conductances ratio
 	fig,ax = plt.subplots()
+	color = 'black' if 'closed' in folder else 'gray'
+	ax.plot( final_sorted_i[0], final_sorted_e[1]/final_sorted_i[1], color=color, linewidth=3 )
+	ax.set_xlabel( parameter )
+	# ax.set_ylim([0,2])
+	plt.tight_layout()
+	dist = box if not radius else radius
+	# plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+"_radius"+str(dist)+"_pop_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+"_radius"+str(dist)+"_pop_"+addon+".svg", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	# garbage
+	gc.collect()
+
+	# Plotting tuning curve
+	fig,ax = plt.subplots()
+
 	alpha = 0.1
 	linestyle = '-'
 	if dashed:
@@ -3154,8 +3165,9 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 	# text
 	ax.set_xlabel( parameter )
+	# ax2.set_xlabel( parameter )
 	plt.tight_layout()
-	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".png", dpi=200, transparent=True )
+	# plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".png", dpi=200, transparent=True )
 	plt.savefig( folder+"/TrialAveragedConductances_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
@@ -3188,7 +3200,9 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 
 def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, ticks, ylim=[0.,100.], box=[], addon="" ):
-	print folder
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
@@ -3303,9 +3317,11 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], box=False, radius=False, opposite=False, addon="", color="black"):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
 	import ast
 	from scipy import signal
-	print folder
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=False)
 
@@ -3658,8 +3674,10 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Thalamocortical_size_closed", # BIG
-	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "ThalamoCorticalModel_data_size_closed_conductances_____", # New
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -3668,12 +3686,12 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____nocorr",
 
 	# "Thalamocortical_size_feedforward", # BIG
+	"ThalamoCorticalModel_data_size_feedforward_conductances_____", # New
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____nocorr",
 
 	# # Andrew's machine
@@ -3696,9 +3714,6 @@ full_list = [
 	# "Deliverable/CombinationParamSearch_LGN_PGN_2",
 	# "CombinationParamSearch_large_closed",
 	# "CombinationParamSearch_more_focused_closed_nonoverlapping",
-
-	# "ThalamoCorticalModel_data_size_closed_nonoverlapping_____",
-	# "ThalamoCorticalModel_data_size_closed_overlapping_____",
 
 	# "CombinationParamSearch_intact_nonoverlapping",
 	]
@@ -3729,6 +3744,7 @@ inac_list = [
 addon = ""
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
+sheets = ['X_ON', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
@@ -3736,10 +3752,11 @@ addon = ""
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
-sheets = ['PGN']
+# sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
 
 # ONLY for comparison parameter search
@@ -4069,7 +4086,7 @@ else:
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
 			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
-			# 	addon = "center",
+			# 	addon = "center_iso_"+addon,
 			# )
 			# end_inhibition_boxplot( 
 			# 	sheet=s, 
@@ -4082,7 +4099,7 @@ else:
 			# 	opposite=True, # to select cortical cells with OPPOSITE orientation preference
 			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
-			# 	addon = "center",
+			# 	addon = "center_ortho_"+addon,
 			# )
 			# end_inhibition_boxplot( 
 			# 	sheet=s, 
@@ -4093,9 +4110,8 @@ else:
 			# 	end=1000., 
 			# 	closed=closed,
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,4.], # surround
-			# 	addon = "surround",
+			# 	addon = "surround_iso_"+addon,
 			# )
 			# end_inhibition_boxplot( 
 			# 	sheet=s, 
@@ -4106,9 +4122,8 @@ else:
 			# 	end=1000., 
 			# 	closed=closed,
 			# 	opposite=True, #
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,4.], # surround
-			# 	addon = "surround" + addon,
+			# 	addon = "surround_ortho_" + addon,
 			# )
 
 			# trial_averaged_tuning_curve_errorbar( 
@@ -4126,7 +4141,6 @@ else:
 			# 	percentile=True,
 			# 	ylim=[0,50],
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
-			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
 			# 	addon = "center_iso_" + addon,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
@@ -4147,7 +4161,6 @@ else:
 			# 	percentile=True,
 			# 	ylim=[0,50],
 			# 	opposite=True, # to select cortical cells with OPPOSITE orientation preference
-			# 	# box = [[-.5,-.5],[.5,.5]], # center
 			# 	radius = [.0,.7], # center
 			# 	addon = "center_ortho_" + addon,
 			# )
@@ -4167,7 +4180,6 @@ else:
 			# 	percentile=True,
 			# 	ylim=[0,100],
 			# 	opposite=False, # to select cortical cells with SAME orientation preference
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_iso_" + addon,
 			# )
@@ -4186,10 +4198,10 @@ else:
 			# 	percentile=True,
 			# 	ylim=[0,50],
 			# 	opposite=True, #
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_ortho_" + addon,
 			# )
+
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4198,11 +4210,8 @@ else:
 			# 	percentile=False,
 			# 	ylim=[0,30],
 			# 	useXlog=False, 
-			# 	# percentile=True,
 			# 	radius = [.0, 0.7], # center
-			# 	# box = [[-.5,-.5],[.5,.5]], # center
-			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
-			# 	addon = "center_" + addon,
+			# 	addon = "center_iso_" + addon,
 			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
@@ -4212,29 +4221,21 @@ else:
 			# 	percentile=False,
 			# 	ylim=[0,30],
 			# 	useXlog=False, 
-			# 	# percentile=True,
 			# 	radius = [1.,1.8], # surround
-			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
-			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
-			# 	# box = [[-0.1,.6],[.3,1.]], # surround
-			# 	# box = [[-.5,.0],[.5,.5]], # surround nonoverlapping
-			# 	# box = [[-.5,.2],[.2,.5]], # surround nonoverlapping
-			# 	addon = "surround_",
+			# 	addon = "surround_iso_",
 			# )
-			# trial_averaged_conductance_tuning_curve( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	percentile=False,
-			# 	ylim=[0,30],
-			# 	useXlog=False, 
-			# 	opposite=True, #
-			# 	radius = [.0, 0.7], # center
-			# 	# box = [[-.5,-.5],[.5,.5]], # center
-			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
-			# 	addon = "center_" + addon,
-			# )
+			trial_averaged_conductance_tuning_curve( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				percentile=False,
+				ylim=[0,30],
+				useXlog=False, 
+				opposite=True, #
+				radius = [.0, 0.7], # center
+				addon = "center_ortho_" + addon,
+			)
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4245,13 +4246,87 @@ else:
 			# 	useXlog=False, 
 			# 	opposite=True, #
 			# 	radius = [1.,1.8], # surround
-			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
-			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
-			# 	# box = [[-0.1,.6],[.3,1.]], # surround
-			# 	# box = [[-.5,.0],[.5,.5]], # surround nonoverlapping
-			# 	# box = [[-.5,.2],[.2,.5]], # surround nonoverlapping
-			# 	addon = "surround_",
+			# 	addon = "surround_ortho_",
 			# )
+
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "iso_center_" + addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "iso_surround_" + addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "ortho_center_" + addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "ortho_surround_" + addon,
+			# )
+
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "iso_center_" + addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "iso_surround_" + addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "ortho_center_" + addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "ortho_surround_" + addon,
+			# )
+
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4290,18 +4365,18 @@ else:
 			# 	addon = addon + "_center",
 			# 	color = color,
 			# )
-			SpikeTriggeredAverage(
-				sheet=s, 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				opposite=False, # ISO
-				# box = [[-.8,1.],[.8,2.5]], # surround
-				radius = [1.,1.8], # surround
-				addon = addon + "_surround",
-				color = color,
-			)
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=False, # ISO
+			# 	# box = [[-.8,1.],[.8,2.5]], # surround
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_surround",
+			# 	color = color,
+			# )
 			# SpikeTriggeredAverage(
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -4488,48 +4563,42 @@ else:
 			# 	color = color,
 			# )
 			# spectrum(
-			# 	sheet='V1_Exc_L4', 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	# box=[[-.5,-.5],[.5,.5]], # center
-			# 	radius = [.0,.7], # center
-			# 	addon = "center_same_"+addon,
-			# 	preferred=True, # 
-			# 	color = color,
-			# )
-			# spectrum(
-			# 	sheet='V1_Exc_L4', 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	stimulus_parameter='radius',
-			# 	# box=[[-.5,.5],[.5,1.]], # surround
-			# 	radius = [1.,1.8], # surround
-			# 	addon = "surround_same_"+addon,
-			# 	preferred=True, # 
-			# 	color = color,
-			# )
-			# spectrum(
-			# 	# sheet='V1_Exc_L4', 
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
-			# 	# box=[[-.5,-.5],[.5,.5]], # center
-			# 	radius = [.0,.7], # center
-			# 	addon = "center_opposite_"+addon,
+			# 	radius = [.0,.9], # center
+			# 	addon = "center_iso_"+addon,
+			# 	preferred=True, # 
+			# 	color = color,
+			# )
+			# spectrum(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius = [1.,1.8], # surround
+			# 	addon = "surround_iso_"+addon,
+			# 	preferred=True, # 
+			# 	color = color,
+			# )
+			# spectrum(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius = [.0,.9], # center
+			# 	addon = "center_ortho_"+addon,
 			# 	preferred=False, # 
 			# 	color = color,
 			# )
 			# spectrum(
-			# 	# sheet='V1_Exc_L4', 
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
-			# 	# box=[[-.5,.5],[.5,1.]], # surround
 			# 	radius = [1.,1.8], # surround
-			# 	addon = "surround_opposite_"+addon,
+			# 	addon = "surround_ortho_"+addon,
 			# 	preferred=False, # 
 			# 	color = color,
 			# )
@@ -4558,6 +4627,34 @@ else:
 			# 	radius1 = [.0,.2], # center
 			# 	radius2 = [.5,.8], # surround
 			# 	addon="center2surround_"+addon,
+			# 	color=color,
+			# )
+			# correlation( 
+			# 	sheet1='X_ON', 
+			# 	sheet2='V1_Exc_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [.0,.7], # center
+			# 	radius2 = [.0,.7], # center
+			# 	preferred1=True, # 
+			# 	preferred2=True, # 
+			# 	addon="LGNcenter_2_V1_iso_center_"+addon,
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color,
+			# )
+			# correlation( 
+			# 	sheet1='V1_Exc_L4', 
+			# 	sheet2='X_ON', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [.0,.7], # center
+			# 	radius2 = [.0,.7], # center
+			# 	preferred1=True, # 
+			# 	preferred2=True, # 
+			# 	addon="V1_iso_center_2_LGNcenter_"+addon,
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
 			# 	color=color,
 			# )
 			# correlation( # CORTICO-CORTICAL 
@@ -4591,9 +4688,38 @@ else:
 			# 	# sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
 			# 	color=color
 			# )
-			# correlation( # CORTICO-CORTICAL 
+			# correlation( # Surround iso 2 Center iso
 			# 	sheet1=s, 
 			# 	sheet2=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [1.,1.8], # surround
+			# 	radius2 = [.0,.7], # center
+			# 	preferred1=True, # SAME
+			# 	preferred2=True, # SAME
+			# 	addon="surround2center_iso_"+addon,
+			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	color=color
+			# )
+			# correlation( # Surround iso 2 Center iso
+			# 	sheet1='V1_Exc_L4',
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [1.,1.8], # surround
+			# 	radius2 = [.0,.7], # center
+			# 	preferred1=True, # SAME
+			# 	preferred2=True, # SAME
+			# 	addon="surround_iso_2_center_iso_"+addon,
+			# 	# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color
+			# )
+			# correlation( # Center iso 2 Surround iso
+			# 	sheet1='V1_Inh_L4', 
+			# 	sheet2='V1_Exc_L4',
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
@@ -4601,18 +4727,49 @@ else:
 			# 	radius2 = [1.,1.8], # surround
 			# 	preferred1=True, # SAME
 			# 	preferred2=True, # SAME
-			# 	addon="center2surround_iso_"+addon,
-			# 	sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	addon="center_iso_2_surround_iso_"+addon,
+			# 	# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
 			# 	color=color
 			# )
-			# correlation( # CORTICO-CORTICAL 
-			# 	sheet1=s, 
-			# 	sheet2=s, 
+			# correlation( # Exc Surround iso 2 Inh Center ortho
+			# 	sheet1='V1_Exc_L4',
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [1.,1.8], # surround
+			# 	radius2 = [.0,.7], # center
+			# 	preferred1=True, # SAME
+			# 	preferred2=False, # SAME
+			# 	addon="surround_iso_2_center_ortho_"+addon,
+			# 	# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color
+			# )
+			# correlation( # Inh Center ortho 2 Exc Surround iso
+			# 	sheet1='V1_Inh_L4', 
+			# 	sheet2='V1_Exc_L4',
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	radius1 = [.0,.7], # center
 			# 	radius2 = [1.,1.8], # surround
+			# 	preferred1=False, # ORTHO
+			# 	preferred2=True, # SAME
+			# 	addon="center_ortho_2_surround_iso_"+addon,
+			# 	# sizes=[0.125, 0.187, 0.280, 0.419, 0.627, 0.939, 1.405, 2.103, 3.148, 4.711], # big
+			# 	sizes=[0.125, 0.164, 0.214, 0.281, 0.368, 0.482, 0.631, 0.826, 1.082, 1.417, 1.856, 2.431, 3.184, 4.171, 5.462], # deliverable folder
+			# 	color=color
+			# )
+			# correlation( # OPPOSITE-OPPOSITE
+			# 	sheet1=s, 
+			# 	sheet2=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius1 = [1.,1.8], # surround
+			# 	radius2 = [.0,.7], # center
 			# 	preferred1=False, # OPPOSITE
 			# 	preferred2=False, # OPPOSITE
 			# 	addon="center2surround_ortho_"+addon,
@@ -4620,20 +4777,15 @@ else:
 			# 	color=color
 			# )
 
-
 			# isi( 
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	color=color,
-			# 	# box = [[-.2,-.2],[.2,.2]], # center
-			# 	# box = [[-.3,-.3],[.3,.3]], # center thalamus
-			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER V1
 			# 	radius = [.0,.7], # center
 			# 	opposite=False, # ISO
-			# 	addon = "center_"+addon,
-			# 	# addon = "center_iso_"+addon,
+			# 	addon = "center_iso_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 			# isi( 
@@ -4642,13 +4794,9 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	color=color,
-			# 	# box = [[-.3,.3],[.3,.7]], # surround thalamus
-			# 	# box = [[-.2,.3],[.2,.7]], # surround
-			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
 			# 	radius = [1.,1.8], # surround
 			# 	opposite=False, # ISO
-			# 	addon = "surround_"+addon,
-			# 	# addon = "surround_iso_"+addon,
+			# 	addon = "surround_iso_"+addon,
 			# 	ylim=[0.,1.]
 			# )
 			# isi( 
@@ -4657,9 +4805,6 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	color=color,
-			# 	# box = [[-.2,-.2],[.2,.2]], # center
-			# 	# box = [[-.3,-.3],[.3,.3]], # center thalamus
-			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER V1
 			# 	radius = [.0,.7], # center
 			# 	opposite=True, # ORTHO
 			# 	addon = "center_ortho_"+addon,
@@ -4671,9 +4816,6 @@ else:
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	stimulus_parameter='radius',
 			# 	color=color,
-			# 	# box = [[-.3,.3],[.3,.7]], # surround thalamus
-			# 	# box = [[-.2,.3],[.2,.7]], # surround
-			# 	# box = [[-.5,.5],[.5,1.5]], # SURROUND V1
 			# 	radius = [1.,1.8], # surround
 			# 	opposite=True, # ORTHO
 			# 	addon = "surround_ortho_"+addon,
@@ -6099,10 +6241,3 @@ files_center_feedforward = [
 # comparison_tuning_map(directory, xvalues, yvalues, ticks)
 
 
-# Raster + Histogram
-# RasterPlot(
-# 	param_filter_query(data_store,st_name=stimulus,sheet_name=sheet),
-# 	ParameterSet({'sheet_name' : sheet, 'neurons' : spike_ids, 'trial_averaged_histogram': True, 'spontaneous' : False}),
-# 	fig_param={'dpi' : 100,'figsize': (200,100)},
-# 	plot_file_name=folder+"/HistRaster_"+sheet+"_"+stimulus+".png"
-# ).plot({'SpikeRasterPlot.group_trials':True})
