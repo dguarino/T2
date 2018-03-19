@@ -1463,7 +1463,7 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 		# for idd in set(asl.ids).intersection(spike_ids1): # get only the slected neurons
 		for idd in spike_ids1: # get only the slected neurons
 			psth.append( asl.get_asl_by_id(idd) )
-		psth = numpy.mean(psth, axis=0) # mean over neurons
+		psth = numpy.mean(psth, axis=0) # mean over stimuli
 		if not "{:.3f}".format(stim) in psths1:
 			psths1["{:.3f}".format(stim)] = []
 			correlations["{:.3f}".format(stim)] = []
@@ -1477,7 +1477,7 @@ def correlation( sheet1, sheet2, folder, stimulus, stimulus_parameter, box1=None
 		# for idd in set(asl.ids).intersection(spike_ids2): # get only the slected neurons
 		for idd in spike_ids2:
 			psth.append( asl.get_asl_by_id(idd) )
-		psth = numpy.mean(psth, axis=0) # mean over neurons
+		psth = numpy.mean(psth, axis=0) # mean over stimuli
 		if not "{:.3f}".format(stim) in psths2:
 			psths2["{:.3f}".format(stim)] = []
 		psths2["{:.3f}".format(stim)].append( psth )
