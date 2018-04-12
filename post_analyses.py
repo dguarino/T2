@@ -2652,10 +2652,12 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 	# 1/r^2 is a way to weight the contributions in a distance-dependent manner
 	# Assuming that the electrode has been placed in the cortical coordinates 0,0
 	# we need to keep track of neuron distance from the center, to compute their weighted contribution.
-	distances = [] # = sqrt( position[0]**2 + position[1]**2 )
-
+	distances = []
 	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
-	positions = data_store.get_neuron_postions()[sheet]
+	positions = data_store.get_neuron_postions()[sheet] # !!!!!!!!!!!!! position is in visual space degrees
+	for i in sheet_ids:
+		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
+		distances.append( numpy.linalg.norm(a) ) # = sqrt( position[0]**2 + position[1]**2 )
 
 	print "Selected neurons for LFP:", len(neurons)
 	if len(neurons)<1:
