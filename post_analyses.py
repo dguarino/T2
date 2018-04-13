@@ -8,6 +8,7 @@ import re
 import glob
 import json
 import inspect
+import math
 
 from functools import reduce # forward compatibility
 import operator
@@ -2629,7 +2630,7 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 
-def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], box=False, radius=False, opposite=False, addon="", color="black"):
+def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, opposite=False, addon="", color="black"):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
 	print "sheet: ",sheet
@@ -2639,32 +2640,76 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 	# data_store.print_content(full_recordings=False)
 
 	# LFP
-	neurons = []
-	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	# 95% of the LFP signal is a result of all exc and inh cells conductances from 250um radius from the tip of the electrode (Katzner et al. 2009).
+	# Therefore we include all recorded cells but account for the distance-dependent contribution weighting currents /r^2
+	# We assume that the electrode has been placed in the cortical coordinates <tip>
+	# Only excitatory neurons are relevant for the LFP (because of their geometry) Bartos
+	neurons = param_filter_query(data_store, sheet_name='V1_Exc_L4', st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	positions = data_store.get_neuron_postions()['V1_Exc_L4'] # !!!!!!!!!!!!! position is in visual space degrees
+
 	if neurons == None:
-		print "No Vm recorded.\n"
+		print "No Exc Vm recorded.\n"
 		return
-	print "Recorded neurons:", len(neurons)
+	print "Recorded neurons for LFP:", len(neurons)
 
-	# LFP is a result of all exc and inh cells conductances from 5mm radius.
-	# Therefore we have to include all (100 are enough, uniform randomly chosen) recorded cells.
-	# Far away cells will contribute less to the LFP signal
-	# 1/r^2 is a way to weight the contributions in a distance-dependent manner
-	# Assuming that the electrode has been placed in the cortical coordinates 0,0
-	# we need to keep track of neuron distance from the center, to compute their weighted contribution.
-	distances = []
-	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
-	positions = data_store.get_neuron_postions()[sheet] # !!!!!!!!!!!!! position is in visual space degrees
-	for i in sheet_ids:
-		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
-		distances.append( numpy.linalg.norm(a) ) # = sqrt( position[0]**2 + position[1]**2 )
+	# choose LFP tip position
+	# select all neurons id having a certain orientation preference
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name='V1_Exc_L4')[0]
+	if opposite:
+		exc_or_g = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
+	else:
+		exc_or_g = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
+	or_neurons = list(exc_or_g)
 
-	print "Selected neurons for LFP:", len(neurons)
-	if len(neurons)<1:
-		return
+	or_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4', neuron_ids=or_neurons)
+	or_neurons = select_ids_by_position(positions, or_sheet_ids, box=tip_box)
+	print len(or_neurons), or_neurons
 
+	xs = positions[0][or_neurons]
+	ys = positions[1][or_neurons]
+	# create list for each point
+	or_dists = [[] for i in range(len(or_neurons))]
+	selected_or_ids = [[] for i in range(len(or_neurons))]
+	for i,_ in enumerate(or_neurons):
+		# calculate distance from all others
+		for j,o in enumerate(or_neurons):
+			dist = math.sqrt( (xs[j]-xs[i])**2 + (ys[j]-ys[i])**2 )
+			if dist <= 0.9: # minimal distance between oriented blots in cortex 
+				selected_or_ids[i].append(o)
+	# pick the largest list	
+	selected_or_ids.sort(key = lambda x: len(x), reverse=True)
+	print selected_or_ids[0]
+	# average the selected xs and ys to generate the centroid, which is the tip
+	x = 0
+	y = 0
+	for i in selected_or_ids[0]:
+		print i
+		x = x + positions[0][i]
+		y = y + positions[1][i]
+	x = x / len(selected_or_ids)
+	y = y / len(selected_or_ids)
+	tip = [[x],[y],[.0]]
+	print tip
+	0/0
+
+	distances = [] # distances form origin of excitatory neurons
+	sheet_e_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4', neuron_ids=neurons)
+	for i in sheet_e_ids:
+		distances.append( numpy.linalg.norm( numpy.array((positions[0][i],positions[1][i],positions[2][i])) - numpy.array(tip) ) )
+	print "Recorded distances:", len(distances), distances
+
+	# not all neurons are necessary, >100 are enough
+	#chosen_ids = numpy.random.randint(0, len(neurons), size=100 )
+	# print chosen_ids
+	#neurons = neurons[chosen_ids]
+	#distances = distances[chosen_ids]
+
+	0/0
+
+	# gather vm and conductances
 	segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		param_filter_query(data_store, st_name=stimulus, sheet_name='V1_Exc_L4').get_segments(), 
 		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
 	)
 	ticks = set([])
@@ -2740,7 +2785,7 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 	# the LFP is the result of cells' currents
 	avg_i = numpy.mean( i, axis=0 )
 	sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
-	lfp = (1/(4*numpy.pi*sigma)) * avg_i
+	lfp = (1/(4*numpy.pi*sigma)) * avg_i#/distance^2
 	print "LFP:", lfp.shape
 	# print lfp
 
@@ -2786,13 +2831,10 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], bo
 			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
 		neurons = list(l4_exc_or_many)
 
-	if radius or box:
+	if radius:
 		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
 		positions = data_store.get_neuron_postions()[sheet]
-		if box:
-			ids = select_ids_by_position(positions, sheet_ids, box=box)
-		if radius:
-			ids = select_ids_by_position(positions, sheet_ids, radius=radius)
+		ids = select_ids_by_position(positions, sheet_ids, radius=radius)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)
 
 	print "SUA neurons:", len(neurons)
@@ -3087,9 +3129,10 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
 
@@ -3721,45 +3764,46 @@ else:
 				parameter="radius",
 				ylim=[0,50],
 				opposite=False, # ISO
-				radius = [.0,.7], # center
+				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in the cortex surround
+				radius = [.0,.7], # spikes from the center of 's'
 				addon = addon + "_center",
 				color = color,
 			)
-			SpikeTriggeredAverage(
-				sheet=s, 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				opposite=True, # ORTHO
-				radius = [.0,.7], # center
-				addon = addon + "_center",
-				color = color,
-			)
-			SpikeTriggeredAverage(
-				sheet=s, 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				opposite=False, # ISO
-				# box = [[-.8,1.],[.8,2.5]], # surround
-				radius = [1.,1.8], # surround
-				addon = addon + "_surround",
-				color = color,
-			)
-			SpikeTriggeredAverage(
-				sheet=s, 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				opposite=True, # ORTHO
-				# box = [[-.8,1.],[.8,2.5]], # surround
-				radius = [1.,1.8], # surround
-				addon = addon + "_surround",
-				color = color,
-			)
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=True, # ORTHO
+			# 	radius = [.0,.7], # center
+			# 	addon = addon + "_center",
+			# 	color = color,
+			# )
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=False, # ISO
+			# 	# box = [[-.8,1.],[.8,2.5]], # surround
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_surround",
+			# 	color = color,
+			# )
+			# SpikeTriggeredAverage(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	opposite=True, # ORTHO
+			# 	# box = [[-.8,1.],[.8,2.5]], # surround
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_surround",
+			# 	color = color,
+			# )
 
 			# spectrum(
 			# 	sheet='X_OFF', 
