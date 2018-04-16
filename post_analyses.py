@@ -2746,8 +2746,8 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 		for v,e,i in zip(full_vm, full_gsyn_es, full_gsyn_is):
 			s = int(t/trials)
 			v = v.rescale(mozaik.tools.units.mV) 
-			e = e.rescale(mozaik.tools.units.nS)/1000 # NEST is in nS, PyNN is in uS
-			i = i.rescale(mozaik.tools.units.nS)/1000 # NEST is in nS, PyNN is in uS
+			e = e.rescale(mozaik.tools.units.nS) # NEST is in nS, PyNN is in uS
+			i = i.rescale(mozaik.tools.units.nS) # NEST is in nS, PyNN is in uS
 			mean_full_vm[s] = mean_full_vm[s] + numpy.array(v.tolist())
 			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
 			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
@@ -2801,7 +2801,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 		# text
 		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseLFP_"+lfp_sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
+		plt.savefig( folder+"/TimecourseLFP_"+lfp_sheet+"_"+spike_sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -2878,25 +2878,24 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	STA_tuning = []
 	for i,(st,neurons) in enumerate(sorted(sts.items())):
 		STA_tuning.append( STA[i].min() )
-		sta_mean = STA[i].mean(axis=0) - STA[i].mean() # mean corrected
+		sta_mean = STA[i].mean(axis=0) # mean across spikes
 		fig = plt.figure()
 		x = range(-duration, duration)
 		plt.plot( x, sta_mean, color=color, linewidth=3 )
 		# plt.fill_between(x, sta_mean-sta_std, sta_mean+sta_std, color=color, alpha=0.3)
 		plt.tight_layout()
 		plt.ylim([sta_mean.min(),sta_mean.max()])
-		# plt.savefig( folder+"/STA_"+str(spike_sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
-		plt.savefig( folder+"/STA_"+str(spike_sheet)+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.savefig( folder+"/STA_"+lfp_sheet+"_"+spike_sheet+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 
 	print STA_tuning
 	fig = plt.figure()
 	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 ) # reversed
-	plt.ylim([0, max(STA_tuning)])
+	plt.ylim([0, min(STA_tuning)*-1.])
 	plt.tight_layout()
 	# plt.savefig( folder+"/STAtuning_"+str(spike_sheet)+"_"+addon+".png", dpi=300, transparent=True )
-	plt.savefig( folder+"/STAtuning_"+str(spike_sheet)+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.savefig( folder+"/STAtuning_"+lfp_sheet+"_"+spike_sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	gc.collect()
@@ -3749,10 +3748,42 @@ else:
 			# )
 
 			# # stLFP: iso-center postsynaptic response to LGN spikes
+			SpikeTriggeredAverage(
+				lfp_sheet='V1_Exc_L4', 
+				spike_sheet='X_OFF', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [.0,.7], # spikes from the center of spike_sheet
+				addon = addon + "_center",
+				color = color,
+			)
 			
 			# # stLFP: cross-center postsynaptic response to LGN spikes
 			
 			# # stLFP: iso-surround postsynaptic response to LGN spikes
+			
+			# # stLFP: LGN postsynaptic response to iso-surround spikes
+			SpikeTriggeredAverage(
+				lfp_sheet='X_OFF', 
+				spike_sheet='V1_Exc_L4', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-.5,-.5],[.5,.5]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [.0,.7], # spikes from the center of spike_sheet
+				addon = addon + "_center",
+				color = color,
+			)
+			
+			# # stLFP: LGN postsynaptic response to iso-center spikes
 			
 			# # stLFP: cross-surround postsynaptic response to LGN spikes
 			
@@ -3766,18 +3797,59 @@ else:
 				ylim=[0,50],
 				lfp_opposite=False, # ISO
 				spike_opposite=False, # ISO
-				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in the cortex surround
-				radius = [.0,.7], # spikes from the center of 's'
+				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [.0,.7], # spikes from the center of spike_sheet
 				addon = addon + "_center",
 				color = color,
 			)
-			# 	radius = [1.,1.8], # surround
 
 			# # stLFP: Exc iso-center postsynaptic response to iso-surround spikes
+			SpikeTriggeredAverage(
+				lfp_sheet='V1_Exc_L4', 
+				spike_sheet='V1_Exc_L4', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [1.,1.8], # surround
+				addon = addon + "_center_surround",
+				color = color,
+			)
 
 			# # stLFP: Inh iso-center postsynaptic response to iso-surround spikes
+			SpikeTriggeredAverage(
+				lfp_sheet='V1_Inh_L4', 
+				spike_sheet='V1_Exc_L4', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [1.,1.8], # surround
+				addon = addon + "_center_surround",
+				color = color,
+			)
 
 			# # stLFP: Inh cross-center postsynaptic response to iso-surround spikes
+			SpikeTriggeredAverage(
+				lfp_sheet='V1_Inh_L4', 
+				spike_sheet='V1_Exc_L4', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=True, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [1.,1.8], # surround
+				addon = addon + "_center_surround",
+				color = color,
+			)
 
 
 			# spectrum(
