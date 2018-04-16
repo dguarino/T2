@@ -2630,7 +2630,7 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 
-def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, opposite=False, addon="", color="black"):
+def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, lfp_opposite=False, spike_opposite=False, addon="", color="black"):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
 	print "sheet: ",sheet
@@ -2644,30 +2644,32 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	# Therefore we include all recorded cells but account for the distance-dependent contribution weighting currents /r^2
 	# We assume that the electrode has been placed in the cortical coordinates <tip>
 	# Only excitatory neurons are relevant for the LFP (because of their geometry) Bartos
-	neurons = param_filter_query(data_store, sheet_name='V1_Exc_L4', st_name=stimulus).get_segments()[0].get_stored_vm_ids()
-	positions = data_store.get_neuron_postions()['V1_Exc_L4'] # !!!!!!!!!!!!! position is in visual space degrees
+	lfp_neurons = param_filter_query(data_store, sheet_name=lfp_sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	lfp_positions = data_store.get_neuron_postions()[lfp_sheet] # position is in visual space degrees
 
-	if neurons == None:
+	if lfp_neurons == None:
 		print "No Exc Vm recorded.\n"
 		return
-	print "Recorded neurons for LFP:", len(neurons)
+	print "Recorded neurons for LFP:", len(lfp_neurons)
 
 	# choose LFP tip position
 	# select all neurons id having a certain orientation preference
-	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name='V1_Exc_L4')[0]
-	if opposite:
-		exc_or_g = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
-	else:
-		exc_or_g = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
-	or_neurons = list(exc_or_g)
+	or_neurons = lfp_neurons
+	if lfp_sheet=='V1_Exc_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=lfp_sheet)[0]
+		if opposite:
+			exc_or_g = numpy.array(lfp_neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in lfp_neurons]) < .1)[0]]
+		else:
+			exc_or_g = numpy.array(lfp_neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),0,numpy.pi)  for i in lfp_neurons]) < .1)[0]]
+		or_neurons = list(exc_or_g)
 
-	or_sheet_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4', neuron_ids=or_neurons)
-	or_neurons = select_ids_by_position(positions, or_sheet_ids, box=tip_box)
-	print len(or_neurons), or_neurons
+	or_sheet_ids = data_store.get_sheet_indexes(sheet_name=lfp_sheet, neuron_ids=or_neurons)
+	or_neurons = select_ids_by_position(lfp_positions, or_sheet_ids, box=tip_box)
+	print "Oriented neurons idds to choose the LFP tip electrode location:", len(or_neurons), or_neurons
 
-	xs = positions[0][or_neurons]
-	ys = positions[1][or_neurons]
+	xs = lfp_positions[0][or_neurons]
+	ys = lfp_positions[1][or_neurons]
 	# create list for each point
 	or_dists = [[] for i in range(len(or_neurons))]
 	selected_or_ids = [[] for i in range(len(or_neurons))]
@@ -2675,8 +2677,9 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 		# calculate distance from all others
 		for j,o in enumerate(or_neurons):
 			dist = math.sqrt( (xs[j]-xs[i])**2 + (ys[j]-ys[i])**2 )
-			if dist <= 0.9: # minimal distance between oriented blots in cortex 
+			if dist <= 0.8: # minimal distance between oriented blots in cortex 
 				selected_or_ids[i].append(o)
+				# print lfp_positions[0][o], lfp_positions[1][o]
 	# pick the largest list	
 	selected_or_ids.sort(key = lambda x: len(x), reverse=True)
 	print selected_or_ids[0]
@@ -2684,32 +2687,29 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	x = 0
 	y = 0
 	for i in selected_or_ids[0]:
-		print i
-		x = x + positions[0][i]
-		y = y + positions[1][i]
-	x = x / len(selected_or_ids)
-	y = y / len(selected_or_ids)
+		# print i
+		x = x + lfp_positions[0][i]
+		y = y + lfp_positions[1][i]
+	x = x / len(selected_or_ids[0])
+	y = y / len(selected_or_ids[0])
 	tip = [[x],[y],[.0]]
-	print tip
-	0/0
-
-	distances = [] # distances form origin of excitatory neurons
-	sheet_e_ids = data_store.get_sheet_indexes(sheet_name='V1_Exc_L4', neuron_ids=neurons)
-	for i in sheet_e_ids:
-		distances.append( numpy.linalg.norm( numpy.array((positions[0][i],positions[1][i],positions[2][i])) - numpy.array(tip) ) )
-	print "Recorded distances:", len(distances), distances
+	print "LFP electrod tip location (x,y) in degrees:", tip
 
 	# not all neurons are necessary, >100 are enough
-	#chosen_ids = numpy.random.randint(0, len(neurons), size=100 )
+	chosen_ids = numpy.random.randint(0, len(lfp_neurons), size=100 )
 	# print chosen_ids
-	#neurons = neurons[chosen_ids]
-	#distances = distances[chosen_ids]
+	lfp_neurons = lfp_neurons[chosen_ids]
 
-	0/0
+	distances = [] # distances form origin of all excitatory neurons
+	sheet_e_ids = data_store.get_sheet_indexes(sheet_name=lfp_sheet, neuron_ids=lfp_neurons) # all neurons
+	for i in sheet_e_ids:
+		distances.append( numpy.linalg.norm( numpy.array((lfp_positions[0][i],lfp_positions[1][i],lfp_positions[2][i])) - numpy.array(tip) ) *1000 ) # *1000 is the magnification factor
+	distances = numpy.array(distances)
+	print "Recorded distances:", len(distances)#, distances #, distances**2
 
 	# gather vm and conductances
 	segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name='V1_Exc_L4').get_segments(), 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=lfp_sheet).get_segments(), 
 		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
 	)
 	ticks = set([])
@@ -2724,7 +2724,7 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	pop_vm = []
 	pop_gsyn_e = []
 	pop_gsyn_i = []
-	for n,idd in enumerate(neurons):
+	for n,idd in enumerate(lfp_neurons):
 		print "idd", idd
 		full_vm = [s.get_vm(idd) for s in segs]
 		full_gsyn_es = [s.get_esyn(idd) for s in segs]
@@ -2745,8 +2745,8 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 		for v,e,i in zip(full_vm, full_gsyn_es, full_gsyn_is):
 			s = int(t/trials)
 			v = v.rescale(mozaik.tools.units.mV) 
-			e = e.rescale(mozaik.tools.units.nS) #e=e*1000
-			i = i.rescale(mozaik.tools.units.nS) #i=i*1000
+			e = e.rescale(mozaik.tools.units.nS)/1000 # NEST is in nS, PyNN is in uS
+			i = i.rescale(mozaik.tools.units.nS)/1000 # NEST is in nS, PyNN is in uS
 			mean_full_vm[s] = mean_full_vm[s] + numpy.array(v.tolist())
 			mean_full_gsyn_e[s] = mean_full_gsyn_e[s] + numpy.array(e.tolist())
 			mean_full_gsyn_i[s] = mean_full_gsyn_i[s] + numpy.array(i.tolist())
@@ -2766,56 +2766,47 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	pop_e = numpy.array(pop_gsyn_e)
 	pop_i = numpy.array(pop_gsyn_i)
 
-	# mean and std over cells
-	# print pop_e.shape
-	mean_pop_v = numpy.mean(pop_v, axis=0 )
-	mean_pop_e = numpy.mean(pop_e, axis=0 )
-	mean_pop_i = numpy.mean(pop_i, axis=0 ) 
-	std_pop_v = numpy.std(pop_v, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	std_pop_e = numpy.std(pop_e, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	std_pop_i = numpy.std(pop_i, axis=0, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# print "mean std:", mean_pop_v.shape, mean_pop_e.shape, std_pop_e.shape
-	# print "mean std exc:", mean_pop_e, std_pop_e
-	# print "mean std inh:", mean_pop_i, std_pop_i
-
 	# We produce the current for each cell for this time interval, with the Ohm law:
-	# I = g(V-E), where E is the equilibrium for exc, which usually is 0.0 (we can change it)
-	# (and we also have to consider inhibitory condictances)
-	i = (pop_e/1000)*pop_v + (pop_i/1000)*pop_v # NEST is in nS, PyNN is in uS
+	# I = ge(V-Ee) + gi(V+Ei)
+	# where 
+	# Ee is the equilibrium for exc, which is 0.0
+	# Ei is the equilibrium for inh, which is -80.0
+	i = pop_e*pop_v + pop_i*(pop_v-80.0)
 	# the LFP is the result of cells' currents
-	avg_i = numpy.mean( i, axis=0 )
+	avg_i = numpy.average( i, weights=distances**2, axis=0 )
+	std_i = numpy.std( i, axis=0 )
 	sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
-	lfp = (1/(4*numpy.pi*sigma)) * avg_i#/distance^2
-	print "LFP:", lfp.shape
-	# print lfp
+	lfp = ( (1/(4*numpy.pi*sigma)) * avg_i ) / std_i # Z-score
+	print "LFP:", lfp.shape, lfp.min(), lfp.max()
+	print lfp
 
-	# for s in range(num_ticks):
-	# 	# for each stimulus plot the average conductance per cell over time
-	# 	matplotlib.rcParams.update({'font.size':22})
-	# 	fig,ax = plt.subplots()
+	#TEST: plot the LFP for each stimulus
+	for s in range(num_ticks):
+		# for each stimulus plot the average conductance per cell over time
+		matplotlib.rcParams.update({'font.size':22})
+		fig,ax = plt.subplots()
 
-	# 	ax.plot( range(0,len(lfp[s])), lfp[s], color=color, linewidth=3 )
+		ax.plot( range(0,len(lfp[s])), lfp[s], color=color, linewidth=3 )
 
-	# 	# ax.set_ylim(ylim)
-	# 	ax.set_ylabel( "LFP (mV)" )
-	# 	ax.set_xlabel( "Time (ms)" )
+		ax.set_ylim([lfp.min(), lfp.max()])
+		ax.set_ylabel( "LFP (z-score)" )
+		ax.set_xlabel( "Time (ms)" )
 
-	# 	ax.spines['right'].set_visible(False)
-	# 	ax.spines['top'].set_visible(False)
-	# 	ax.xaxis.set_ticks_position('bottom')
-	# 	ax.xaxis.set_ticks(ticks, ticks)
-	# 	ax.yaxis.set_ticks_position('left')
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+		ax.xaxis.set_ticks_position('bottom')
+		ax.xaxis.set_ticks(ticks, ticks)
+		ax.yaxis.set_ticks_position('left')
 
-	# 	# text
-	# 	plt.tight_layout()
-	# 	plt.savefig( folder+"/TimecourseLFP_"+sheet+"_"+parameter+"_"+str(ticks[s])+".png", dpi=200, transparent=True )
-	# 	plt.savefig( folder+"/TimecourseLFP_"+sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
-	# 	fig.clf()
-	# 	plt.close()
-	# 	# garbage
-	# 	gc.collect()
+		# text
+		plt.tight_layout()
+		plt.savefig( folder+"/TimecourseLFP_"+sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
+		fig.clf()
+		plt.close()
+		# garbage
+		gc.collect()
 
-	# SUA
+	# MUA
 	# data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':'Thalamocortical_size_closed', 'store_stimuli' : False}),replace=True)
 	neurons = []
 	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
@@ -2825,10 +2816,10 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
 		if opposite:
 			addon = addon +"_opposite"
-			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons]) < .1)[0]]
+			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in neurons]) < .1)[0]]
 		else:
 			addon = addon +"_same"
-			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
+			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi) for i in neurons]) < .1)[0]]
 		neurons = list(l4_exc_or_many)
 
 	if radius:
@@ -2837,7 +2828,7 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 		ids = select_ids_by_position(positions, sheet_ids, radius=radius)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)
 
-	print "SUA neurons:", len(neurons)
+	print "MUA neurons:", len(neurons)
 	if len(neurons) < 1:
 		return
 
@@ -2887,14 +2878,13 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	for i,(st,neurons) in enumerate(sorted(sts.items())):
 		STA_tuning.append( STA[i].min() )
 		sta_mean = STA[i].mean(axis=0) - STA[i].mean() # mean corrected
-		# sta_std = STA[i].std(axis=0) - STA[i].std()
 		fig = plt.figure()
 		x = range(-duration, duration)
 		plt.plot( x, sta_mean, color=color, linewidth=3 )
 		# plt.fill_between(x, sta_mean-sta_std, sta_mean+sta_std, color=color, alpha=0.3)
 		plt.tight_layout()
-		plt.ylim([-4., 1.5])
-		plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
+		plt.ylim([sta_mean.min(),sta_mean.max()])
+		# plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
 		plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
@@ -2902,9 +2892,9 @@ def SpikeTriggeredAverage(sheet, folder, stimulus, parameter, ylim=[0.,100.], ti
 	print STA_tuning
 	fig = plt.figure()
 	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 ) # reversed
-	plt.ylim([0, 160])
+	plt.ylim([0, max(STA_tuning)])
 	plt.tight_layout()
-	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".png", dpi=300, transparent=True )
+	# plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".png", dpi=300, transparent=True )
 	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
