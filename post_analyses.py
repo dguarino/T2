@@ -2633,7 +2633,8 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, lfp_opposite=False, spike_opposite=False, addon="", color="black"):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
-	print "sheet: ",sheet
+	print "LFP sheet: ",lfp_sheet
+	print "Spike sheet: ",spike_sheet
 	import ast
 	from scipy import signal
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
@@ -2658,7 +2659,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	if lfp_sheet=='V1_Exc_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 		exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=lfp_sheet)[0]
-		if opposite:
+		if lfp_opposite:
 			exc_or_g = numpy.array(lfp_neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in lfp_neurons]) < .1)[0]]
 		else:
 			exc_or_g = numpy.array(lfp_neurons)[numpy.nonzero(numpy.array([circular_dist(exc_or.get_value_by_id(i),0,numpy.pi)  for i in lfp_neurons]) < .1)[0]]
@@ -2800,7 +2801,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 		# text
 		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseLFP_"+sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
+		plt.savefig( folder+"/TimecourseLFP_"+lfp_sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -2809,12 +2810,12 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	# MUA
 	# data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':'Thalamocortical_size_closed', 'store_stimuli' : False}),replace=True)
 	neurons = []
-	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	neurons = param_filter_query(data_store, sheet_name=spike_sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 
-	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
+	if spike_sheet=='V1_Exc_L4' or spike_sheet=='V1_Inh_L4':
 		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=sheet)[0]
-		if opposite:
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name = 'LGNAfferentOrientation', sheet_name=spike_sheet)[0]
+		if spike_opposite:
 			addon = addon +"_opposite"
 			l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in neurons]) < .1)[0]]
 		else:
@@ -2823,17 +2824,17 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 		neurons = list(l4_exc_or_many)
 
 	if radius:
-		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
-		positions = data_store.get_neuron_postions()[sheet]
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=spike_sheet, neuron_ids=neurons)
+		positions = data_store.get_neuron_postions()[spike_sheet]
 		ids = select_ids_by_position(positions, sheet_ids, radius=radius)
-		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids)
+		neurons = data_store.get_sheet_ids(sheet_name=spike_sheet, indexes=ids)
 
 	print "MUA neurons:", len(neurons)
 	if len(neurons) < 1:
 		return
 
 	print "Collecting spiketrains of selected neurons into dictionary ..."
-	dsv1 = queries.param_filter_query(data_store, sheet_name=sheet, st_name=stimulus)
+	dsv1 = queries.param_filter_query(data_store, sheet_name=spike_sheet, st_name=stimulus)
 	sts = {}
 	for st, seg in zip([MozaikParametrized.idd(s) for s in dsv1.get_stimuli()], dsv1.get_segments()):
 		# print st, seg
@@ -2884,8 +2885,8 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 		# plt.fill_between(x, sta_mean-sta_std, sta_mean+sta_std, color=color, alpha=0.3)
 		plt.tight_layout()
 		plt.ylim([sta_mean.min(),sta_mean.max()])
-		# plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
-		plt.savefig( folder+"/STA_"+str(sheet)+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.savefig( folder+"/STA_"+str(spike_sheet)+"_"+st+"_"+addon+".png", dpi=300, transparent=True )
+		plt.savefig( folder+"/STA_"+str(spike_sheet)+"_"+st+"_"+addon+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 
@@ -2894,8 +2895,8 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	plt.plot( range(len(STA_tuning)), numpy.array(STA_tuning)*-1., color=color, linewidth=3 ) # reversed
 	plt.ylim([0, max(STA_tuning)])
 	plt.tight_layout()
-	# plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".png", dpi=300, transparent=True )
-	plt.savefig( folder+"/STAtuning_"+str(sheet)+"_"+addon+".svg", dpi=300, transparent=True )
+	# plt.savefig( folder+"/STAtuning_"+str(spike_sheet)+"_"+addon+".png", dpi=300, transparent=True )
+	plt.savefig( folder+"/STAtuning_"+str(spike_sheet)+"_"+addon+".svg", dpi=300, transparent=True )
 	fig.clf()
 	plt.close()
 	gc.collect()
@@ -3747,53 +3748,37 @@ else:
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 
+			# # stLFP: iso-center postsynaptic response to LGN spikes
+			
+			# # stLFP: cross-center postsynaptic response to LGN spikes
+			
+			# # stLFP: iso-surround postsynaptic response to LGN spikes
+			
+			# # stLFP: cross-surround postsynaptic response to LGN spikes
+			
+			# # stLFP: Exc iso-surround postsynaptic response to iso-center spikes
 			SpikeTriggeredAverage(
-				sheet=s, 
+				lfp_sheet='V1_Exc_L4', 
+				spike_sheet='V1_Exc_L4', 
 				folder=f, 
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
 				ylim=[0,50],
-				opposite=False, # ISO
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
 				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in the cortex surround
 				radius = [.0,.7], # spikes from the center of 's'
 				addon = addon + "_center",
 				color = color,
 			)
-			# SpikeTriggeredAverage(
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	ylim=[0,50],
-			# 	opposite=True, # ORTHO
-			# 	radius = [.0,.7], # center
-			# 	addon = addon + "_center",
-			# 	color = color,
-			# )
-			# SpikeTriggeredAverage(
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	ylim=[0,50],
-			# 	opposite=False, # ISO
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
 			# 	radius = [1.,1.8], # surround
-			# 	addon = addon + "_surround",
-			# 	color = color,
-			# )
-			# SpikeTriggeredAverage(
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	ylim=[0,50],
-			# 	opposite=True, # ORTHO
-			# 	# box = [[-.8,1.],[.8,2.5]], # surround
-			# 	radius = [1.,1.8], # surround
-			# 	addon = addon + "_surround",
-			# 	color = color,
-			# )
+
+			# # stLFP: Exc iso-center postsynaptic response to iso-surround spikes
+
+			# # stLFP: Inh iso-center postsynaptic response to iso-surround spikes
+
+			# # stLFP: Inh cross-center postsynaptic response to iso-surround spikes
+
 
 			# spectrum(
 			# 	sheet='X_OFF', 
