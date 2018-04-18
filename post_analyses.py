@@ -2646,12 +2646,12 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	# We assume that the electrode has been placed in the cortical coordinates <tip>
 	# Only excitatory neurons are relevant for the LFP (because of their geometry) Bartos
 	lfp_neurons = param_filter_query(data_store, sheet_name=lfp_sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
-	lfp_positions = data_store.get_neuron_postions()[lfp_sheet] # position is in visual space degrees
 
 	if lfp_neurons == None:
 		print "No Exc Vm recorded.\n"
 		return
 	print "Recorded neurons for LFP:", len(lfp_neurons)
+	lfp_positions = data_store.get_neuron_postions()[lfp_sheet] # position is in visual space degrees
 
 	# choose LFP tip position
 	# select all neurons id having a certain orientation preference
@@ -2703,8 +2703,11 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 	distances = [] # distances form origin of all excitatory neurons
 	sheet_e_ids = data_store.get_sheet_indexes(sheet_name=lfp_sheet, neuron_ids=lfp_neurons) # all neurons
+	magnification = 1000 # magnification factor to convert the degrees in to um
+	if "X" in lfp_sheet:
+		magnification = 200
 	for i in sheet_e_ids:
-		distances.append( numpy.linalg.norm( numpy.array((lfp_positions[0][i],lfp_positions[1][i],lfp_positions[2][i])) - numpy.array(tip) ) *1000 ) # *1000 is the magnification factor
+		distances.append( numpy.linalg.norm( numpy.array((lfp_positions[0][i],lfp_positions[1][i],lfp_positions[2][i])) - numpy.array(tip) ) *magnification ) 
 	distances = numpy.array(distances)
 	print "Recorded distances:", len(distances)#, distances #, distances**2
 
@@ -2721,6 +2724,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	print ticks
 	trials = len(segs) / num_ticks
 	print "trials:",trials
+	gc.collect()
 
 	pop_vm = []
 	pop_gsyn_e = []
@@ -2801,7 +2805,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 		# text
 		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseLFP_"+lfp_sheet+"_"+spike_sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
+		plt.savefig( folder+"/TimecourseLFP_"+lfp_sheet+"_"+spike_sheet+"_"+parameter+"_"+str(ticks[s])+"_"+addon+".svg", dpi=200, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -3052,7 +3056,7 @@ full_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
-	"ThalamoCorticalModel_data_size_feedforward_cond_____",
+	# "ThalamoCorticalModel_data_size_feedforward_cond_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
@@ -3747,109 +3751,121 @@ else:
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 
+			# # stLFP: iso-surround postsynaptic response to LGN spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Exc_L4', 
+			# 	spike_sheet='X_OFF', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [.0,.7], # spikes from the center of spike_sheet
+			# 	addon = addon + "_surround2center",
+			# 	color = color,
+			# )
+			
 			# # stLFP: iso-center postsynaptic response to LGN spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='V1_Exc_L4', 
-				spike_sheet='X_OFF', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=False, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [.0,.7], # spikes from the center of spike_sheet
-				addon = addon + "_center",
-				color = color,
-			)
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Exc_L4', 
+			# 	spike_sheet='X_OFF', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [.0,.7], # spikes from the center of spike_sheet
+			# 	addon = addon + "_center2center",
+			# 	color = color,
+			# )
 			
 			# # stLFP: cross-center postsynaptic response to LGN spikes
 			
-			# # stLFP: iso-surround postsynaptic response to LGN spikes
+			# # stLFP: LGN postsynaptic response to iso-center spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='X_OFF', 
+			# 	spike_sheet='V1_Exc_L4', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-.5,-.5],[.5,.5]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [.0,.7], # spikes from the center of spike_sheet
+			# 	addon = addon + "_center",
+			# 	color = color,
+			# )
 			
 			# # stLFP: LGN postsynaptic response to iso-surround spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='X_OFF', 
-				spike_sheet='V1_Exc_L4', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=False, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-.5,-.5],[.5,.5]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [.0,.7], # spikes from the center of spike_sheet
-				addon = addon + "_center",
-				color = color,
-			)
-			
-			# # stLFP: LGN postsynaptic response to iso-center spikes
-			
-			# # stLFP: cross-surround postsynaptic response to LGN spikes
-			
-			# # stLFP: Exc iso-surround postsynaptic response to iso-center spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='V1_Exc_L4', 
-				spike_sheet='V1_Exc_L4', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=False, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [.0,.7], # spikes from the center of spike_sheet
-				addon = addon + "_center",
-				color = color,
-			)
+						
+			# stLFP: Exc iso-surround postsynaptic response to iso-center spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Exc_L4', 
+			# 	spike_sheet='V1_Exc_L4', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-3.,1.],[3.,3.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [.0,.7], # spikes from the center of spike_sheet
+			# 	addon = addon + "_center2center",
+			# 	color = color,
+			# )
 
-			# # stLFP: Exc iso-center postsynaptic response to iso-surround spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='V1_Exc_L4', 
-				spike_sheet='V1_Exc_L4', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=False, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [1.,1.8], # surround
-				addon = addon + "_center_surround",
-				color = color,
-			)
+			# stLFP: Exc iso-center postsynaptic response to iso-surround spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Exc_L4', 
+			# 	spike_sheet='V1_Exc_L4', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_center2surround",
+			# 	color = color,
+			# )
 
-			# # stLFP: Inh iso-center postsynaptic response to iso-surround spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='V1_Inh_L4', 
-				spike_sheet='V1_Exc_L4', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=False, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [1.,1.8], # surround
-				addon = addon + "_center_surround",
-				color = color,
-			)
+			# stLFP: Inh iso-center postsynaptic response to iso-surround spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Inh_L4', 
+			# 	spike_sheet='V1_Exc_L4', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=False, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "_center2surround",
+			# 	color = color,
+			# )
 
-			# # stLFP: Inh cross-center postsynaptic response to iso-surround spikes
-			SpikeTriggeredAverage(
-				lfp_sheet='V1_Inh_L4', 
-				spike_sheet='V1_Exc_L4', 
-				folder=f, 
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				ylim=[0,50],
-				lfp_opposite=True, # ISO
-				spike_opposite=False, # ISO
-				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-				radius = [1.,1.8], # surround
-				addon = addon + "_center_surround",
-				color = color,
-			)
+			# #stLFP: Inh cross-center postsynaptic response to iso-surround spikes
+			# SpikeTriggeredAverage(
+			# 	lfp_sheet='V1_Inh_L4', 
+			# 	spike_sheet='V1_Exc_L4', 
+			# 	folder=f, 
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	ylim=[0,50],
+			# 	lfp_opposite=True, # ISO
+			# 	spike_opposite=False, # ISO
+			# 	tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+			# 	radius = [1.,1.8], # surround
+			# 	addon = addon + "opposite_center2surround",
+			# 	color = color,
+			# )
 
 
 			# spectrum(
