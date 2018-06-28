@@ -16,6 +16,10 @@
 
 
 
+# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_conductances'
+# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_conductances'
+
+
 
 
 ################################################
@@ -33,10 +37,9 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # SIZE full closed loop model
-# python parameter_search_full_all_models.py run_size_closed_nonoverlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
-# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 # ANALYSIS
 # python parameter_search_analysis.py CombinationParamSearch_intact_nonoverlapping
@@ -115,9 +118,9 @@
 # mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
 
-echo "starting Size"
-echo
-mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
+# echo "starting Size"
+# echo
+# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
 # mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
 # mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_nonoverlapping'
 # mpirun -np 1 python run_size_closed_overlapping.py nest 8 param/defaults_mea 'data_size_closed_overlapping'
@@ -160,7 +163,8 @@ mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_clos
 
 # echo "starting Size Feedforward"
 # echo
-# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward'
+# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_cond'
+# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_cond'
 
 
 # echo "starting Orientation Feedforward"

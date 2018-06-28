@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: latin-1 -*-
+
 # Plotting to compare single cell tuning curves in two conditions
 # by having two folder/datastore
 # assuming the same amount of recorded cells in the two conditions
@@ -270,7 +273,7 @@ def select_by_orientation(data_store, sheet, ids, preferred=True):
 
 
 
-def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, sizes, reference_position, box=[], csvfile=None, plotAll=False ):
+def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, parameter, reference_position, box=None, radius=None, csvfile=None, plotAll=False ):
 	print inspect.stack()[0][3]
 	print folder_full
 	folder_nums = re.findall(r'\d+', folder_full)
@@ -281,101 +284,107 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
 	data_store_inac.print_content(full_recordings=False)
 
-	print "Checking data..."
-	# Full
-	dsv1 = queries.param_filter_query( data_store_full, identifier='PerNeuronValue', sheet_name=sheet )
-	# dsv1.print_content(full_recordings=False)
-	pnvs1 = [ dsv1.get_analysis_result() ]
-	# get stimuli
-	st1 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs1[-1]]
-	# print st1
-	num_stimuli = len(st1)
-
-	# Inactivated
-	dsv2 = queries.param_filter_query( data_store_inac, identifier='PerNeuronValue', sheet_name=sheet )
-	pnvs2 = [ dsv2.get_analysis_result() ]
-	# get stimuli
-	st2 = [MozaikParametrized.idd(s.stimulus_id) for s in pnvs2[-1]]
-
 	# rings analysis
 	rowplots = 0
 
-	# GET RECORDINGS BY BOX POSITION
+	# GET RECORDINGS
 
 	# get the list of all recorded neurons in X_ON
 	# Full
 	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	print spike_ids1
-	positions1 = data_store_full.get_neuron_postions()[sheet]
-	sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-	radius_ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
-	neurons_full = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=radius_ids1)
-	print neurons_full
+	print "Recorded neurons (closed):", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store_full.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons_full = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
 	# Inactivated
 	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	positions2 = data_store_inac.get_neuron_postions()[sheet]
-	sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-	radius_ids2 = select_ids_by_position(positions2, sheet_ids2, box=box)
-	neurons_inac = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=radius_ids2)
-	print neurons_inac
+	if radius or box:
+		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids2)
+		positions2 = data_store_inac.get_neuron_postions()[sheet]
+		if box:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, box=box)
+		if radius:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, radius=radius)
+		neurons_inac = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=ids2)
 
-	if not set(neurons_full)==set(neurons_inac):
-		neurons_full = numpy.intersect1d(neurons_full, neurons_inac)
-		neurons_inac = neurons_full
+	# Intersection of full and inac
+	if set(neurons_full)==set(neurons_inac):
+		neurons = neurons_full
+		num_cells = len(neurons_full)
+	else:
+		neurons = numpy.intersect1d(neurons_full, neurons_inac)
+		num_cells = len(neurons)
 
-	if len(neurons_full) > rowplots:
-		rowplots = len(neurons_full)
+	if len(neurons) > rowplots:
+		rowplots = num_cells
 
 	print "neurons_full:", len(neurons_full), neurons_full
 	print "neurons_inac:", len(neurons_inac), neurons_inac
+	print "neurons:", num_cells, neurons
 
-	assert len(neurons_full) > 0 , "ERROR: the number of recorded neurons is 0"
+	assert num_cells > 0 , "ERROR: the number of recorded neurons is 0"
 
-	tc_dict1 = []
-	tc_dict2 = []
+	# compute firing rates
+	# required shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+	dstims = {}
 
-	# Full
-	# group values 
-	dic = colapse_to_dictionary([z.get_value_by_id(neurons_full) for z in pnvs1[-1]], st1, 'radius')
-	for k in dic:
-	    (b, a) = dic[k]
-	    par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-	    dic[k] = (par,numpy.array(val))
-	tc_dict1.append(dic)
+	# Closed
+	TrialAveragedFiringRate(
+		param_filter_query(data_store_full, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({'neurons':list(neurons)})
+	).analyse()
+	dsv1 = param_filter_query(data_store_full, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialAveragedFiringRate')
+	asls1 = dsv1.get_analysis_result( sheet_name=sheet )
+	# for key, asl in sorted( asls1, key=lambda x: x.get(parameter) ):
+	closed_dict = {}
+	for asl in asls1:
+		# print asl.stimulus_id
+		stim = eval(asl.stimulus_id).get(parameter)
+		dstims[stim] = stim
+		closed_dict[stim] = asl.get_value_by_id(neurons)
+	# print closed_dict
+	all_closed_values = numpy.array([closed_dict[k] for k in sorted(closed_dict)])
+	# print all_closed_values
 
-	# Inactivated
-	# group values 
-	dic = colapse_to_dictionary([z.get_value_by_id(neurons_inac) for z in pnvs2[-1]], st2, 'radius')
-	for k in dic:
-	    (b, a) = dic[k]
-	    par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
-	    dic[k] = (par,numpy.array(val))
-	tc_dict2.append(dic)
-	print "tc_dict1",tc_dict1[0].values()[0][1].shape
-	print "tc_dict2",tc_dict2[0].values()[0][1].shape
+	stims = sorted(dstims)
 
-	# print "(stimulus conditions, cells):", tc_dict1[0].values()[0][1].shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+	# Open
+	TrialAveragedFiringRate(
+		param_filter_query(data_store_inac, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({'neurons':list(neurons)})
+	).analyse()
+	dsv2 = param_filter_query(data_store_inac, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialAveragedFiringRate')
+	asls2 = dsv2.get_analysis_result( sheet_name=sheet )
+	open_dict = {}
+	for asl in asls2:
+		open_dict[eval(asl.stimulus_id).get(parameter)] = asl.get_value_by_id(neurons)
+	# print open_dict
+	all_open_values = numpy.array([open_dict[k] for k in sorted(open_dict)])
+	# print all_open_values
 
 	# Population histogram
 	diff_full_inac = []
 	sem_full_inac = []
-	num_cells = tc_dict1[0].values()[0][1].shape[1]
 
 	# -------------------------------------
 	# DIFFERENCE BETWEEN INACTIVATED AND CONTROL
 	# We want to have a summary measure of the population of cells with and without inactivation.
-	# Our null-hypothesis is that the inactivation does not change the activity of cells.
-	# A different result will tell us that the inactivation DOES something.
-	# Therefore our null-hypothesis is the result obtained in the intact system.
+	# The null-hypothesis is that the inactivation does not change the activity of cells.
+	# A different result in the inactivated-cortex condition will tell us that the inactivation DOES something.
+	# The null-hypothesis is the result obtained in the intact system.
+	# If in the inactivated cortex something changes, then we label that cell for being added to the count of changed results
 
 	# 1. MASK IN ONLY CHANGING UNITS
-	all_closed_values = tc_dict1[0].values()[0][1]
-	all_open_values = tc_dict2[0].values()[0][1]
 
 	# 1.1 Search for the units that are NOT changing (within a certain absolute tolerance)
-	unchanged_units = numpy.isclose(all_closed_values, all_open_values, rtol=0., atol=10.) # 4 spikes/s
-	# print unchanged_units
+	unchanged_units = numpy.isclose(all_closed_values, all_open_values, rtol=0., atol=20.) # 4 spikes/s
+	print unchanged_units
 
 	# 1.2 Reverse them into those that are changing
 	changed_units_mask = numpy.invert( unchanged_units )
@@ -383,7 +392,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# 1.3 Get indexes for printing
 	changed_units = numpy.nonzero( changed_units_mask )
 	changing_idxs = zip(changed_units[0], changed_units[1])
-	# print changing_idxs
+	print changing_idxs
 
 	# 1.4 Mask the array to apply later computations only on visible values
 	closed_values = numpy.ma.array( all_closed_values, mask=changed_units_mask )
@@ -402,7 +411,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	largers = numpy.minimum(peaks+1, len(closed_values)-1)
 	print "index of the stimulus after the maximal (+1) for each chosen cell:", largers
 
-	# 3. Calculate difference (data - control)
+	# 3. Calculate difference (inac - control)
 	diff_smaller = numpy.array([open_values[s][c] for c,s in enumerate(minimums)]) - numpy.array([closed_values[s][c] for c,s in enumerate(minimums)])
 	diff_equal = numpy.array([open_values[s][c] for c,s in enumerate(peaks)]) - numpy.array([closed_values[s][c] for c,s in enumerate(peaks)])
 	# we have to get for each cell the sum of all its results for all stimulus conditions larger than peak
@@ -435,9 +444,9 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 	# this test uses W statistics: the maximum possible value is the sum from 1 to N.
 	norm = numpy.sum( numpy.arange( diff_smaller.shape[0] ) ) # W-statistics
 	# percentage of change
-	perc_smaller = sign_smaller * smaller/norm *100
-	perc_equal = sign_equal * equal/norm *100
-	perc_larger = sign_larger * larger/norm *100
+	perc_smaller = sign_smaller * (smaller/norm) *100
+	perc_equal = sign_equal * (equal/norm) *100
+	perc_larger = sign_larger * (larger/norm) *100
 	print "Wilcoxon for smaller", perc_smaller, "p-value:", p_smaller
 	print "Wilcoxon for equal", perc_equal, "p-value:", p_equal
 	print "Wilcoxon for larger", perc_larger, "p-value:", p_larger
@@ -475,8 +484,8 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		ax.spines['bottom'].set_visible(False)
 		plt.tight_layout()
 		# plt.show()
-		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+"only_bars.png", dpi=300, transparent=True )
-		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+"only_bars.svg", dpi=300, transparent=True )
+		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_only_bars.png", dpi=300, transparent=True )
+		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_only_bars.svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -500,21 +509,14 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		axes[0,0].plot([0,4], [0,0], 'k-') # horizontal 0 line
 
 		# Plotting tuning curves
-		x_full = tc_dict1[0].values()[0][0]
-		x_inac = tc_dict2[0].values()[0][0]
 		# each cell couple 
 		axes[0,1].set_ylabel("Response (spikes/sec)", fontsize=10)
-		for j,nid in enumerate(neurons_full[changing_idxs]):
+		for j,nid in enumerate(neurons):
 			# print col,j,nid
-			if len(neurons_full[changing_idxs])>1: # case with just one neuron in the group
-				y_full = closed_values[:,j]
-				y_inac = open_values[:,j]
-			else:
-				y_full = closed_values
-				y_inac = open_values
-
-			axes[0,j+1].plot(x_full, y_full, linewidth=2, color='b')
-			axes[0,j+1].plot(x_inac, y_inac, linewidth=2, color='r')
+			y_full = all_closed_values[:,j]
+			y_inac = all_open_values[:,j]
+			axes[0,j+1].plot(stims, y_full, linewidth=2, color='b')
+			axes[0,j+1].plot(stims, y_inac, linewidth=2, color='r')
 			axes[0,j+1].set_title(str(nid), fontsize=10)
 			axes[0,j+1].set_xscale("log")
 
@@ -524,7 +526,7 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		fig.text(0.06, 0.5, 'ranges', ha='center', va='center', rotation='vertical')
 		for ax in axes.flatten():
 			ax.set_ylim([0,60])
-			ax.set_xticks(sizes)
+			ax.set_xticks(stims)
 			ax.set_xticklabels([0.1, '', '', '', '', 1, '', 2, 4, 6])
 			# ax.set_xticklabels([0.1, '', '', '', '', '', '', '', '', '', '', 1, '', '', 2, '', '', '', 4, '', 6])
 
@@ -539,8 +541,8 @@ def size_tuning_comparison( sheet, folder_full, folder_inactive, stimulus, param
 		axes[0,0].spines['bottom'].set_visible(False)
 
 		# plt.show()
-		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+".png", dpi=150, transparent=True )
-		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+"_box"+str(box)+".svg", dpi=150, transparent=True )
+		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+".png", dpi=150, transparent=True )
+		plt.savefig( folder_inactive+"/TrialAveragedSizeTuningComparison_"+sheet+".svg", dpi=150, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -3044,7 +3046,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
 	# "Deliverable/Thalamocortical_size_closed", # BIG
-	"ThalamoCorticalModel_data_size_closed_cond_____",
+	# "ThalamoCorticalModel_data_size_closed_cond_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
@@ -3082,10 +3084,10 @@ full_list = [
 
 	# "Deliverable/CombinationParamSearch_LGN_PGN_core",
 	# "Deliverable/CombinationParamSearch_LGN_PGN_2",
+
 	# "CombinationParamSearch_large_closed",
 	# "CombinationParamSearch_more_focused_closed_nonoverlapping",
-
-	# "CombinationParamSearch_intact_nonoverlapping",
+	"/media/do/Sauvegarde Système/CombinationParamSearch_closed_overlapping",
 	]
 
 inac_list = [ 
@@ -3099,15 +3101,15 @@ inac_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
-	# "CombinationParamSearch_large_nonoverlapping",
-	# "CombinationParamSearch_more_focused_nonoverlapping",
+	# "CombinationParamSearch_nonoverlapping",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "ThalamoCorticalModel_data_size_overlapping_____",
 
-	# "CombinationParamSearch_altered_nonoverlapping",
+	"/media/do/Sauvegarde Système/CombinationParamSearch_nonoverlapping",
+
 	]
 
 
@@ -3121,9 +3123,9 @@ addon = ""
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
-# sheets = ['X_OFF'] 
+sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
@@ -3131,35 +3133,16 @@ sheets = ['V1_Exc_L4']
 
 
 # ONLY for comparison parameter search
-if False: 
-	# How the choice of smaller, equal, and larger is made:
-	# - Smaller: [ smaller0 : smaller1 ]
-	# - Equal:   [  equal0  :  equal1  ]
-	# - Larger:  [  larger0 : larger1  ]
+if True: 
 
-	#            0     1     2     3     4     5     6     7     8     9
-	sizes = [0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46]
-
-	#                                         |  smaller    |       equal        |                    |   larger
-	#          0      1      2      3      4      5      6      7      8      9      10     11     12     13     14     15     16     17     18     19
-	# sizes = [0.125, 0.152, 0.186, 0.226, 0.276, 0.337, 0.412, 0.502, 0.613, 0.748, 0.912, 1.113, 1.358, 1.657, 2.021, 2.466, 3.008, 3.670, 4.477, 5.462]
-	# Ssmaller = 5
-	# Sequal   = 7
-	# SequalStop  = 10
-	# Slarger  = 13
-
-	# # CHOICE OF STIMULI GROUPS
-	# Ismaller = [0,3]
-	# Iequal   = [4,6]
-	# Ilarger  = [6,8] # NON
-	# Ilarger  = [7,10] # OVER
-
-	box = [[-.5,-.5],[.5,.5]] # close to the overlapping
+	# box = [[-.5,-.5],[.5,.5]] # close to the overlapping
 	# box = [[-.5,.0],[.5,.5]] # close to the overlapping
 	# box = [[-.5,.0],[.5,.1]] # far from the overlapping
+	radius = [.0,.9]
+	dist = box if not radius else radius
 
 	if len(inac_list):
-		csvfile = open(inac_list[0]+"/barsizevalues_"+str(sheets[0])+"_box"+str(box)+".csv", 'w')
+		csvfile = open(inac_list[0]+"/barsizevalues_"+str(sheets[0])+"_dist"+str(dist)+".csv", 'w')
 	else:
 		csvfile = open(full_list[0]+"/endinhibitionindex_"+str(sheets[0])+".csv", 'w')
 
@@ -3199,50 +3182,50 @@ if False:
 						stimulus="DriftingSinusoidalGratingDisk",
 						parameter='radius',
 						reference_position=[[0.0], [0.0], [0.0]],
-						sizes = sizes,
-						box = box,
+						# box = box,
+						radius = radius,
 						csvfile = csvfile,
-						plotAll = False # plot all barplots per folder?
+						plotAll = True # plot all barplots per folder?
 					)
 
-				else:
-					end_inhibition_barplot( 
-						# sheet=['X_ON', 'X_OFF'], 
-						# sheet=['X_ON'], 
-						sheet=s, 
-						folder=f, 
-						stimulus="DriftingSinusoidalGratingDisk",
-						parameter='radius',
-						start=100., 
-						end=1000., 
-						xlabel="Index of end-inhibition",
-						ylabel="Number of cells",
-						closed=False,
-						# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
-						# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
-						# closed=True,
-						# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
-						csvfile = csvfile,
-					)
-					trial_averaged_tuning_curve_errorbar( 
-						# sheet=['X_ON', 'X_OFF'], 
-						sheet=s, 
-						folder=f, 
-						stimulus='DriftingSinusoidalGratingDisk',
-						parameter="radius",
-						start=100., 
-						end=2000., 
-						xlabel="radius", 
-						ylabel="firing rate (sp/s)", 
-						color=color, 
-						useXlog=False, 
-						useYlog=False, 
-						percentile=False, #True,
-						ylim=[0,50],
-						box=False,
-						# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
-						data_curve=False,
-					)
+				# else:
+				# 	end_inhibition_barplot( 
+				# 		# sheet=['X_ON', 'X_OFF'], 
+				# 		# sheet=['X_ON'], 
+				# 		sheet=s, 
+				# 		folder=f, 
+				# 		stimulus="DriftingSinusoidalGratingDisk",
+				# 		parameter='radius',
+				# 		start=100., 
+				# 		end=1000., 
+				# 		xlabel="Index of end-inhibition",
+				# 		ylabel="Number of cells",
+				# 		closed=False,
+				# 		# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_open.csv",
+				# 		# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_7D.csv",
+				# 		# closed=True,
+				# 		# data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_closed.csv",
+				# 		csvfile = csvfile,
+				# 	)
+				# 	trial_averaged_tuning_curve_errorbar( 
+				# 		# sheet=['X_ON', 'X_OFF'], 
+				# 		sheet=s, 
+				# 		folder=f, 
+				# 		stimulus='DriftingSinusoidalGratingDisk',
+				# 		parameter="radius",
+				# 		start=100., 
+				# 		end=2000., 
+				# 		xlabel="radius", 
+				# 		ylabel="firing rate (sp/s)", 
+				# 		color=color, 
+				# 		useXlog=False, 
+				# 		useYlog=False, 
+				# 		percentile=False, #True,
+				# 		ylim=[0,50],
+				# 		box=False,
+				# 		# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
+				# 		data_curve=False,
+				# 	)
 
 				csvfile.write("\n")
 
@@ -3608,7 +3591,7 @@ else:
 			# 	useXlog=True, 
 			# 	radius = [.0, 1.7], # center
 			# 	addon = addon,
-			# 	# inputoutputratio = True,
+			# 	inputoutputratio = True,
 			# )
 			# trial_averaged_conductance_tuning_curve( 
 			# 	sheet=s, 
