@@ -61,9 +61,8 @@ else:
         # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
         # perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )
         # perform_analysis_and_visualization( data_store, 'temporal_frequency', withPGN, withV1 )
-        # perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
+        perform_analysis_and_visualization( data_store, 'size', withPGN, withV1 )
         # perform_analysis_and_visualization( data_store, 'size_nonoverlap', withPGN, withV1 )
-        perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
         # import numpy
         # step = .2
         # for i in numpy.arange(step, 3.+step, step):

@@ -47,6 +47,8 @@ withFeedback_CxLGN = False # closed loop
 # Model execution
 if True:
     data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_spatial )
+    # model.connectors['LGN_PGN_ConnectionOn'].store_connections(data_store) 
+    # model.connectors['LGN_PGN_ConnectionOff'].store_connections(data_store) 
     data_store.save()
 # or only load pickled data
 else:

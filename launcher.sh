@@ -37,9 +37,11 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # SIZE full closed loop model
-# python parameter_search_full_all_models.py run_size_closed_overlapping.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
+python parameter_search_full_all_models.py run_size_open.py nest param/defaults_mea
+
 # python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 # ANALYSIS
 # python parameter_search_analysis.py CombinationParamSearch_intact_nonoverlapping

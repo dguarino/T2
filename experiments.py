@@ -67,6 +67,7 @@ def create_experiments_spatial(model):
           model, 
           orientation=0., 
           contrasts=[80], #[25,50,100], #
+          # spatial_frequencies = [0.07, 0.5, 1.], # test
           spatial_frequencies = [0.07, 0.1, 0.2, 0.3, 0.5, 0.8, 1., 1.5,  2., 8.], # KimuraShimegiHaraOkamotoSato2013
           # spatial_frequencies = [0.2, 0.3],
           # spatial_frequencies=np.arange(0.0, 3., 0.2),
