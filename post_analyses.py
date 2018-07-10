@@ -2589,6 +2589,97 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 
 
+def trial_averaged_ratio_tuning_curve( sheet1, sheet2, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", dashed=False ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet1: ",sheet1
+	print "sheet2: ",sheet2
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	neurons1 = param_filter_query(data_store, sheet_name=sheet1, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons1:", len(neurons1)
+	neurons2 = param_filter_query(data_store, sheet_name=sheet2, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons2:", len(neurons2)
+	if len(neurons1)<1 or len(neurons2)<1:
+		print "ERROR: Not enough recorded neurons."
+		return
+
+	if sheet1=='V1_Exc_L4' or sheet1=='V1_Inh_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet1)[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(neurons1)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons1]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(neurons1)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons1]) < .1)[0]]
+		neurons1 = list(l4_exc_or_many)
+	if sheet2=='V1_Exc_L4' or sheet2=='V1_Inh_L4':
+		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet2)[0]
+		if opposite:
+			addon = addon +"_opposite"
+			l4_exc_or_many = numpy.array(neurons2)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in neurons2]) < .1)[0]]
+		else:
+			addon = addon +"_same"
+			l4_exc_or_many = numpy.array(neurons2)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons2]) < .1)[0]]
+		neurons2 = list(l4_exc_or_many)
+
+	if radius or box:
+		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet1, neuron_ids=neurons1)
+		positions1 = data_store.get_neuron_postions()[sheet1]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons1 = data_store.get_sheet_ids(sheet_name=sheet1, indexes=ids1)
+
+		sheet_ids2 = data_store.get_sheet_indexes(sheet_name=sheet2, neuron_ids=neurons2)
+		positions2 = data_store.get_neuron_postions()[sheet2]
+		if box:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, box=box)
+		if radius:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, radius=radius)
+		neurons2 = data_store.get_sheet_ids(sheet_name=sheet2, indexes=ids2)
+
+	print "Selected neurons1:", len(neurons1)
+	if len(neurons1)<1:
+		return
+	print "Selected neurons2:", len(neurons2)
+	if len(neurons2)<1:
+		return
+
+	rates1, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet1, 100., 1000., parameter, neurons=neurons1, spikecount=False ) 
+	rates2, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet2, 100., 1000., parameter, neurons=neurons2, spikecount=False ) 
+	print stimuli
+	# compute per-trial mean rate over cells
+	mean_rates1 = numpy.mean(rates1, axis=1) / numpy.max(rates1)
+	mean_rates2 = numpy.mean(rates2, axis=1) / numpy.max(rates2)
+	final_sorted1 = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates1) ) ) ]
+	final_sorted2 = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates2) ) ) ]
+	ratio = final_sorted1[1] / final_sorted2[1]
+	fig,ax = plt.subplots()
+	ax.plot( final_sorted1[0], final_sorted1[1], color='red', linewidth=2 )
+	ax.plot( final_sorted1[0], final_sorted2[1], color='blue', linewidth=2 )
+	ax.plot( final_sorted1[0], ratio, color=color, linewidth=2 )
+	# ax.set_xlim([.0,1.])
+	ax.set_xlabel( "Radius" )
+	# ax.set_ylim([.0,5.])
+	ax.set_ylabel( "Exc/Inh ratio" )
+	if useXlog:
+		ax.set_xscale("log", nonposx='clip')
+	plt.tight_layout()
+	# plt.savefig( folder+"/TrialAveragedRatio_"+sheet+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/TrialAveragedRatio_"+sheet1+"_"+sheet2+"_"+parameter+"_box"+str(box)+"_pop_"+addon+".svg", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
+
 def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, ticks, ylim=[0.,100.], box=[], addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -3222,7 +3313,7 @@ full_list = [
 
 	# "Deliverable/Thalamocortical_size_closed", # BIG
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_cond_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
@@ -3233,7 +3324,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
 	# "ThalamoCorticalModel_data_size_feedforward_cond_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
@@ -3298,10 +3389,10 @@ addon = ""
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF']
-sheets = ['X_ON']
+# sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
@@ -3822,6 +3913,106 @@ else:
 			# 	radius = [1.,1.8], # surround
 			# 	addon = "surround_ortho_" + addon,
 			# )
+
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1='X_ON', 
+			# 	sheet2='PGN', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1='X_ON', 
+			# 	sheet2='PGN', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [1.,1.8], # surround
+			# 	addon = "surround_" + addon,
+			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1='X_OFF', 
+			# 	sheet2='PGN', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1='X_OFF', 
+			# 	sheet2='PGN', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [1.,1.8], # surround
+			# 	addon = "surround_" + addon,
+			# )
+
+			trial_averaged_ratio_tuning_curve( 
+				sheet1=s, 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				percentile=False,
+				ylim=[0,30],
+				useXlog=False, 
+				radius = [.0, 0.7], # center
+				addon = "center_iso_" + addon,
+			)
+			trial_averaged_ratio_tuning_curve( 
+				sheet1=s, 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				percentile=False,
+				ylim=[0,30],
+				useXlog=False, 
+				radius = [1.,1.8], # surround
+				addon = "surround_iso_" + addon,
+			)
+			trial_averaged_ratio_tuning_curve( 
+				sheet1=s, 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				percentile=False,
+				ylim=[0,30],
+				useXlog=False, 
+				opposite=True, #
+				radius = [.0, 0.7], # center
+				addon = "center_ortho_" + addon,
+			)
+			trial_averaged_ratio_tuning_curve( 
+				sheet1=s, 
+				sheet2='V1_Inh_L4', 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				percentile=False,
+				ylim=[0,30],
+				useXlog=False, 
+				opposite=True, #
+				radius = [1.,1.8], # surround
+				addon = "surround_ortho_" + addon,
+			)
 
 			# trial_averaged_Vm( 
 			# 	sheet=s, 
