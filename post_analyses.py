@@ -1988,11 +1988,12 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 
 	# # Verify index identity
 	# spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	# print "spike_ids1", spike_ids1
 	# sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-	# print sheet_ids1
+	# print "sheet_ids1", sheet_ids1
 	# spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
 	# sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-	# print sheet_ids2
+	# print "sheet_ids2", sheet_ids2
 
 	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=False )
 	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=False )
@@ -2068,17 +2069,17 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 
 	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="white", label=sheet )
 
-	if withRegression:
-		if data_full and data_inac:
-			m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
-			print "data fitted line:", m, "x +", b
-			x = numpy.arange(x0, x1)
-			ax.plot(x, m*x+b, linestyle='-', color="k")
+	# if withRegression:
+	# 	if data_full and data_inac:
+	# 		m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
+	# 		print "data fitted line:", m, "x +", b
+	# 		x = numpy.arange(x0, x1)
+	# 		ax.plot(x, m*x+b, linestyle='-', color="k")
 
-		m,b = numpy.polyfit(x_full,x_inac, 1)
-		print "fitted line:", m, "x +", b
-		x = numpy.arange(x0, x1)
-		ax.plot(x, m*x+b, linestyle='-', color="blue")
+	# 	m,b = numpy.polyfit(x_full,x_inac, 1)
+	# 	print "fitted line:", m, "x +", b
+	# 	x = numpy.arange(x0, x1)
+	# 	ax.plot(x, m*x+b, linestyle='-', color="blue")
 
 	if withCorrCoef:
 		# add correlation coefficient
@@ -2796,6 +2797,32 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		gc.collect()
 
 
+		# Conductances contrast
+		fig,ax = plt.subplots()
+		color = 'black' if 'closed' in folder else 'gray'
+		ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/(mean_pop_e[s]+mean_pop_i[s]), color=color, linewidth=3 )
+		ax.set_xlabel( parameter )
+		ax.set_ylim([0,1])
+		plt.tight_layout()
+		plt.savefig( folder+"/TimecourseTrialAveragedConductancesContrast_"+sheet+"_"+parameter+str(box)+"_"+addon+".svg", dpi=300, transparent=True )
+		fig.clf()
+		plt.close()
+		# garbage
+		gc.collect()
+
+		# Conductances ratio
+		fig,ax = plt.subplots()
+		color = 'black' if 'closed' in folder else 'gray'
+		ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/mean_pop_i[s], color=color, linewidth=3 )
+		ax.set_xlabel( parameter )
+		# ax.set_ylim([0,2])
+		plt.tight_layout()
+		plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+".svg", dpi=300, transparent=True )
+		fig.clf()
+		plt.close()
+		# garbage
+		gc.collect()
+
 
 
 def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, lfp_opposite=False, spike_opposite=False, addon="", color="black"):
@@ -3314,7 +3341,6 @@ full_list = [
 	# "Deliverable/Thalamocortical_size_closed", # BIG
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_cond_____",
 	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
-	# "ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -3325,7 +3351,6 @@ full_list = [
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
 	# "ThalamoCorticalModel_data_size_feedforward_cond_____",
 	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
-	# "ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
@@ -3368,6 +3393,8 @@ inac_list = [
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 
+	# "Deliverable/ParamSearch",
+
 	# "CombinationParamSearch_nonoverlapping",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -3382,6 +3409,7 @@ inac_list = [
 
 addon = ""
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
+# sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
 # sheets = ['X_ON', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
@@ -3392,8 +3420,8 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
-# sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
@@ -3481,18 +3509,19 @@ if False:
 	# yvalues = [150, 200, 250, 300]
 	# ticks = [0,1,2,3]
 
-	xvalues = [5, 90, 180]
-	yvalues = [20, 150, 280]
-	ticks = [0,1,2,3]
+	# xvalues = [5, 75, 200]
+	# yvalues = [10, 150, 300]
+	# ticks = [0,1,2]
+	xvalues = [25, 50, 75, 100, 125]
+	yvalues = [100, 130, 150, 170, 200]
+	ticks = [0,1,2,3,4]
+
 	# comparison_tuning_map(directory, xvalues, yvalues, ticks)
 	# comparison_tuning_map(inac_list[0], xvalues, yvalues, ticks)
 	# comparison_size_tuning_map(inac_list[0]+"/barsizevalues_X_ON_dist[0.2, 0.6].csv", xvalues, yvalues, ticks)
 
-	# xvalues = [70, 80, 90, 100, 110]
-	# yvalues = [130, 140, 150, 160, 170]
-	# ticks = [0,1,2,3,4]
-	# comparison_size_tuning_map(inac_list[0]+"/endinhibitionindex_"+str(sheets[0])+"_dist"+str(dist)+".csv", xvalues, yvalues, ticks)
-	comparison_tuning_map(inac_list[0], xvalues, yvalues, ticks)
+	comparison_size_tuning_map(inac_list[0]+"/endinhibitionindex_"+str(sheets[0])+"_dist"+str(dist)+"1.csv", xvalues, yvalues, ticks)
+	# comparison_tuning_map(inac_list[0], xvalues, yvalues, ticks)
 
 
 else:
@@ -3963,150 +3992,150 @@ else:
 			# 	addon = "surround_" + addon,
 			# )
 
-			trial_averaged_ratio_tuning_curve( 
-				sheet1=s, 
-				sheet2='V1_Inh_L4', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				percentile=False,
-				ylim=[0,30],
-				useXlog=False, 
-				radius = [.0, 0.7], # center
-				addon = "center_iso_" + addon,
-			)
-			trial_averaged_ratio_tuning_curve( 
-				sheet1=s, 
-				sheet2='V1_Inh_L4', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				percentile=False,
-				ylim=[0,30],
-				useXlog=False, 
-				radius = [1.,1.8], # surround
-				addon = "surround_iso_" + addon,
-			)
-			trial_averaged_ratio_tuning_curve( 
-				sheet1=s, 
-				sheet2='V1_Inh_L4', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				percentile=False,
-				ylim=[0,30],
-				useXlog=False, 
-				opposite=True, #
-				radius = [.0, 0.7], # center
-				addon = "center_ortho_" + addon,
-			)
-			trial_averaged_ratio_tuning_curve( 
-				sheet1=s, 
-				sheet2='V1_Inh_L4', 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				percentile=False,
-				ylim=[0,30],
-				useXlog=False, 
-				opposite=True, #
-				radius = [1.,1.8], # surround
-				addon = "surround_ortho_" + addon,
-			)
-
-			# trial_averaged_Vm( 
-			# 	sheet=s, 
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1=s, 
+			# 	sheet2='V1_Inh_L4', 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	parameter="radius",
-			# 	opposite=False, #
-			# 	radius = [.0, 0.7], # center
-			# 	addon = "iso_center_" + addon,
-			# )
-			# trial_averaged_Vm( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=False, #
-			# 	radius = [1.,1.8], # surround
-			# 	# radius = [0.6,1.8], # surround
-			# 	addon = "iso_surround_" + addon,
-			# )
-			# trial_averaged_Vm( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=True, #
-			# 	radius = [.0, 0.7], # center
-			# 	addon = "ortho_center_" + addon,
-			# )
-			# trial_averaged_Vm( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=True, #
-			# 	radius = [1.,1.8], # surround
-			# 	# radius = [0.6,1.8], # surround
-			# 	addon = "ortho_surround_" + addon,
-			# )
-
-			# trial_averaged_raster( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=False, #
-			# 	radius = [.0, 0.7], # center
-			# 	addon = "iso_center_" + addon,
-			# )
-			# trial_averaged_raster( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=False, #
-			# 	radius = [1.,1.8], # surround
-			# 	# radius = [0.6,1.8], # surround
-			# 	addon = "iso_surround_" + addon,
-			# )
-			# trial_averaged_raster( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=True, #
-			# 	radius = [.0, 0.7], # center
-			# 	addon = "ortho_center_" + addon,
-			# )
-			# trial_averaged_raster( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	opposite=True, #
-			# 	radius = [1.,1.8], # surround
-			# 	# radius = [0.6,1.8], # surround
-			# 	addon = "ortho_surround_" + addon,
-			# )
-
-			# trial_averaged_conductance_timecourse( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	#       0      1     2     3     4     5     6     7     8     9
-			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+			# 	percentile=False,
 			# 	ylim=[0,30],
-			# 	box = [[-.5,-.5],[.5,.5]], # center
-			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
-			# 	addon = "center",
-			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
-			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
-			# 	# box = [[-0.1,.6],[.3,1.]], # surround
+			# 	useXlog=False, 
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "center_iso_" + addon,
 			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1=s, 
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [1.,1.8], # surround
+			# 	addon = "surround_iso_" + addon,
+			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1=s, 
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "center_ortho_" + addon,
+			# )
+			# trial_averaged_ratio_tuning_curve( 
+			# 	sheet1=s, 
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	addon = "surround_ortho_" + addon,
+			# )
+
+			trial_averaged_Vm( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				opposite=False, #
+				radius = [.0, 0.7], # center
+				addon = "iso_center_" + addon,
+			)
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "iso_surround_" + addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "ortho_center_" + addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "ortho_surround_" + addon,
+			# )
+
+			trial_averaged_raster( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				opposite=False, #
+				radius = [.0, 0.7], # center
+				addon = "iso_center_" + addon,
+			)
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "iso_surround_" + addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "ortho_center_" + addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=True, #
+			# 	radius = [1.,1.8], # surround
+			# 	# radius = [0.6,1.8], # surround
+			# 	addon = "ortho_surround_" + addon,
+			# )
+
+			trial_averaged_conductance_timecourse( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				#       0      1     2     3     4     5     6     7     8     9
+				ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+				ylim=[0,30],
+				box = [[-.5,-.5],[.5,.5]], # center
+				# box = [[-.25,-.25],[.25,.25]], # center overlapping
+				addon = "center",
+				# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
+				# box = [[-.5,.5],[.5,1.]], # strict surround
+				# box = [[-0.1,.6],[.3,1.]], # surround
+			)
 
 			# # stLFP: iso-surround postsynaptic response to LGN spikes
 			# SpikeTriggeredAverage(
@@ -4662,6 +4691,17 @@ else:
 			# 	radius = [.0,.7], # center
 			# 	addon = "center",
 			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	percentile=False,
+			# 	ylim=[0,30],
+			# 	useXlog=False, 
+			# 	radius = [.0, 8.7], # center
+			# 	addon = "center_" + addon,
+			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -4677,7 +4717,7 @@ else:
 			# 	percentile=False,
 			# 	ylim=[0,50],
 			# 	opposite=True, # to select cortical cells with OPPOSITE orientation preference
-			# 	radius = [.0,.7], # center
+			# 	radius = [.5,.8], # center
 			# 	addon = "center",
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
@@ -4895,15 +4935,17 @@ else:
 			for j,l in enumerate(inac_list):
 				print j
 
-				# # ONGOING ACTIVITY
-				# #Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
+				# ONGOING ACTIVITY
+				#Ex: ThalamoCorticalModel_data_luminance_closed_____ vs ThalamoCorticalModel_data_luminance_open_____
 				# pairwise_scatterplot( 
-				# 	# sheet=s,
-				# 	sheet=['X_ON', 'X_OFF'], # s,
+				# 	sheet=s,
+				# 	# sheet=['X_ON', 'X_OFF'], # s,
 				# 	folder_full=f, 
 				# 	folder_inactive=l,
 				# 	stimulus="Null",
-				# 	stimulus_band=6, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+				# 	# stimulus_band=6, # 1 cd/m2 as in WaleszczykBekiszWrobel2005
+				# 	# stimulus_band=7, # 10 cd/m2 
+				# 	stimulus_band=8, # 100 cd/m2 
 				# 	parameter='background_luminance',
 				# 	start=100., 
 				# 	end=2000., 
@@ -4912,8 +4954,8 @@ else:
 				# 	withRegression=True,
 				# 	withCorrCoef=True,
 				# 	withCentroid=True,
-				# 	xlim=[0,25],
-				# 	ylim=[0,25],
+				# 	xlim=[0,5],
+				# 	ylim=[0,5],
 				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
 				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
 				# 	data_marker = "D",

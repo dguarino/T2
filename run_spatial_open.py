@@ -61,6 +61,4 @@ else:
 # Analysis and Plotting
 if mpi_comm.rank == MPI_ROOT:
     # perform_analysis_test( data_store )
-    # perform_analysis_and_visualization( data_store, 'luminance', withPGN, withV1 )
-    # perform_analysis_and_visualization( data_store, 'contrast', withPGN, withV1 )
     perform_analysis_and_visualization( data_store, 'spatial_frequency', withPGN, withV1 )

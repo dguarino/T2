@@ -37,8 +37,8 @@
 # python parameter_search_full_all_models.py run_size.py nest param/defaults_mea
 
 # SIZE full closed loop model
-python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
-python parameter_search_full_all_models.py run_size_open.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_open.py nest param/defaults_mea
 
 # python parameter_search_full_all_models.py run_size_V1_inhibition_nonoverlapping.py nest param/defaults_mea
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
@@ -51,24 +51,24 @@ python parameter_search_full_all_models.py run_size_open.py nest param/defaults_
 ################################################
 # EXPERIMENTS Closed Loop 1 (LGN+PGN)
 
-# echo "starting Luminance"
-# echo
-# mpirun -np 1 python run_luminance_open.py nest 8 param/defaults 'data_luminance_open'
+echo "starting Luminance"
+echo
+mpirun -np 1 python run_luminance_open.py nest 8 param/defaults_mea 'data_luminance_open'
 
 
 # echo "starting Spatial"
 # echo
-# mpirun -np 1 python run_spatial_open.py nest 8 param/defaults 'data_spatial_open'
+# mpirun -np 1 python run_spatial_open.py nest 8 param/defaults_mea 'data_spatial_open'
 
 
 # echo "starting Temporal"
 # echo
-# mpirun -np 1 python run_temporal_open.py nest 8 param/defaults 'data_temporal_open'
+# mpirun -np 1 python run_temporal_open.py nest 8 param/defaults_mea 'data_temporal_open'
 
 
 # echo "starting Contrast"
 # echo
-# mpirun -np 1 python run_contrast_open.py nest 8 param/defaults 'data_contrast_open'
+# mpirun -np 1 python run_contrast_open.py nest 8 param/defaults_mea 'data_contrast_open'
 
 
 # echo "starting Size"
@@ -95,9 +95,9 @@ python parameter_search_full_all_models.py run_size_open.py nest param/defaults_
 ################################################
 # EXPERIMENTS Closed loop 2 (LGN+PGN+V1)
 
-# echo "starting Luminance"
-# echo
-# mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults 'data_luminance_closed'
+echo "starting Luminance"
+echo
+mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults_mea 'data_luminance_closed'
 
 
 # echo "starting Contrast"
