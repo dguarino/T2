@@ -192,6 +192,15 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 	# get stimuli from PerNeuronValues
 	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvsTM[-1]]
 
+	asl_id = numpy.array([z.get_asl_by_id(neurons) for z in pnvsTM[-1]])
+	print asl_id.shape
+	# Example:
+	# (8, 133, 1, 1029)
+	# 8 stimuli
+	# 133 cells
+	# 1 wrapper
+	# 1029 bins
+
 	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTM[-1]], st, stimulus_parameter)
 	for k in dic:
 		(b, a) = dic[k]
@@ -199,7 +208,7 @@ def get_per_neuron_spike_count( datastore, stimulus, sheet, start, end, stimulus
 		dic[k] = (par,numpy.array(val))
 
 	stimuli = dic.values()[0][0]
-	means = numpy.array( dic.values()[0][1] ).mean(axis=2) # mean of
+	means = asl_id.mean(axis=2) # mean of
 	print means.shape
 
 	return means, stimuli
@@ -269,6 +278,7 @@ def select_by_orientation(data_store, sheet, ids, preferred=True):
 		sel_cell_or = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(cell_or.get_value_by_id(i),numpy.pi/2,numpy.pi) for i in ids]) < .1)[0]]
 	# print "Selected cells:", len(sel_cell_or)
 	return list(sel_cell_or)
+
 
 
 
@@ -1978,82 +1988,137 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 
 
 
-def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulus_band, parameter, start, end, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, withPassIndex=False, withPeakIndex=False, withHighIndex=False, reference_band=3, xlim=[], ylim=[], data_full="", data_inac="", data_marker="D" ):
-	print "folder_full: ",folder_full
+def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, parameter, start, end, box=None, radius=None, xlabel="", ylabel="", withRegression=True, withCorrCoef=True, withCentroid=False, xlim=[], ylim=[], data_full="", data_inac="", data_marker="D" ):
+	print inspect.stack()[0][3]
+	print folder_full
+	folder_nums = re.findall(r'\d+', folder_full)
+	print folder_nums
 	data_store_full = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_full, 'store_stimuli' : False}),replace=True)
 	data_store_full.print_content(full_recordings=False)
-	print "folder_inactive: ",folder_inactive
+	print folder_inactive
 	data_store_inac = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder_inactive, 'store_stimuli' : False}),replace=True)
 	data_store_inac.print_content(full_recordings=False)
 
-	# # Verify index identity
-	# spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	# print "spike_ids1", spike_ids1
-	# sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids1)
-	# print "sheet_ids1", sheet_ids1
-	# spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
-	# sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet,neuron_ids=spike_ids2)
-	# print "sheet_ids2", sheet_ids2
+	# GET RECORDINGS
 
-	x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=False )
-	x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=False )
-	# x_full_rates, stimuli_full = get_per_neuron_spike_count( data_store_full, stimulus, sheet, start, end, parameter, spikecount=True )
-	# x_inac_rates, stimuli_inac = get_per_neuron_spike_count( data_store_inac, stimulus, sheet, start, end, parameter, spikecount=True )
+	# get the list of all recorded neurons in X_ON
+	# Full
+	spike_ids1 = param_filter_query(data_store_full, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons (closed):", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store_full.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store_full.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons_full = data_store_full.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
-	x_full = x_full_rates[stimulus_band]
-	x_inac = x_inac_rates[stimulus_band]
-	# print x_full.shape
+	# Inactivated
+	spike_ids2 = param_filter_query(data_store_inac, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	if radius or box:
+		sheet_ids2 = data_store_inac.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids2)
+		positions2 = data_store_inac.get_neuron_postions()[sheet]
+		if box:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, box=box)
+		if radius:
+			ids2 = select_ids_by_position(positions2, sheet_ids2, radius=radius)
+		neurons_inac = data_store_inac.get_sheet_ids(sheet_name=sheet, indexes=ids2)
 
-	if withPassIndex:
-		reference_full = x_full_rates[reference_band]
-		reference_inac = x_inac_rates[reference_band]
-		x_full = x_full / reference_full
-		x_inac = x_inac / reference_inac
-		print "SEM", scipy.stats.sem(x_full)
-		print "SEM", scipy.stats.sem(x_inac)
+	# Intersection of full and inac
+	if set(neurons_full)==set(neurons_inac):
+		neurons = neurons_full
+		num_cells = len(neurons_full)
+	else:
+		neurons = numpy.intersect1d(neurons_full, neurons_inac)
+		num_cells = len(neurons)
 
-	if withPeakIndex:
-		index_full = numpy.argmax(x_full_rates, axis=0).astype(int)
-		index_inac = numpy.argmax(x_inac_rates, axis=0).astype(int)
-		print "SEM", scipy.stats.sem(index_full)
-		print "SEM", scipy.stats.sem(index_inac)
-		x_full = numpy.take( stimuli_full, index_full )
-		x_inac = numpy.take( stimuli_inac, index_inac )
+	# print "neurons_full:", len(neurons_full), neurons_full
+	# print "neurons_inac:", len(neurons_inac), neurons_inac
+	# print "neurons:", num_cells, neurons
 
-	if withHighIndex:
-		index_full = numpy.argmax(x_full_rates[stimulus_band:,], axis=0).astype(int)
-		index_inac = numpy.argmax(x_inac_rates[stimulus_band:,], axis=0).astype(int)
-		print "SEM", scipy.stats.sem(index_full)
-		print "SEM", scipy.stats.sem(index_inac)
-		x_full = numpy.take( stimuli_full, index_full )
-		x_inac = numpy.take( stimuli_inac, index_inac )
+	assert num_cells > 0 , "ERROR: the number of recorded neurons is 0"
 
-	print x_full
-	print x_inac
+	# compute firing rates
+	# required shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+	dstims = {}
+
+	# Closed
+	TrialAveragedFiringRate(
+		param_filter_query(data_store_full, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({'neurons':list(neurons)})
+	).analyse()
+	dsv1 = param_filter_query(data_store_full, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialAveragedFiringRate')
+	asls1 = dsv1.get_analysis_result( sheet_name=sheet )
+	# for key, asl in sorted( asls1, key=lambda x: x.get(parameter) ):
+	closed_dict = {}
+	for asl in asls1:
+		# print asl.stimulus_id
+		stim = eval(asl.stimulus_id).get(parameter)
+		dstims[stim] = stim
+		closed_dict[stim] = asl.get_value_by_id(neurons)
+	# print closed_dict
+	all_closed_values = numpy.array([closed_dict[k] for k in sorted(closed_dict)])
+	# print all_closed_values.shape
+	# (10, 133)
+
+	stims = sorted(dstims)
+
+	# Open
+	TrialAveragedFiringRate(
+		param_filter_query(data_store_inac, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({'neurons':list(neurons)})
+	).analyse()
+	dsv2 = param_filter_query(data_store_inac, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialAveragedFiringRate')
+	asls2 = dsv2.get_analysis_result( sheet_name=sheet )
+	open_dict = {}
+	for asl in asls2:
+		open_dict[eval(asl.stimulus_id).get(parameter)] = asl.get_value_by_id(neurons)
+	# print open_dict
+	all_open_values = numpy.array([open_dict[k] for k in sorted(open_dict)])
+	# print all_open_values
+
+	# (10, 133)
+	# 10 stimuli
+	# 133 recorded cells
+
+	SEM_full = scipy.stats.sem(all_closed_values)
+	SEM_inac = scipy.stats.sem(all_open_values)
+	print "SEM", SEM_full
+	print "SEM", SEM_inac
+	SEM_full = SEM_full / numpy.amax(SEM_full) # normalize SEM
+	SEM_inac = SEM_inac / numpy.amax(SEM_inac) # to reinject it into cell positions
+	print "SEM", SEM_full
+	print "SEM", SEM_inac
+
+	index_full = numpy.argmax(all_closed_values, axis=0).astype(int)
+	index_inac = numpy.argmax(all_open_values, axis=0).astype(int)
+	print "indices:", index_full.shape, index_full
+	# SEM_full = scipy.stats.sem(index_full)
+	# SEM_inac = scipy.stats.sem(index_inac)
+	# print "SEM", SEM_full
+	# print "SEM", SEM_inac
+	# collapsing all cells into the index of stimulus array makes the data unreadable
+	# therefore we inject the SEM in the response to account for inter-cell variability
+	# x_full = numpy.take( stims, index_full ) + ((2*SEM_full) * numpy.random.random_sample((len(index_full),)) - SEM_full)
+	# x_inac = numpy.take( stims, index_inac ) + ((2*SEM_inac) * numpy.random.random_sample((len(index_inac),)) - SEM_inac)
+	x_full = numpy.take( stims, index_full ) 
+	x_inac = numpy.take( stims, index_inac ) 
+	print "control: ", x_full
+	print "altered: ", x_inac
+
 	# read external data to plot as well
 	if data_full and data_inac:
 		data_full_list = numpy.genfromtxt(data_full, delimiter='\n')
-		print data_full_list
+		print "Data control: ", data_full_list
 		data_inac_list = numpy.genfromtxt(data_inac, delimiter='\n')
-		print data_inac_list
+		print "Data altered: ", data_inac_list
 
 	# PLOTTING
 	fig,ax = plt.subplots()
-	x0,x1 = ax.get_xlim()
-	y0,y1 = ax.get_ylim()
 
-	# to make it squared
-	if x1 >= y1:
-		y1 = x1
-	else:
-		x1 = y1
-
-	if withPassIndex:
-		x0 = y0 = 0.
-		x1 = y1 = 1.
-
-	ax.set_xlim( (x0,x1) )
-	ax.set_ylim( (y0,y1) )
+	ax.set_xlim( (0,1) )
+	ax.set_ylim( (0,1) )
 	if len(xlim)>1:
 		ax.set_xlim( xlim )
 		x0,x1 = ax.get_xlim()
@@ -2064,22 +2129,22 @@ def pairwise_scatterplot( sheet, folder_full, folder_inactive, stimulus, stimulu
 	ax.set_aspect( abs(x1-x0)/abs(y1-y0) )
 	# add diagonal
 	ax.plot( [x0,x1], [y0,y1], linestyle='--', color="k" )
+	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="white", label=sheet )
 	if data_full and data_inac:
 		ax.scatter( data_full_list, data_inac_list, marker=data_marker, s=60, facecolor="black", edgecolor="white", label=sheet )
 
-	ax.scatter( x_full, x_inac, marker="o", s=80, facecolor="blue", edgecolor="white", label=sheet )
 
-	# if withRegression:
-	# 	if data_full and data_inac:
-	# 		m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
-	# 		print "data fitted line:", m, "x +", b
-	# 		x = numpy.arange(x0, x1)
-	# 		ax.plot(x, m*x+b, linestyle='-', color="k")
+	if withRegression:
+		if data_full and data_inac:
+			m,b = numpy.polyfit(data_full_list,data_inac_list, 1)
+			print "data fitted line:", m, "x +", b
+			x = numpy.arange(x0, x1)
+			ax.plot(x, m*x+b, linestyle='-', color="k")
 
-	# 	m,b = numpy.polyfit(x_full,x_inac, 1)
-	# 	print "fitted line:", m, "x +", b
-	# 	x = numpy.arange(x0, x1)
-	# 	ax.plot(x, m*x+b, linestyle='-', color="blue")
+		m,b = numpy.polyfit(x_full,x_inac, 1)
+		print "fitted line:", m, "x +", b
+		x = numpy.arange(x0, x1)
+		ax.plot(x, m*x+b, linestyle='-', color="blue")
 
 	if withCorrCoef:
 		# add correlation coefficient
@@ -2245,6 +2310,161 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 	plt.close()
 	# garbage
 	gc.collect()
+
+
+
+def bootstrap_resample(X, n=None):
+    """ Bootstrap resample an array_like
+    Parameters
+    ----------
+    X : array_like
+      data to resample
+    n : int, optional
+      length of resampled array, equal to len(X) if n==None
+    Results
+    -------
+    returns X_resamples
+    """
+    if n == None:
+        n = len(X)
+        
+    resample_i = numpy.floor(numpy.random.rand(n)*len(X)).astype(int)
+    X_resample = X[resample_i]
+    # print X_resample.shape, X_resample
+    return X_resample
+
+def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=1., box=None, radius=None, xlabel="", data="", data_marker="D" ):
+	print inspect.stack()[0][3]
+	print folder
+	folder_nums = re.findall(r'\d+', folder)
+	print folder_nums
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+
+	# get the list of all recorded neurons in X_ON
+	# Full
+	spike_ids1 = param_filter_query(data_store, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons:", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+
+	num_cells = len(neurons)
+	assert num_cells > 0 , "ERROR: the number of recorded neurons is 0"
+	print "neurons:", num_cells, neurons
+
+	# compute firing rates
+	# required shape # ex. (10, 32) firing rate for each stimulus condition (10) and each cell (32)
+	dstims = {}
+
+	TrialAveragedFiringRate(
+		param_filter_query(data_store, sheet_name=sheet, st_name=stimulus),
+		ParameterSet({'neurons':list(neurons)})
+	).analyse()
+	dsv1 = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialAveragedFiringRate')
+	asls1 = dsv1.get_analysis_result( sheet_name=sheet )
+	# for key, asl in sorted( asls1, key=lambda x: x.get(parameter) ):
+	recdict = {}
+	for asl in asls1:
+		# print asl.stimulus_id
+		stim = eval(asl.stimulus_id).get(parameter)
+		dstims[stim] = stim
+		recdict[stim] = asl.get_value_by_id(neurons)
+	# print recdict
+	all_values = numpy.array([recdict[k] for k in sorted(recdict)])
+	# print all_closed_values.shape
+	# (10, 133)
+
+	stims = sorted(dstims)
+
+	# (10, 133)
+	# 10 stimuli
+	# 133 recorded cells
+
+
+	indices = numpy.argmax(all_values, axis=0).astype(int)
+	print "indices:", indices.shape, indices
+	x = numpy.take( stims, indices ) 
+	print "stim: ", x
+	print stims
+	mean = numpy.mean(x)
+	print "mean:",mean
+
+	# read external data to plot as well
+	data_list = []
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+		print "Data: ", data_list
+		data_resample = bootstrap_resample(data_list, n=len(x))
+		# data_hist, data_edges = numpy.histogram( data_list, bins=num_stim, range=(0.0,max_stim), density=True )
+		# print data_hist
+		data_mean = numpy.mean(data_list)
+		print "data_mean:",data_mean
+		data_mean = numpy.mean(data_resample)
+		print "data_mean:",data_mean
+
+	# plt.hist([x,data_resample], bins=num_stim, normed=True, histtype='bar', range=(0.0,max_stim), color=['blue', 'black'], label=['model', 'data'])
+	#ax1.hist(x, n_bins, normed=1, histtype='bar', stacked=True)
+	d = numpy.array([x,data_resample])
+	# print d.shape, d
+	dt = numpy.transpose(d)
+	# print dt.shape, dt
+	plt.hist(dt, num_stim, normed=1, histtype='bar', stacked=True, range=(0.0,max_stim))
+
+	plt.plot((mean, mean), (0,.5), 'r--', linewidth=2)
+	if data:
+		plt.plot((data_mean, data_mean), (0,.5), 'b--', linewidth=2)
+
+	plt.legend()
+	plt.savefig( folder+"/response_barplot_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/response_barplot_"+str(sheet)+"_"+addon+".svg", dpi=200, transparent=True )
+	plt.close()
+	# garbage
+	gc.collect()
+
+	# # group cells by maximal firing rate stimulus
+	# hist, edges = numpy.histogram( x, bins=num_stim, range=(0.0,max_stim), density=True )
+
+	# # PLOTTING
+	# width = 1.
+	# ind = numpy.arange(num_stim)
+	# matplotlib.rcParams.update({'font.size':22})
+	# fig,ax = plt.subplots()
+	# if closed:
+	# 	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='blue', edgecolor='blue')
+	# 	ax.plot((mean, mean), (0,160), 'b--', linewidth=2)
+	# else:
+	# 	barlist = ax.bar(ind, hist, align='center', width=width, facecolor='cyan', edgecolor='cyan')
+	# 	ax.plot((mean, mean), (0,160), 'c--', linewidth=2)
+
+	# ax.set_xlabel(xlabel)
+	# ax.set_ylabel("cells")
+	# ax.spines['right'].set_visible(False)
+	# ax.spines['top'].set_visible(False)
+	# ax.axis([ind[0]-width/2, ind[-1], 0, 160])
+	# ax.set_xticks(ind) 
+	# # ax.set_xticklabels(('0','','','','','0.5','','','','','1.0'))
+	# if data: # in front of the synthetic
+	# 	if closed:
+	# 		datalist = ax.bar(ind, data_hist, align='center', width=width, facecolor='black', edgecolor='black')
+	# 		ax.plot((data_mean, data_mean), (0,160), 'k--', linewidth=2)
+	# 	else:
+	# 		datalist = ax.bar(ind, data_hist, align='center', width=width, facecolor='grey', edgecolor='grey')
+	# 		ax.plot((data_mean, data_mean), (0,160), '--', linewidth=2, color='grey')
+	# plt.tight_layout()
+	# plt.savefig( folder+"/response_barplot_"+str(sheet)+".png", dpi=200, transparent=True )
+	# plt.savefig( folder+"/response_barplot_"+str(sheet)+".svg", dpi=200, transparent=True )
+	# plt.close()
+	# # garbage
+	# gc.collect()
+
 
 
 
@@ -2488,7 +2708,7 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	color = 'black' if 'closed' in folder else 'gray'
 	ax.plot( final_sorted_e[0], final_sorted_e[1]/(final_sorted_e[1]+final_sorted_i[1]), color=color, linewidth=3 )
 	ax.set_xlabel( parameter )
-	# ax.set_ylim([0,2])
+	ax.set_ylim([0,1])
 	plt.tight_layout()
 	dist = box if not radius else radius
 	plt.savefig( folder+"/TrialAveragedConductancesContrast_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
@@ -2497,19 +2717,19 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	# garbage
 	gc.collect()
 
-	# Conductances ratio
-	fig,ax = plt.subplots()
-	color = 'black' if 'closed' in folder else 'gray'
-	ax.plot( final_sorted_i[0], final_sorted_e[1]/final_sorted_i[1], color=color, linewidth=3 )
-	ax.set_xlabel( parameter )
-	# ax.set_ylim([0,2])
-	plt.tight_layout()
-	dist = box if not radius else radius
-	plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
-	fig.clf()
-	plt.close()
-	# garbage
-	gc.collect()
+	# # Conductances ratio
+	# fig,ax = plt.subplots()
+	# color = 'black' if 'closed' in folder else 'gray'
+	# ax.plot( final_sorted_i[0], final_sorted_e[1]/final_sorted_i[1], color=color, linewidth=3 )
+	# ax.set_xlabel( parameter )
+	# # ax.set_ylim([0,2])
+	# plt.tight_layout()
+	# dist = box if not radius else radius
+	# plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
+	# fig.clf()
+	# plt.close()
+	# # garbage
+	# gc.collect()
 
 	# Plotting tuning curve
 	fig,ax = plt.subplots()
@@ -2804,7 +3024,7 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		ax.set_xlabel( parameter )
 		ax.set_ylim([0,1])
 		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseTrialAveragedConductancesContrast_"+sheet+"_"+parameter+str(box)+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.savefig( folder+"/TimecourseTrialAveragedConductancesContrast_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
@@ -2817,11 +3037,12 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		ax.set_xlabel( parameter )
 		# ax.set_ylim([0,2])
 		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
 		fig.clf()
 		plt.close()
 		# garbage
 		gc.collect()
+
 
 
 
@@ -3331,7 +3552,7 @@ full_list = [
 
 	# "ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
+	"Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
 
@@ -3340,7 +3561,7 @@ full_list = [
 
 	# "Deliverable/Thalamocortical_size_closed", # BIG
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_cond_____",
-	"Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -3350,7 +3571,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
 	# "ThalamoCorticalModel_data_size_feedforward_cond_____",
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
@@ -3386,7 +3607,6 @@ inac_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
-	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
@@ -3409,23 +3629,24 @@ inac_list = [
 
 addon = ""
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
-# sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
+# sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
 # sheets = ['X_ON', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-# sheets = ['X_ON', 'X_OFF']
+sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
+print sheets
 
 # ONLY for comparison parameter search
 if False: 
@@ -3713,6 +3934,32 @@ else:
 			# 	radius = [.0,.5], # center
 			# 	addon = addon
 			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="spatial_frequency",
+			# 	percentile=False,
+			# 	ylim=[0,20],
+			# 	useXlog=True, 
+			# 	radius = [.0, 1.7], # center
+			# 	addon = addon,
+			# 	inputoutputratio = False,
+			# )
+			response_barplot( 
+				sheet=s, 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='spatial_frequency',
+				num_stim = 10,
+				max_stim = 1.,
+				radius = [0., 5.], 
+				xlabel="Control",
+				data_marker = "s",
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
+			)
+
 
 			# SIZE
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
@@ -4043,15 +4290,15 @@ else:
 			# 	addon = "surround_ortho_" + addon,
 			# )
 
-			trial_averaged_Vm( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				opposite=False, #
-				radius = [.0, 0.7], # center
-				addon = "iso_center_" + addon,
-			)
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "iso_center_" + addon,
+			# )
 			# trial_averaged_Vm( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4082,15 +4329,15 @@ else:
 			# 	addon = "ortho_surround_" + addon,
 			# )
 
-			trial_averaged_raster( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				opposite=False, #
-				radius = [.0, 0.7], # center
-				addon = "iso_center_" + addon,
-			)
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = "iso_center_" + addon,
+			# )
 			# trial_averaged_raster( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -4121,21 +4368,21 @@ else:
 			# 	addon = "ortho_surround_" + addon,
 			# )
 
-			trial_averaged_conductance_timecourse( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				#       0      1     2     3     4     5     6     7     8     9
-				ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
-				ylim=[0,30],
-				box = [[-.5,-.5],[.5,.5]], # center
-				# box = [[-.25,-.25],[.25,.25]], # center overlapping
-				addon = "center",
-				# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
-				# box = [[-.5,.5],[.5,1.]], # strict surround
-				# box = [[-0.1,.6],[.3,1.]], # surround
-			)
+			# trial_averaged_conductance_timecourse( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	#       0      1     2     3     4     5     6     7     8     9
+			# 	ticks=[0.125, 0.19, 0.29, 0.44, 0.67, 1.02, 1.55, 2.36, 3.59, 5.46],
+			# 	ylim=[0,30],
+			# 	box = [[-.5,-.5],[.5,.5]], # center
+			# 	# box = [[-.25,-.25],[.25,.25]], # center overlapping
+			# 	addon = "center",
+			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
+			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
+			# 	# box = [[-0.1,.6],[.3,1.]], # surround
+			# )
 
 			# # stLFP: iso-surround postsynaptic response to LGN spikes
 			# SpikeTriggeredAverage(
@@ -4803,6 +5050,18 @@ else:
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	percentile=False,
+			# 	ylim=[0,20],
+			# 	useXlog=True, 
+			# 	radius = [.0, 1.7], # center
+			# 	addon = addon,
+			# 	inputoutputratio = False,
+			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
 			# 	parameter='orientation',
 			# 	percentile=False,
 			# 	ylim=[0,15],
@@ -4964,41 +5223,26 @@ else:
 				# # SPATIAL FREQUENCY
 				# # Ex: ThalamoCorticalModel_data_spatial_V1_full_____ vs ThalamoCorticalModel_data_spatial_Kimura_____
 				# pairwise_scatterplot( 
-				# 	# sheet=['X_ON', 'X_OFF'], 
-				# 	# sheet=['X_ON'], 
-				# 	# sheet=['X_OFF'], 
-				# 	# sheet=['PGN'], 
 				# 	sheet=s, 
 				# 	folder_full=f, 
 				# 	folder_inactive=l,
 				# 	stimulus="FullfieldDriftingSinusoidalGrating",
 				# 	parameter='spatial_frequency',
 				# 	start=100., 
-				# 	end=10000., 
+				# 	end=10000.,
+				# 	radius = [0., 5.], 
 				# 	xlabel="Control",
-				# 	ylabel="PGN-off",
+				# 	ylabel="cortex-off",
+				# 	xlim=[0,1.5],
+				# 	ylim=[0,1.5],
 				# 	withRegression=False,
 				# 	withCorrCoef=False,
 				# 	withCentroid=True,
-				# 	data_marker = "o",
-				# 	# LOW-PASS
-				# 	stimulus_band=1,
-				# 	withPassIndex=True,
-				# 	reference_band=3,
-				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
-				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
-				# 	# # PEAK
-				# 	# stimulus_band=None,
-				# 	# reference_band=None,
-				# 	# withPeakIndex=True,
-				# 	# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2B_closed.csv",
-				# 	# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2B_open.csv",
-				# 	# # HIGH-CUTOFF
-				# 	# stimulus_band=6,
-				# 	# reference_band=None,
-				# 	# withHighIndex=True,
-				# 	# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2C_closed.csv",
-				# 	# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2C_open.csv",
+				# 	data_marker = "s",
+				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
+				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
+				# 	# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
+				# 	# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
 				# )
 
 				# TEMPORAL
@@ -5013,6 +5257,28 @@ else:
 				# 	percentage=True,
 				# 	xlabel="", #Temporal frequency", 
 				# 	ylabel="", #Response change (%)", 
+				# )
+				# pairwise_scatterplot( 
+				# 	sheet=s, 
+				# 	folder_full=f, 
+				# 	folder_inactive=l,
+				# 	stimulus="FullfieldDriftingSinusoidalGrating",
+				# 	parameter='temporal_frequency',
+				# 	start=100., 
+				# 	end=10000., 
+				# 	radius = [0., 5.], 
+				# 	xlabel="Control",
+				# 	ylabel="cortex-off",
+				# 	xlim=[0,15],
+				# 	ylim=[0,15],
+				# 	withRegression=False,
+				# 	withCorrCoef=False,
+				# 	withCentroid=True,
+				# 	data_marker = "s", #"^",
+				# 	data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_control.csv",
+				# 	data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_led.csv",
+				# 	# data_full="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_closed.csv",
+				# 	# data_inac="/home/do/Dropbox/PhD/LGN_data/deliverable/KimuraShimegiHaraOkamotoSato2013_2A_open.csv",
 				# )
 
 				# # COMPARISON SIZE TUNING
