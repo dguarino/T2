@@ -73,6 +73,7 @@ def bimodal_fit(x, y, sd):
 
 
 
+
 def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=False):
 	selected_ids = []
 	distances = []
@@ -2313,6 +2314,7 @@ def pairwise_response_reduction( sheet, folder_full, folder_inactive, stimulus, 
 
 
 
+
 def bootstrap_resample(X, n=None):
     """ Bootstrap resample an array_like
     Parameters
@@ -2333,6 +2335,9 @@ def bootstrap_resample(X, n=None):
     # print X_resample.shape, X_resample
     return X_resample
 
+
+
+
 def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=1., box=None, radius=None, xlabel="", data="", data_marker="D" ):
 	print inspect.stack()[0][3]
 	print folder
@@ -2342,9 +2347,10 @@ def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=
 	data_store.print_content(full_recordings=False)
 
 
-	# get the list of all recorded neurons in X_ON
+	# get the list of all recorded neurons in sheet
 	# Full
 	spike_ids1 = param_filter_query(data_store, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	neurons = spike_ids1 # sheet ids
 	print "Recorded neurons:", len(spike_ids1)
 	if radius or box:
 		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
@@ -2383,17 +2389,54 @@ def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=
 	# (10, 133)
 
 	stims = sorted(dstims)
-
+	print "stimulus parameter values: ",stims
 	# (10, 133)
 	# 10 stimuli
 	# 133 recorded cells
 
+	if parameter=="contrast": # take the c50 index
+		def NakaRushton(c, n, Rmax, c50, m):
+			return Rmax * (c**n / (c**n + c50**n)) + m
+		from scipy.optimize import curve_fit
+		# Naka-Rushton fit to find the c50 of each cell
+		c50 = []
+		print sheet
+		for i,r in enumerate(numpy.transpose(all_values)):
+			# bounds and margins
+			Rmax = numpy.amax(r) # 
+			Rmax_up = Rmax + ((numpy.amax(r)/100)*10) # 
+			m = numpy.amin(r) # 
+			m_down = m - ((m/100)*10) # 
+			# popt, pcov = curve_fit( NakaRushton, numpy.asarray(stims), r, maxfev=10000000 ) # workaround for scipy < 0.17
+			popt, pcov = curve_fit( 
+				NakaRushton, # callable
+				numpy.asarray(stims), # X data
+				r, # Y data
+				method='trf', 
+				bounds=((3., Rmax, 20., m_down), (numpy.inf, Rmax_up, 50., m)), 
+				p0=(3., Rmax_up, 30., m), 
+			) 
+			c50.append( popt[2] ) # c50 fit
+			# print popt
+			# plt.plot(stims, r, 'b-', label='data')
+			# plt.plot(stims, NakaRushton(stims, *popt), 'r-', label='fit')
+			# plt.savefig( folder+"/NakaRushton_fit_"+str(sheet)+"_"+str(i)+".png", dpi=100 )
+			# plt.close()
+		cfifty = numpy.array(c50) 
+		print "cfifty:",cfifty
+		indices = []
+		for c in cfifty:
+			array = numpy.asarray(stims)
+			idx = (numpy.abs(stims - c)).argmin() # after subtracting the value c to all elements of stims, find the minimum
+			indices.append( idx )
+		indices = numpy.array(indices)
 
-	indices = numpy.argmax(all_values, axis=0).astype(int)
-	print "indices:", indices.shape, indices
+	else: # take the max response index
+		indices = numpy.argmax(all_values, axis=0).astype(int)
+		print "indices:", indices.shape, indices
+
 	x = numpy.take( stims, indices ) 
-	print "stim: ", x
-	print stims
+	print "hist values", x
 	mean = numpy.mean(x)
 	print "mean:",mean
 
@@ -2464,7 +2507,6 @@ def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=
 	# plt.close()
 	# # garbage
 	# gc.collect()
-
 
 
 
@@ -3548,11 +3590,11 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
+	"Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_spatial_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_Kimura_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_LGNonly_____",
 
@@ -3823,6 +3865,20 @@ else:
 			# 	percentile=False,
 			# 	useXlog=True 
 			# )
+			# response_barplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="Null",
+			# 	parameter='background_luminance',
+			# 	num_stim = 4,
+			# 	max_stim = 35.,
+			# 	radius = [0., 5.], 
+			# 	# xlabel="Control",
+			# 	xlabel="Cooled",
+			# 	data_marker = "s",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+			# )
 
 			# # CONTRAST
 			# trial_averaged_tuning_curve_errorbar( 
@@ -3879,6 +3935,20 @@ else:
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
+			response_barplot( 
+				sheet=s, 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='contrast',
+				num_stim = 13,
+				max_stim = 60.,
+				radius = [0., 5.], 
+				# xlabel="Control",
+				xlabel="",
+				data_marker = "s",
+				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_control.csv",
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_led.csv",
+			)
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -3896,6 +3966,21 @@ else:
 			# 	percentile=False,
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/DerringtonLennie1982_6A_2d.csv",
 			# )
+			# response_barplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='temporal_frequency',
+			# 	num_stim = 8,
+			# 	max_stim = 30.,
+			# 	radius = [0., 5.], 
+			# 	# xlabel="Control",
+			# 	xlabel="LED",
+			# 	data_marker = "s",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_control.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_led.csv",
+			# )
+
 
 			# # SPATIAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -3946,19 +4031,19 @@ else:
 			# 	addon = addon,
 			# 	inputoutputratio = False,
 			# )
-			response_barplot( 
-				sheet=s, 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='spatial_frequency',
-				num_stim = 10,
-				max_stim = 1.,
-				radius = [0., 5.], 
-				xlabel="Control",
-				data_marker = "s",
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
-			)
+			# response_barplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='spatial_frequency',
+			# 	num_stim = 10,
+			# 	max_stim = 1.,
+			# 	radius = [0., 5.], 
+			# 	xlabel="Control",
+			# 	data_marker = "s",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
+			# )
 
 
 			# SIZE
