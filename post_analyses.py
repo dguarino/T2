@@ -1480,14 +1480,30 @@ def end_inhibition_boxplot( sheet, folder, stimulus, parameter, start, end, xlab
 
 
 
-def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None, csvfile=None ):
+def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, box=None, radius=None, xlabel="", ylabel="", closed=True, data=None, csvfile=None, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
 	print "sheet: ",sheet
+	folder_nums = re.findall(r'\d+', folder)
+	print folder_nums
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	# data_store.print_content(full_recordings=True)
+	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False  )
+	# get the list of all recorded neurons in sheet
+	# Full
+	spike_ids1 = param_filter_query(data_store, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	neurons = spike_ids1 # sheet ids
+	print "Recorded neurons:", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False  )
 	print rates.shape # (stimuli, cells)
 	print stimuli
 	width = 1.
@@ -1559,8 +1575,8 @@ def end_inhibition_barplot( sheet, folder, stimulus, parameter, start, end, xlab
 			# datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='none', edgecolor='grey', linewidth=2)
 			ax.plot((data_mean, data_mean), (0,160), '--', linewidth=2, color='grey')
 	plt.tight_layout()
-	plt.savefig( folder+"/suppression_index_"+str(sheet)+".png", dpi=200, transparent=True )
-	plt.savefig( folder+"/suppression_index_"+str(sheet)+".svg", dpi=200, transparent=True )
+	plt.savefig( folder+"/suppression_index_"+str(sheet)+"_"+addon+"_"+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/suppression_index_"+str(sheet)+"_"+addon+"_"+".svg", dpi=200, transparent=True )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -1769,14 +1785,30 @@ def orientation_bias_boxplot( sheet, folder, stimulus, parameter, start, end, xl
 
 
 
-def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", closed=True, data=None ):
+def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, box=None, radius=None, xlabel="", ylabel="", closed=True, data=None, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
 	print "sheet: ",sheet
+	folder_nums = re.findall(r'\d+', folder)
+	print folder_nums
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, spikecount=False )
+	# get the list of all recorded neurons in sheet
+	# Full
+	spike_ids1 = param_filter_query(data_store, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	neurons = spike_ids1 # sheet ids
+	print "Recorded neurons:", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False )
 	print rates.shape # (stimuli, cells)
 	print stimuli
 
@@ -1840,8 +1872,8 @@ def orientation_bias_barplot( sheet, folder, stimulus, parameter, start, end, xl
 			datalist = ax.bar(ind, data_list, align='center', width=width, facecolor='grey', edgecolor='grey')
 			ax.plot((data_mean, data_mean), (0,250), '--', linewidth=2, color='grey')
 	plt.tight_layout()
-	plt.savefig( folder+"/orientation_bias_"+str(sheet)+".png", dpi=200, transparent=True )
-	plt.savefig( folder+"/orientation_bias_"+str(sheet)+".svg", dpi=200, transparent=True )
+	plt.savefig( folder+"/orientation_bias_"+str(sheet)+"_"+addon+"_"+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/orientation_bias_"+str(sheet)+"_"+addon+"_"+".svg", dpi=200, transparent=True )
 	plt.close()
 	# garbage
 	gc.collect()
@@ -3590,7 +3622,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_luminance_open_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_contrast_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_contrast_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_contrast_open_____",
 
 	# "ThalamoCorticalModel_data_spatial_open_____",
 	# "Deliverable/ThalamoCorticalModel_data_spatial_closed_____",
@@ -3629,7 +3661,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_orientation_closed_____2",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	"Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
@@ -3935,20 +3967,20 @@ else:
 			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
 			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
-			response_barplot( 
-				sheet=s, 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='contrast',
-				num_stim = 13,
-				max_stim = 60.,
-				radius = [0., 5.], 
-				# xlabel="Control",
-				xlabel="",
-				data_marker = "s",
-				# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_control.csv",
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_led.csv",
-			)
+			# response_barplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='contrast',
+			# 	num_stim = 13,
+			# 	max_stim = 60.,
+			# 	radius = [0., 5.], 
+			# 	# xlabel="Control",
+			# 	xlabel="",
+			# 	data_marker = "s",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_control.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_led.csv",
+			# )
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -4049,7 +4081,22 @@ else:
 			# SIZE
 			# Ex: ThalamoCorticalModel_data_size_V1_full_____
 			# Ex: ThalamoCorticalModel_data_size_open_____
-			# end_inhibition_barplot( 
+			# end_inhibition_barplot(
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="DriftingSinusoidalGratingDisk",
+			# 	parameter='radius',
+			# 	start=100., 
+			# 	end=1000., 
+			# 	xlabel="exp",
+			# 	ylabel="Index of end-inhibition",
+			# 	closed=closed,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/MurphySillito1987_"+addon+".csv",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3E.csv", # closed drifting gratings
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey_3F.csv", # retinal drifting gratings
+			# 	radius = [.0,.7], # center
+			# 	addon = addon,
+			# )
 			# end_inhibition_boxplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -5088,21 +5135,20 @@ else:
 			# 	radius = [1.,4.], # surround
 			# 	addon = "surround",
 			# )
-			# orientation_bias_barplot( 
-			# 	sheet=s, 
-			# 	folder=f, 
-			# 	stimulus="FullfieldDriftingSinusoidalGrating",
-			# 	parameter='orientation',
-			# 	start=100., 
-			# 	end=2000., 
-			# 	xlabel="Orientation bias",
-			# 	ylabel="Number of cells",
-			# 	closed=False,
-			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_open.csv",
-			# 	# closed=True,
-			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_closed.csv",
-			# 	# percentage=True,
-			# )
+			orientation_bias_barplot( 
+				sheet=s, 
+				folder=f, 
+				stimulus="FullfieldDriftingSinusoidalGrating",
+				parameter='orientation',
+				start=100., 
+				end=2000., 
+				xlabel="Orientation bias",
+				ylabel="Number of cells",
+				closed=closed,
+				data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_"+addon+".csv",
+				radius = [.0,.7], # center
+				addon = addon,
+			)
 			# orientation_selectivity_index_boxplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
