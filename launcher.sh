@@ -51,9 +51,9 @@
 ################################################
 # EXPERIMENTS Closed Loop 1 (LGN+PGN)
 
-echo "starting Luminance"
-echo
-mpirun -np 1 python run_luminance_open.py nest 8 param/defaults_mea 'data_luminance_open'
+# echo "starting Luminance"
+# echo
+# mpirun -np 1 python run_luminance_open.py nest 8 param/defaults_mea 'data_luminance_open'
 
 
 # echo "starting Spatial"
@@ -95,9 +95,9 @@ mpirun -np 1 python run_luminance_open.py nest 8 param/defaults_mea 'data_lumina
 ################################################
 # EXPERIMENTS Closed loop 2 (LGN+PGN+V1)
 
-echo "starting Luminance"
-echo
-mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults_mea 'data_luminance_closed'
+# echo "starting Luminance"
+# echo
+# mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults_mea 'data_luminance_closed'
 
 
 # echo "starting Contrast"
@@ -163,10 +163,10 @@ mpirun -np 1 python run_luminance_closed.py nest 8 param/defaults_mea 'data_lumi
 # mpirun -np 1 python run_bar_feedforward.py nest 1 param/defaults_mea 'data_bar_feedforward'
 
 
-# echo "starting Size Feedforward"
-# echo
-# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_cond'
-# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_cond'
+echo "starting Size" # Feedforward"
+echo
+mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi'
+mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi'
 
 
 # echo "starting Orientation Feedforward"

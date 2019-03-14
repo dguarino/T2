@@ -1913,110 +1913,136 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
 
-	print "Selected neurons:", len(neurons), neurons
+	print "Selected neurons:", len(neurons)#, neurons
 	if len(neurons) < 1:
 		return
 
-	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=True ) 
-	# print rates
+	TrialAveragedFiringRate(
+		param_filter_query(data_store,sheet_name=sheet,st_name=stimulus),
+	ParameterSet({'neurons':list(neurons)})).analyse()
 
-	# compute per-trial mean rate over cells
-	mean_rates = numpy.mean(rates, axis=1) 
-	# print "Ex. collapsed_mean_rates: ", mean_rates.shape
-	# print "Ex. collapsed_mean_rates: ", mean_rates
-	std_rates = numpy.std(rates, axis=1, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	# print "Ex. collapsed_std_rates: ", std_rates
+	PlotTuningCurve(
+	   param_filter_query( data_store, st_name=stimulus, analysis_algorithm=['TrialAveragedFiringRate'] ),
+	   ParameterSet({
+	        'polar': False,
+	        'pool': False,
+	        'centered': False,
+	        'percent': False,
+	        'mean': True,
+	        'parameter_name' : parameter, 
+	        'neurons': list(neurons), 
+	        'sheet_name' : sheet
+	   }), 
+	   fig_param={'dpi' : 200}, 
+	   plot_file_name= folder+"/TrialAveragedSensitivity_"+stimulus+"_"+parameter+"_"+str(sheet)+"_"+addon+"_mean.svg"
+	).plot({
+		# '*.y_lim':(0,30), 
+		# '*.x_lim':(-10,100), 
+		# '*.x_scale':'log', '*.x_scale_base':10,
+		'*.fontsize':17
+	})
+	return
 
-	# print "stimuli: ", stimuli
-	print "final means and stds: ", mean_rates, std_rates
-	# print sorted( zip(stimuli, mean_rates, std_rates) )
-	final_sorted = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates, std_rates) ) ) ]
+	# rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=True ) 
+	# # print rates
 
-	if parameter == "orientation":
-		# append first mean and std to the end to close the circle
-		print len(final_sorted), final_sorted
-		final_sorted[0] = numpy.append(final_sorted[0], 3.14)
-		final_sorted[1] = numpy.append(final_sorted[1], final_sorted[1][0])
-		final_sorted[2] = numpy.append(final_sorted[2], final_sorted[2][0])
+	# # compute per-trial mean rate over cells
+	# mean_rates = numpy.mean(rates, axis=1) 
+	# # print "Ex. collapsed_mean_rates: ", mean_rates.shape
+	# # print "Ex. collapsed_mean_rates: ", mean_rates
+	# std_rates = numpy.std(rates, axis=1, ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	# # print "Ex. collapsed_std_rates: ", std_rates
 
-	if percentile:
-		firing_max = numpy.amax( final_sorted[1] )
-		final_sorted[1] = (final_sorted[1] / firing_max) * 100
+	# # print "stimuli: ", stimuli
+	# print "final means and stds: ", mean_rates, std_rates
+	# # print sorted( zip(stimuli, mean_rates, std_rates) )
+	# final_sorted = [ numpy.array(list(e)) for e in zip( *sorted( zip(stimuli, mean_rates, std_rates) ) ) ]
 
-	# Plotting tuning curve
-	matplotlib.rcParams.update({'font.size':22})
-	fig,ax = plt.subplots()
+	# if parameter == "orientation":
+	# 	# append first mean and std to the end to close the circle
+	# 	print len(final_sorted), final_sorted
+	# 	final_sorted[0] = numpy.append(final_sorted[0], 3.14)
+	# 	final_sorted[1] = numpy.append(final_sorted[1], final_sorted[1][0])
+	# 	final_sorted[2] = numpy.append(final_sorted[2], final_sorted[2][0])
 
-	if data:
-		data_list = numpy.genfromtxt(data, delimiter=',', filling_values=None)
-		print data_list.shape
-		if data_curve:
-			# bootstrap taking the data as limits for uniform random sampling (10 samples)
-			data_rates = []
-			for cp in data_list:
-				data_rates.append( numpy.random.uniform(low=cp[0], high=cp[1], size=(10)) )
-			data_rates = numpy.array(data_rates)
-			# means as usual
-			data_mean_rates = numpy.mean(data_rates, axis=1) 
-			# print data_mean_rates
-			if percentile:
-				firing_max = numpy.amax( data_mean_rates )
-				data_mean_rates = data_mean_rates / firing_max * 100
-			data_std_rates = numpy.std(data_rates, axis=1, ddof=1) 
-			# print data_std_rates
-			# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( stimuli, data_mean_rates )
-			# print "Data Slope:", slope, intercept
-			ax.plot( stimuli, data_mean_rates, color='black', label='data' )
-			data_err_max = data_mean_rates + data_std_rates
-			data_err_min = data_mean_rates - data_std_rates
-			ax.fill_between(stimuli, data_err_max, data_err_min, color='black', alpha=0.6)
-		else:
-			print stimuli, data_list[:,0], data_list[:,1]
-			ax.scatter(stimuli, data_list[:,0], marker="o", s=80, facecolor="black", alpha=0.6, edgecolor="white")
-			ax.scatter(stimuli, data_list[:,1], marker="D", s=80, facecolor="black", alpha=0.6, edgecolor="white")
+	# if percentile:
+	# 	firing_max = numpy.amax( final_sorted[1] )
+	# 	final_sorted[1] = (final_sorted[1] / firing_max) * 100
 
-	# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( final_sorted[0], final_sorted[1] )
-	# print "Model Slope:", slope, intercept
-	ax.plot( final_sorted[0], final_sorted[1], color=color, label=sheet, linewidth=3 )
-	ax.spines['right'].set_visible(False)
-	ax.spines['top'].set_visible(False)
-	ax.xaxis.set_ticks_position('bottom')
-	ax.yaxis.set_ticks_position('left')
+	# # Plotting tuning curve
+	# matplotlib.rcParams.update({'font.size':22})
+	# fig,ax = plt.subplots()
 
-	if useXlog:
-		ax.set_xscale("log", nonposx='clip')
-	if useYlog:
-		ax.set_yscale("log", nonposy='clip')
+	# if data:
+	# 	data_list = numpy.genfromtxt(data, delimiter=',', filling_values=None)
+	# 	print data_list.shape
+	# 	if data_curve:
+	# 		# bootstrap taking the data as limits for uniform random sampling (10 samples)
+	# 		data_rates = []
+	# 		for cp in data_list:
+	# 			data_rates.append( numpy.random.uniform(low=cp[0], high=cp[1], size=(10)) )
+	# 		data_rates = numpy.array(data_rates)
+	# 		# means as usual
+	# 		data_mean_rates = numpy.mean(data_rates, axis=1) 
+	# 		# print data_mean_rates
+	# 		if percentile:
+	# 			firing_max = numpy.amax( data_mean_rates )
+	# 			data_mean_rates = data_mean_rates / firing_max * 100
+	# 		data_std_rates = numpy.std(data_rates, axis=1, ddof=1) 
+	# 		# print data_std_rates
+	# 		# slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( stimuli, data_mean_rates )
+	# 		# print "Data Slope:", slope, intercept
+	# 		ax.plot( stimuli, data_mean_rates, color='black', label='data' )
+	# 		data_err_max = data_mean_rates + data_std_rates
+	# 		data_err_min = data_mean_rates - data_std_rates
+	# 		ax.fill_between(stimuli, data_err_max, data_err_min, color='black', alpha=0.6)
+	# 	else:
+	# 		print stimuli, data_list[:,0], data_list[:,1]
+	# 		ax.scatter(stimuli, data_list[:,0], marker="o", s=80, facecolor="black", alpha=0.6, edgecolor="white")
+	# 		ax.scatter(stimuli, data_list[:,1], marker="D", s=80, facecolor="black", alpha=0.6, edgecolor="white")
 
-	err_max = final_sorted[1] + final_sorted[2]
-	err_min = final_sorted[1] - final_sorted[2]
-	ax.fill_between(final_sorted[0], err_max, err_min, color=color, alpha=0.3)
+	# # slope, intercept, r_value, p_value, std_err = scipy.stats.linregress( final_sorted[0], final_sorted[1] )
+	# # print "Model Slope:", slope, intercept
+	# ax.plot( final_sorted[0], final_sorted[1], color=color, label=sheet, linewidth=3 )
+	# ax.spines['right'].set_visible(False)
+	# ax.spines['top'].set_visible(False)
+	# ax.xaxis.set_ticks_position('bottom')
+	# ax.yaxis.set_ticks_position('left')
 
-	# if len(ylim)>1:
-	# 	ax.set_ylim(ylim)
+	# if useXlog:
+	# 	ax.set_xscale("log", nonposx='clip')
+	# if useYlog:
+	# 	ax.set_yscale("log", nonposy='clip')
 
-	if xlim:
-		ax.set_xlim(xlim)
+	# err_max = final_sorted[1] + final_sorted[2]
+	# err_min = final_sorted[1] - final_sorted[2]
+	# ax.fill_between(final_sorted[0], err_max, err_min, color=color, alpha=0.3)
 
-	if percentile:
-		ax.set_ylim([0,100+10])
-		# ax.set_ylim([0,100+numpy.amax(final_sorted[2])+10])
+	# # if len(ylim)>1:
+	# # 	ax.set_ylim(ylim)
 
-	# text
-	ax.set_xlabel( xlabel )
-	if percentile:
-		ylabel = "Percentile " + ylabel
-		sheet = str(sheet) + "_percentile"
-	ax.set_ylabel( ylabel )
-	# ax.legend( loc="lower right", shadow=False )
-	plt.tight_layout()
-	dist = box if not radius else radius
-	plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".png", dpi=200, transparent=True )
-	plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".svg", dpi=300, transparent=True )
-	fig.clf()
-	plt.close()
-	# garbage
-	gc.collect()
+	# if xlim:
+	# 	ax.set_xlim(xlim)
+
+	# if percentile:
+	# 	ax.set_ylim([0,100+10])
+	# 	# ax.set_ylim([0,100+numpy.amax(final_sorted[2])+10])
+
+	# # text
+	# ax.set_xlabel( xlabel )
+	# if percentile:
+	# 	ylabel = "Percentile " + ylabel
+	# 	sheet = str(sheet) + "_percentile"
+	# ax.set_ylabel( ylabel )
+	# # ax.legend( loc="lower right", shadow=False )
+	# plt.tight_layout()
+	# dist = box if not radius else radius
+	# plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".png", dpi=200, transparent=True )
+	# plt.savefig( folder+"/TrialAveragedTuningCurve_"+parameter+"_"+str(sheet)+"_"+addon+"_"+str(dist)+".svg", dpi=300, transparent=True )
+	# fig.clf()
+	# plt.close()
+	# # garbage
+	# gc.collect()
 
 
 
@@ -2539,6 +2565,146 @@ def response_barplot( sheet, folder, stimulus, parameter, num_stim=10, max_stim=
 	# plt.close()
 	# # garbage
 	# gc.collect()
+
+
+
+
+def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, radius=None, xlabel="", ylabel="", closed=True, data=None ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	print data
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	# get the list of all recorded neurons in sheet
+	# Full
+	spike_ids1 = param_filter_query(data_store, sheet_name=sheet).get_segments()[0].get_stored_spike_train_ids()
+	neurons = spike_ids1 # sheet ids
+	print "Recorded neurons:", len(spike_ids1)
+	if radius or box:
+		sheet_ids1 = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=spike_ids1)
+		positions1 = data_store.get_neuron_postions()[sheet]
+		if box:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, box=box)
+		if radius:
+			ids1 = select_ids_by_position(positions1, sheet_ids1, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	rates, stimuli = get_per_neuron_spike_count( data_store, stimulus, sheet, start, end, parameter, neurons=neurons, spikecount=False )
+	print "rates.shape", rates.shape # (stimuli, cells)
+	print "stimumli",stimuli
+
+	if parameter=="contrast": # take the c50 index
+		def NakaRushton(c, n, Rmax, c50, m):
+			return Rmax * (c**n / (c**n + c50**n)) + m
+		from scipy.optimize import curve_fit
+		# Naka-Rushton fit to find the c50 of each cell
+		c50 = []
+		print sheet
+		for i,r in enumerate(numpy.transpose(rates)):
+			# bounds and margins
+			Rmax = numpy.amax(r) # 
+			Rmax_up = Rmax + ((numpy.amax(r)/100)*10) # 
+			m = numpy.amin(r) # 
+			m_down = m - ((m/100)*10) # 
+			# popt, pcov = curve_fit( NakaRushton, numpy.asarray(stims), r, maxfev=10000000 ) # workaround for scipy < 0.17
+			popt, pcov = curve_fit( 
+				NakaRushton, # callable
+				numpy.asarray(stimuli), # X data
+				r, # Y data
+				method='trf', 
+				bounds=((3., Rmax, 20., m_down), (numpy.inf, Rmax_up, 50., m)), 
+				p0=(3., Rmax_up, 30., m), 
+			) 
+			c50.append( popt[2] ) # c50 fit
+			# print popt
+			# plt.plot(stimuli, r, 'b-', label='data')
+			# plt.plot(stimuli, NakaRushton(stimuli, *popt), 'r-', label='fit')
+			# plt.savefig( folder+"/NakaRushton_fit_"+str(sheet)+"_"+str(i)+".png", dpi=100 )
+			# plt.close()
+		d = numpy.array(c50) 
+
+	else: # take the max response
+		d = numpy.amax(rates, axis=0)
+
+	# read external data to plot as well
+	if data:
+		data_list = numpy.genfromtxt(data, delimiter='\n')
+
+	# PLOTTING
+	matplotlib.rcParams.update({'font.size':22})
+	fig, axes = plt.subplots(nrows=1, ncols=2)
+
+	box1 = axes[0].boxplot( d, notch=False, patch_artist=True, showfliers=True )
+	for item in ['boxes', 'whiskers', 'caps']:
+		plt.setp(box1[item], color='b', linewidth=2, linestyle='solid')
+
+	if data:
+		box2 = axes[1].boxplot( data_list, notch=False, patch_artist=True, showfliers=True )
+		for item in ['boxes', 'whiskers', 'caps']:
+			plt.setp(box2[item], color='g', linewidth=2, linestyle='solid')
+
+	plt.tight_layout()
+	plt.savefig( folder+"/response_boxplot_"+str(sheet)+"_"+addon+".png", dpi=200, transparent=True )
+	plt.savefig( folder+"/response_boxplot_"+str(sheet)+"_"+addon+".svg", dpi=200, transparent=True )
+	plt.close()
+	# garbage
+	gc.collect()
+
+
+
+
+def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	if analog_ids == None:
+		print "No Vm recorded.\n"
+		return
+	print "Recorded neurons:", len(analog_ids)
+
+	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
+	positions = data_store.get_neuron_postions()[sheet]
+
+	# vms = [s.get_vm(self.parameters.neuron) for s in sorted(dsv.get_segments(),key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial)]
+	# time_axis = numpy.arange(0, len(vms[0]), 1) / float(len(vms[0])) * float(vms[0].t_stop) + float(vms[0].t_start)
+	# t_stop = float(vms[0].t_stop - vms[0].sampling_period)
+	# t_start = 0 
+
+	# for vm in vms:
+	# 	xs.append(time_axis)
+	# 	ys.append(numpy.array(vm.tolist()))
+
+	# dsv = param_filter_query( data_store, sheet_name=sheet, st_name=stimulus )
+
+	# https://matplotlib.org/gallery/lines_bars_and_markers/scatter_with_legend.html
+	# https://matplotlib.org/gallery/images_contours_and_fields/interpolation_methods.html
+
+	# for n in analog_ids:
+	# 	VmPlot(
+	# 		dsv,
+	# 		ParameterSet({
+	# 			'neuron': n, 
+	# 			'sheet_name' : sheet,
+	# 			'spontaneous' : True,
+	# 		}), 
+	# 		fig_param={'dpi' : 300, 'figsize': (40,5)}, 
+	# 		# plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_"+str(dist)+"_"+str(n)+"_"+addon+".png"
+	# 		plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+str(n)+"_"+addon+".svg"
+	# 	).plot({
+	# 		# '*.y_lim':(0,60), 
+	# 		# '*.x_scale':'log', '*.x_scale_base':2,
+	# 		# '*.y_ticks':[5, 10, 25, 50, 60], 
+	# 		# # '*.y_scale':'linear', 
+	# 		# '*.y_scale':'log', '*.y_scale_base':2,
+	# 		# '*.fontsize':24
+	# 	})
+
 
 
 
@@ -3659,9 +3825,9 @@ full_list = [
 
 	# "ThalamoCorticalModel_data_orientation_feedforward_____2",
 	# "ThalamoCorticalModel_data_orientation_closed_____2",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
 	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	"Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
@@ -3705,16 +3871,17 @@ addon = ""
 # sheets = ['X_ON', 'X_OFF', 'PGN', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF', 'PGN']
+# sheets = ['V1_Exc_L4'] 
 # sheets = ['X_ON', 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
 # sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
-sheets = ['X_ON', 'X_OFF']
+# sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
@@ -3829,7 +3996,7 @@ else:
 		color_data = "black"
 		if "feedforward" in f:
 			# addon = "feedforward"
-			addon = "open"
+			addon = "feedforward"
 			closed = False
 			color = "grey"
 			color_data = "grey"
@@ -3857,8 +4024,10 @@ else:
 				arborization = 300
 				color = "#66AA55" # pale green
 				if "open" in f or "feedforward" in f:
+					addon = "open"
 					color = "#11AA99" # aqua
 				if "closed" in f:
+					addon = "closed"
 					color = "#66AA55"
 			if 'X' in s: # X_ON X_OFF
 				arborization = 150
@@ -3895,7 +4064,8 @@ else:
 			# 	color="black", 
 			# 	ylim=[0.,10.],
 			# 	percentile=False,
-			# 	useXlog=True 
+			# 	useXlog=True,
+			# 	addon = addon,
 			# )
 			# response_barplot( 
 			# 	sheet=s, 
@@ -3910,6 +4080,26 @@ else:
 			# 	data_marker = "s",
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_closed.csv",
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_open.csv",
+			# )
+			# response_boxplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="Null",
+			# 	parameter='background_luminance',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	radius = [0., 5.], 
+			# 	closed=closed,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/WaleszczykBekiszWrobel2005_4A_"+addon+".csv",
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='Null',
+			# 	parameter="background_luminance",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = addon,
 			# )
 
 			# # CONTRAST
@@ -3926,7 +4116,8 @@ else:
 			# 	useXlog=False, 
 			# 	useYlog=False, 
 			# 	percentile=False,
-			# 	ylim=[0,35],
+			# 	# ylim=[0,35],
+			# 	addon = addon,
 			# )
 			# cumulative_distribution_C50_curve( 
 			# 	sheet=s, 
@@ -3981,6 +4172,28 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_control.csv",
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_led.csv",
 			# )
+			# response_boxplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='contrast',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	radius = [0., 5.], 
+			# 	closed=closed,
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_control.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_c50_led.csv",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/PrzybyszewskiGaskaFootePollen2000_1b_cooled.csv",
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="contrast",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
 
 			# # TEMPORAL
 			# trial_averaged_tuning_curve_errorbar( 
@@ -3998,6 +4211,15 @@ else:
 			# 	percentile=False,
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/DerringtonLennie1982_6A_2d.csv",
 			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="temporal_frequency",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
 			# response_barplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
@@ -4009,6 +4231,18 @@ else:
 			# 	# xlabel="Control",
 			# 	xlabel="LED",
 			# 	data_marker = "s",
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_control.csv",
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_led.csv",
+			# )
+			# response_boxplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='temporal_frequency',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	radius = [0., 5.], 
+			# 	closed=closed,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_control.csv",
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_TF_led.csv",
 			# )
@@ -4029,6 +4263,15 @@ else:
 			# 	useYlog=False, 
 			# 	percentile=False, #False 
 			# 	ylim=[0.,100.],
+			# 	addon = addon,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="spatial_frequency",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
 			# trial_averaged_conductance_tuning_curve( 
@@ -4075,6 +4318,18 @@ else:
 			# 	data_marker = "s",
 			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
+			# )
+			# response_boxplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='spatial_frequency',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	radius = [0., 5.], 
+			# 	closed=closed,
+			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_control.csv",
+			#  	data="/home/do/Dropbox/PhD/LGN_data/deliverable/HasseBriggs2017_5_SF_led.csv",
 			# )
 
 
@@ -4179,12 +4434,29 @@ else:
 			# 	useXlog=True, 
 			# 	useYlog=False, 
 			# 	percentile=False,
-			# 	ylim=[0,50],
+			# 	# ylim=[0,50],
 			# 	opposite=False, # to select cells with SAME orientation preference
 			# 	radius = [.0,.7], # center
 			# 	addon = addon,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
+			# )
+			VSDI( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				# radius = [.0, 0.7], # center
+				addon = addon,
+			)
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = addon,
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -5044,13 +5316,22 @@ else:
 			# 	useXlog=False, 
 			# 	useYlog=False, 
 			# 	percentile=False, #True,
-			# 	ylim=[0,50],
+			# 	# ylim=[0,50],
 			# 	# opposite=False, # to select cortical cells with SAME orientation preference
 			# 	# xlim=[-numpy.pi/2,numpy.pi/2],
-			# 	radius = [.0,.2], # center
+			# 	radius = [.0,.7], # center
 			# 	addon = addon,
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
+			# )
+			# trial_averaged_Vm( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	opposite=False, #
+			# 	radius = [.0, 0.7], # center
+			# 	addon = addon,
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
@@ -5135,20 +5416,20 @@ else:
 			# 	radius = [1.,4.], # surround
 			# 	addon = "surround",
 			# )
-			orientation_bias_barplot( 
-				sheet=s, 
-				folder=f, 
-				stimulus="FullfieldDriftingSinusoidalGrating",
-				parameter='orientation',
-				start=100., 
-				end=2000., 
-				xlabel="Orientation bias",
-				ylabel="Number of cells",
-				closed=closed,
-				data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_"+addon+".csv",
-				radius = [.0,.7], # center
-				addon = addon,
-			)
+			# orientation_bias_barplot( 
+			# 	sheet=s, 
+			# 	folder=f, 
+			# 	stimulus="FullfieldDriftingSinusoidalGrating",
+			# 	parameter='orientation',
+			# 	start=100., 
+			# 	end=2000., 
+			# 	xlabel="Orientation bias",
+			# 	ylabel="Number of cells",
+			# 	closed=closed,
+			# 	data="/home/do/Dropbox/PhD/LGN_data/deliverable/VidyasagarUrbas1982_"+addon+".csv",
+			# 	radius = [.0,.7], # center
+			# 	addon = addon,
+			# )
 			# orientation_selectivity_index_boxplot( 
 			# 	sheet=s, 
 			# 	folder=f, 
