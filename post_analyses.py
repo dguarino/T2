@@ -2663,18 +2663,20 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	data_store.print_content(full_recordings=False)
 
 	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
-	if analog_ids == None:
+	if analog_ids == None or len(analog_ids)<1:
 		print "No Vm recorded.\n"
 		return
 	print "Recorded neurons:", len(analog_ids)
 
 	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 	positions = data_store.get_neuron_postions()[sheet]
+	print positions
 
-	# vms = [s.get_vm(self.parameters.neuron) for s in sorted(dsv.get_segments(),key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).trial)]
-	# time_axis = numpy.arange(0, len(vms[0]), 1) / float(len(vms[0])) * float(vms[0].t_stop) + float(vms[0].t_start)
-	# t_stop = float(vms[0].t_stop - vms[0].sampling_period)
-	# t_start = 0 
+	# for n in analog_ids:
+	# 	vms = [s.get_vm(n) for s in sorted(dsv.get_segments(),key = lambda x : stimulus]).trial)]
+	# 	time_axis = numpy.arange(0, len(vms[0]), 1) / float(len(vms[0])) * float(vms[0].t_stop) + float(vms[0].t_start)
+	# 	t_stop = float(vms[0].t_stop - vms[0].sampling_period)
+	# 	t_start = 0 
 
 	# for vm in vms:
 	# 	xs.append(time_axis)
@@ -2685,25 +2687,12 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	# https://matplotlib.org/gallery/lines_bars_and_markers/scatter_with_legend.html
 	# https://matplotlib.org/gallery/images_contours_and_fields/interpolation_methods.html
 
-	# for n in analog_ids:
-	# 	VmPlot(
-	# 		dsv,
-	# 		ParameterSet({
-	# 			'neuron': n, 
-	# 			'sheet_name' : sheet,
-	# 			'spontaneous' : True,
-	# 		}), 
-	# 		fig_param={'dpi' : 300, 'figsize': (40,5)}, 
-	# 		# plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_"+str(dist)+"_"+str(n)+"_"+addon+".png"
-	# 		plot_file_name=folder+"/Vm_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+str(n)+"_"+addon+".svg"
-	# 	).plot({
-	# 		# '*.y_lim':(0,60), 
-	# 		# '*.x_scale':'log', '*.x_scale_base':2,
-	# 		# '*.y_ticks':[5, 10, 25, 50, 60], 
-	# 		# # '*.y_scale':'linear', 
-	# 		# '*.y_scale':'log', '*.y_scale_base':2,
-	# 		# '*.fontsize':24
-	# 	})
+	# ordered by id
+	# for x,y,v in zip(positionsX,positionsY,vms):
+	# 	# print(x,y,v)
+	# 	plot.scatter( x, y, c=mapper.to_rgba(v), marker=m, edgecolors='none' )
+	#	# one scatterplot per timestep
+	# 	plot_file_name=folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+str(n)+"_"+addon+".svg"
 
 
 
