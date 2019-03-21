@@ -2657,42 +2657,76 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	print inspect.stack()[0][3]
+	print "VSDI function assumes single trial vm recording (onlyu one simulated trial)"
 	print "folder: ",folder
 	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
 	if analog_ids == None or len(analog_ids)<1:
 		print "No Vm recorded.\n"
 		return
 	print "Recorded neurons:", len(analog_ids)
 
-	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 	positions = data_store.get_neuron_postions()[sheet]
-	print positions
+	print positions.shape # all 10800
+	positions = numpy.transpose(positions)
+	print positions.shape # all 10800
 
-	# for n in analog_ids:
-	# 	vms = [s.get_vm(n) for s in sorted(dsv.get_segments(),key = lambda x : stimulus]).trial)]
-	# 	time_axis = numpy.arange(0, len(vms[0]), 1) / float(len(vms[0])) * float(vms[0].t_stop) + float(vms[0].t_start)
-	# 	t_stop = float(vms[0].t_stop - vms[0].sampling_period)
-	# 	t_start = 0 
+	# take the sheet_indexes positions of the analog_ids
+	analog_positions = positions[sheet_indexes,:]
+	print analog_positions.shape
+	# print analog_positions
 
-	# for vm in vms:
-	# 	xs.append(time_axis)
-	# 	ys.append(numpy.array(vm.tolist()))
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+    norm = ml.colors.Normalize(vmin=min(colors), vmax=max(colors), clip=True)
+    mapper = ml.cm.ScalarMappable(norm=norm, cmap=plot.cm.jet)
+    mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
-	# dsv = param_filter_query( data_store, sheet_name=sheet, st_name=stimulus )
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+	print segs
+
+	for s in segs:
+
+		dist = s.annotations['stimulus']
+		print dist
+
+		for a in s.analogsignalarrays:
+			if a.name == 'v':
+				print a.shape # (10291, 900)  (vm instants t, cells)
+				ids = a.annotations['source_ids']
+				# print len(ids)
+
+				for t,vms in enumerate(a):
+
+					if t in [360,550,730,910,1090,1270]:
+						# open image
+						plt.figure()
+						norm = ml.colors.Normalize(vmin=-100, vmax=-40, clip=True)
+						mapper = ml.cm.ScalarMappable(norm=norm, cmap=plot.cm.jet)
+						mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
+						for vm,i,p in zip(vms, analog_ids, analog_positions):
+							# print vm, i, p
+
+							plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
+
+						# close image
+						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
+						# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
+						plt.close()
+						gc.collect()
+
 
 	# https://matplotlib.org/gallery/lines_bars_and_markers/scatter_with_legend.html
 	# https://matplotlib.org/gallery/images_contours_and_fields/interpolation_methods.html
 
-	# ordered by id
-	# for x,y,v in zip(positionsX,positionsY,vms):
-	# 	# print(x,y,v)
-	# 	plot.scatter( x, y, c=mapper.to_rgba(v), marker=m, edgecolors='none' )
-	#	# one scatterplot per timestep
-	# 	plot_file_name=folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+str(n)+"_"+addon+".svg"
+
 
 
 
@@ -3795,7 +3829,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____nocorr",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -3804,7 +3838,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____nocorr",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",

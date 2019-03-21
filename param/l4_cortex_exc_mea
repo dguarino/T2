@@ -34,7 +34,7 @@
 
         },
         'artificial_stimulators' : {},
-        'recording_interval'  :  1.0,                                                            
+        'recording_interval'  :  0.1,                                                            
         'recorders' : url("param/l4_exc_rec_mea"),
     },
 
