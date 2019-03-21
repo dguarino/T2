@@ -2681,9 +2681,10 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	# print analog_positions
 
 	# 900 neurons over 6000 micrometers, 200 micrometers interval
-    norm = ml.colors.Normalize(vmin=min(colors), vmax=max(colors), clip=True)
-    mapper = ml.cm.ScalarMappable(norm=norm, cmap=plot.cm.jet)
-    mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+	import matplotlib as ml
+	norm = ml.colors.Normalize(vmin=-100., vmax=-40., clip=True)
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
@@ -2693,8 +2694,10 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 
 	for s in segs:
 
-		dist = s.annotations['stimulus']
-		print dist
+		dist = eval(s.annotations['stimulus'])
+		print dist['radius']
+		if dist['radius'] < 1.8:
+			continue
 
 		for a in s.analogsignalarrays:
 			if a.name == 'v':
@@ -2704,20 +2707,21 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 
 				for t,vms in enumerate(a):
 
-					if t in [360,550,730,910,1090,1270]:
+					# if t in [0,50,100,360,550,730,910,1090,1270,2000,3000,4000,5000,6000]:
+					if t%20 == 0:
 						# open image
 						plt.figure()
-						norm = ml.colors.Normalize(vmin=-100, vmax=-40, clip=True)
-						mapper = ml.cm.ScalarMappable(norm=norm, cmap=plot.cm.jet)
-						mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
 						for vm,i,p in zip(vms, analog_ids, analog_positions):
 							# print vm, i, p
 
 							plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
 
+						cbar = plt.colorbar(mapper)
+						cbar.ax.set_ylabel('mV', rotation=270)
+
 						# close image
-						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
+						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
 						# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
 						plt.close()
 						gc.collect()
@@ -3899,13 +3903,13 @@ addon = ""
 # sheets = [ ['X_ON', 'X_OFF'], 'PGN']
 # sheets = [ ['X_ON', 'X_OFF'] ]
 # sheets = [ 'X_ON', 'X_OFF', ['X_ON', 'X_OFF'] ]
-# sheets = ['X_ON', 'X_OFF', 'V1_Exc_L4']
+# sheets = ['X_ON', 'X_OFF', 'V1_Inh_L4']
 # sheets = ['X_ON', 'X_OFF']
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
-# sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 

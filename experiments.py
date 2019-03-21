@@ -129,7 +129,7 @@ def create_experiments_size(model):
       MeasureSizeTuning(
           model, 
           num_sizes=2, # 10,
-          max_size=1., # 5., # radius
+          max_size=2., # 5., # radius
           orientation=0., #numpy.pi/2, 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
