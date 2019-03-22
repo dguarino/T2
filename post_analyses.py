@@ -2657,7 +2657,7 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	print inspect.stack()[0][3]
-	print "VSDI function assumes single trial vm recording (onlyu one simulated trial)"
+	print "VSDI function assumes single trial vm recording (only one simulated trial)"
 	print "folder: ",folder
 	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
@@ -2685,6 +2685,8 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	norm = ml.colors.Normalize(vmin=-100., vmax=-40., clip=True)
 	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+	# ml.rcParams.update({'font.size':22})
+	# ml.rcParams.update({'font.color':'silver'})
 
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
@@ -2696,8 +2698,8 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 
 		dist = eval(s.annotations['stimulus'])
 		print dist['radius']
-		if dist['radius'] < 1.8:
-			continue
+		# if dist['radius'] < 1.8:
+		# 	continue
 
 		for a in s.analogsignalarrays:
 			if a.name == 'v':
@@ -2707,8 +2709,7 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 
 				for t,vms in enumerate(a):
 
-					# if t in [0,50,100,360,550,730,910,1090,1270,2000,3000,4000,5000,6000]:
-					if t%20 == 0:
+					if t%20 == 0: # t in [0,50]: # t%20 == 0:
 						# open image
 						plt.figure()
 
@@ -2716,12 +2717,13 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 							# print vm, i, p
 
 							plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
+							plt.xlabel('{:04d}'.format(t/10), color='silver', fontsize=22)
 
-						cbar = plt.colorbar(mapper)
-						cbar.ax.set_ylabel('mV', rotation=270)
+						# cbar = plt.colorbar(mapper)
+						# cbar.ax.set_ylabel('mV', rotation=270)
 
 						# close image
-						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
+						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+'{:04d}'.format(t/10)+".svg", dpi=300, transparent=True )
 						# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
 						plt.close()
 						gc.collect()
@@ -3842,7 +3844,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",

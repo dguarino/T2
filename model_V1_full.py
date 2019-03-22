@@ -125,37 +125,37 @@ class ThalamoCorticalModel(Model):
             # ########################################################
             # CORTICO-CORTICAL
             # random lateral layer 4 projections
-            # ModularSingleWeightProbabilisticConnector(
-            #     self,
-            #     'V1L4ExcL4ExcConnectionRand',
-            #     cortex_exc_l4,
-            #     cortex_exc_l4,
-            #     self.parameters.l4_cortex_exc.L4ExcL4ExcConnectionRand
-            # ).connect()
+            ModularSingleWeightProbabilisticConnector(
+                self,
+                'V1L4ExcL4ExcConnectionRand',
+                cortex_exc_l4,
+                cortex_exc_l4,
+                self.parameters.l4_cortex_exc.L4ExcL4ExcConnectionRand
+            ).connect()
 
-            # ModularSingleWeightProbabilisticConnector(
-            #     self,
-            #     'V1L4ExcL4InhConnectionRand',
-            #     cortex_exc_l4,
-            #     cortex_inh_l4,
-            #     self.parameters.l4_cortex_exc.L4ExcL4InhConnectionRand
-            # ).connect()
+            ModularSingleWeightProbabilisticConnector(
+                self,
+                'V1L4ExcL4InhConnectionRand',
+                cortex_exc_l4,
+                cortex_inh_l4,
+                self.parameters.l4_cortex_exc.L4ExcL4InhConnectionRand
+            ).connect()
             
-            # ModularSingleWeightProbabilisticConnector(
-            #     self,
-            #     'V1L4InhL4ExcConnectionRand',
-            #     cortex_inh_l4,
-            #     cortex_exc_l4,
-            #     self.parameters.l4_cortex_inh.L4InhL4ExcConnectionRand
-            # ).connect()
+            ModularSingleWeightProbabilisticConnector(
+                self,
+                'V1L4InhL4ExcConnectionRand',
+                cortex_inh_l4,
+                cortex_exc_l4,
+                self.parameters.l4_cortex_inh.L4InhL4ExcConnectionRand
+            ).connect()
             
-            # ModularSingleWeightProbabilisticConnector(
-            #     self,
-            #     'V1L4InhL4InhConnectionRand',
-            #     cortex_inh_l4,
-            #     cortex_inh_l4,
-            #     self.parameters.l4_cortex_inh.L4InhL4InhConnectionRand
-            # ).connect()
+            ModularSingleWeightProbabilisticConnector(
+                self,
+                'V1L4InhL4InhConnectionRand',
+                cortex_inh_l4,
+                cortex_inh_l4,
+                self.parameters.l4_cortex_inh.L4InhL4InhConnectionRand
+            ).connect()
 
             # lateral layer 4 projections
             ModularSamplingProbabilisticConnector(
