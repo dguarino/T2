@@ -2656,6 +2656,7 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 
 def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
+	import matplotlib as ml
 	print inspect.stack()[0][3]
 	print "VSDI function assumes single trial vm recording (only one simulated trial)"
 	print "folder: ",folder
@@ -2668,6 +2669,7 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 		print "No Vm recorded.\n"
 		return
 	print "Recorded neurons:", len(analog_ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
 
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 	positions = data_store.get_neuron_postions()[sheet]
@@ -2680,9 +2682,22 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	print analog_positions.shape
 	# print analog_positions
 
-	# 900 neurons over 6000 micrometers, 200 micrometers interval
-	import matplotlib as ml
-	norm = ml.colors.Normalize(vmin=-100., vmax=-40., clip=True)
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	print pnv #[0]
+	pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
+	# print pnv_ids==analog_ids
+	orientations = []
+	for i in pnv_ids:
+		orientations.append( pnv.get_value_by_id(i) )
+	# print orientations
+	# colorbar min=0deg, max=180deg
+	orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
+	orimapper._A = [] 
+
+	# colorbar min=resting, max=threshold
+	norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
 	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 	# ml.rcParams.update({'font.size':22})
@@ -2698,36 +2713,50 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 
 		dist = eval(s.annotations['stimulus'])
 		print dist['radius']
-		# if dist['radius'] < 1.8:
-		# 	continue
+		if dist['radius'] < 0.1:
+			continue
+
+		s.load_full()
+		# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
 
 		for a in s.analogsignalarrays:
+			print "a.name: ",a.name
 			if a.name == 'v':
 				print a.shape # (10291, 900)  (vm instants t, cells)
-				ids = a.annotations['source_ids']
-				# print len(ids)
 
 				for t,vms in enumerate(a):
-
+					if t/10 > 500:
+						break
 					if t%20 == 0: # t in [0,50]: # t%20 == 0:
+						time = '{:04d}'.format(t/10)
 						# open image
 						plt.figure()
-
 						for vm,i,p in zip(vms, analog_ids, analog_positions):
 							# print vm, i, p
-
 							plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
-							plt.xlabel('{:04d}'.format(t/10), color='silver', fontsize=22)
-
+							plt.xlabel(time, color='silver', fontsize=22)
 						# cbar = plt.colorbar(mapper)
 						# cbar.ax.set_ylabel('mV', rotation=270)
-
 						# close image
-						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+'{:04d}'.format(t/10)+".svg", dpi=300, transparent=True )
-						# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_time"+str(t)+"_"+addon+".svg", dpi=300, transparent=True )
+						plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
 						plt.close()
 						gc.collect()
 
+						# open image
+						plt.figure()
+						for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
+							# print vm, i, p, o
+							# the alpha value (between 0 and 1) is the normalized Vm
+							a = 1 - (numpy.abs(vm.magnitude)-40.)/(140.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
+							# print a
+							plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
+							plt.xlabel(time, color='silver', fontsize=22)
+						# close image
+						plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+						plt.close()
+						gc.collect()
+
+		s.release()
 
 	# https://matplotlib.org/gallery/lines_bars_and_markers/scatter_with_legend.html
 	# https://matplotlib.org/gallery/images_contours_and_fields/interpolation_methods.html
@@ -3835,7 +3864,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
-	"Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
+	"Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -3844,7 +3874,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
+	"Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",
@@ -3910,8 +3941,8 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
+sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 

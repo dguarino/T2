@@ -3,7 +3,7 @@
   ## VSDI
   "2" : {
     'component' :  'mozaik.sheets.population_selector.RCGrid',
-    'variables' : ("spikes", "v", "gsyn_exc", "gsyn_inh"),
+    'variables' : ("spikes", "v"),
     'params' :  {
       'size': 6000.0,  # the size of the grid (it is assumed to be square) - it has to be multiple of spacing (micro meters)
       'spacing' : 200.0, # the space between two electrodes (micro meters)
