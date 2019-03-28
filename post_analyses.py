@@ -98,6 +98,7 @@ def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=F
 			# print "distance",l
 			if abs(l)>min_radius and abs(l)<max_radius:
 				# print "taken"
+				# print i
 				selected_ids.append(i[0])
 				distances.append(l)
 
@@ -2655,14 +2656,21 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 
 
-def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
+def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	import matplotlib as ml
+	import quantities as pq
 	print inspect.stack()[0][3]
 	print "VSDI function assumes single trial vm recording (only one simulated trial)"
 	print "folder: ",folder
 	print "sheet: ",sheet
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
+
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+	# print segs
 
 	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
 	if analog_ids == None or len(analog_ids)<1:
@@ -2674,6 +2682,60 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
+
+	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
+	# for each annulus:
+	# the activity pre-stimulus arrival (<40ms) is averaged and will be used to normalize all times
+	# this normalized activity composes a plot of each annulus (row) over time
+	annulus_radius = 0.3
+	start = 1.4
+	stop = 3. - annulus_radius
+	num = 5 # gives 
+	for r in numpy.linspace(start, stop, num=num):
+		radius = [r,r+annulus_radius]
+		print radius
+		annulus_ids = select_ids_by_position(positions, sheet_indexes, radius=radius)
+		print len(annulus_ids)
+
+		for s in segs:
+
+			dist = eval(s.annotations['stimulus'])
+			print dist['radius']
+			if dist['radius'] < 0.1:
+				continue
+
+			s.load_full()
+			# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
+
+			for a in s.analogsignalarrays:
+				print "a.name: ",a.name
+				if a.name == 'v':
+					print a.shape # (10291, 900)  (vm instants t, cells)
+
+					# pre-stimulus slice
+					aslice = a.time_slice(0.0*pq.ms, 38.*pq.ms)
+					print aslice.t_start, aslice.t_stop
+					print aslice.shape # (380, 900)  (vm instants t, cells)
+
+					# annulus population average
+					print "annulus_ids",len(annulus_ids)
+					aslice_vms = [aslice[:,annulus_ids.index(i)] for i in annulus_ids]
+					print "aslice_vms",len(aslice_vms)
+					print aslice_vms[0].shape
+
+					# compute the average
+
+					0/0
+
+					for t,vms in enumerate(a):
+						if t/10 > 500:
+							break
+						
+
+	0/0
+
+	#########################
+	# FULL MAP FRAMES
 	positions = numpy.transpose(positions)
 	print positions.shape # all 10800
 
@@ -2682,19 +2744,19 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	print analog_positions.shape
 	# print analog_positions
 
-	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
-	print pnv #[0]
-	pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
-	# print pnv_ids==analog_ids
-	orientations = []
-	for i in pnv_ids:
-		orientations.append( pnv.get_value_by_id(i) )
-	# print orientations
-	# colorbar min=0deg, max=180deg
-	orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
-	orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
-	orimapper._A = [] 
+	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	# print pnv #[0]
+	# pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
+	# # print pnv_ids==analog_ids
+	# orientations = []
+	# for i in pnv_ids:
+	# 	orientations.append( pnv.get_value_by_id(i) )
+	# # print orientations
+	# # colorbar min=0deg, max=180deg
+	# orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	# orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
+	# orimapper._A = [] 
 
 	# colorbar min=resting, max=threshold
 	norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
@@ -2702,12 +2764,6 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 	# ml.rcParams.update({'font.size':22})
 	# ml.rcParams.update({'font.color':'silver'})
-
-	segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
-		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
-	)
-	print segs
 
 	for s in segs:
 
@@ -2727,6 +2783,7 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 				for t,vms in enumerate(a):
 					if t/10 > 500:
 						break
+
 					if t%20 == 0: # t in [0,50]: # t%20 == 0:
 						time = '{:04d}'.format(t/10)
 						# open image
@@ -2742,19 +2799,19 @@ def VSDI( sheet, folder, stimulus, parameter, box=None, radius=None, addon="" ):
 						plt.close()
 						gc.collect()
 
-						# open image
-						plt.figure()
-						for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
-							# print vm, i, p, o
-							# the alpha value (between 0 and 1) is the normalized Vm
-							a = 1 - (numpy.abs(vm.magnitude)-40.)/(140.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
-							# print a
-							plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
-							plt.xlabel(time, color='silver', fontsize=22)
-						# close image
-						plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-						plt.close()
-						gc.collect()
+						# # open image
+						# plt.figure()
+						# for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
+						# 	# print vm, i, p, o
+						# 	# the alpha value (between 0 and 1) is the normalized Vm
+						# 	a = 1 - (numpy.abs(vm.magnitude)-40.)/(150.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
+						# 	# print a
+						# 	plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
+						# 	plt.xlabel(time, color='silver', fontsize=22)
+						# # close image
+						# plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+						# plt.close()
+						# gc.collect()
 
 		s.release()
 
@@ -3941,8 +3998,8 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-sheets = ['V1_Exc_L4'] 
-# sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
