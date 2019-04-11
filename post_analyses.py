@@ -2661,22 +2661,31 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
 	print inspect.stack()[0][3]
-	print "VSDI function assumes single trial vm recording (only one simulated trial)"
 	print "folder: ",folder
 	print "sheet: ",sheet
 	polarity = True # exc
+	c = 'red'
 	if "Inh" in sheet:
 		polarity = False
-	print polarity
+		c = 'blue'
 
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
+	num_stim = 2
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
 		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
 	)
+	spont_segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(null=True), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
 	# print segs
+	spont_trials = len(spont_segs) / num_stim
+	print "spont_trials:",spont_trials
+	trials = len(segs) / num_stim
+	print "trials:",trials
 
 	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
 	if analog_ids == None or len(analog_ids)<1:
@@ -2690,6 +2699,7 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
 
+	# TRAVELING WAVE CHARACTERIZATION
 
 	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
 	# this mean vm composes a plot of each annulus (row) over time
@@ -2704,159 +2714,185 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	arrival = []
 	for n,r in enumerate(numpy.linspace(start, stop, num=num)):
 		radius = [r,r+annulus_radius]
-		print radius
+		print "annulus radius",radius
 		annulus_ids = select_ids_by_position(positions, sheet_indexes, radius=radius)
 		# print len(annulus_ids), annulus_ids
 
+		trial_avg_prime_response = []
+		trial_avg_annulus_mean_vm = []
 		for s in segs:
 
 			dist = eval(s.annotations['stimulus'])
-			print dist['radius']
 			if dist['radius'] < 0.1:
 				continue
+			print "radius",dist['radius'], "trial",dist['trial']
 
 			s.load_full()
 			# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
 
+			# print gs, n
+			ax = plt.subplot(gs[n])
+
 			for a in s.analogsignalarrays:
-				print "a.name: ",a.name
+				# print "a.name: ",a.name
 				if a.name == 'v':
-					print "a",a.shape # (10291, 900)  (vm instants t, cells)
+					# print "a",a.shape # (10291, 900)  (vm instants t, cells)
 
 					# annulus population average
-					print "annulus_ids",len(annulus_ids)
+					# print "annulus_ids",len(annulus_ids)
 					# print annulus_ids
 					# for aid in annulus_ids:
 					# 	print aid, numpy.nonzero(sheet_indexes == aid)[0][0]
 
-					annulus_vms = numpy.array([a[:,numpy.nonzero(sheet_indexes == aid)[0]] for aid in annulus_ids])
-					print "annulus_vms",annulus_vms.shape
+					# annulus_vms = numpy.array([a[:,numpy.nonzero(sheet_indexes == aid)[0]] for aid in annulus_ids])
+					annulus_mean_vm = numpy.array([a[:,numpy.nonzero(sheet_indexes == aid)[0]] for aid in annulus_ids]).mean(axis=0)[0:2000,:]
+					# print "annulus_vms",annulus_vms.shape
 					# only annulus ids in the mean
-					annulus_mean_vm = numpy.mean( annulus_vms, axis=0)[0:2000,:]
-					print "annulus_mean_vm", annulus_mean_vm.shape
+					# annulus_mean_vm = numpy.mean( annulus_vms, axis=0)[0:2000,:]
+					# print "annulus_mean_vm", annulus_mean_vm.shape
+					trial_avg_annulus_mean_vm.append(annulus_mean_vm)
 					# print "annulus_mean_vm", annulus_mean_vm
-					avmin = annulus_mean_vm.min()
-					avmax = annulus_mean_vm.max()
-					threshold = avmax - (avmax - avmin)/8 # threshold at: 70% of the maximal activity
-					# threshold = avmax - ((avmax - avmin)*(30/100)) # threshold at: 70% of the maximal activity
-					prime_response = numpy.argmax(annulus_mean_vm > threshold)
-					# print prime_response, threshold, avmax, avmin, avmax - avmin
-					arrival.append(prime_response)
+					# threshold = annulus_mean_vm.max() - (annulus_mean_vm.max()-annulus_mean_vm.min())/10 # threshold at: 90% of the max-min interval
+					# prime_response = numpy.argmax(annulus_mean_vm > threshold)
+					# trial_avg_prime_response.append(prime_response)
 
-					# print gs, n
-					ax = plt.subplot(gs[n])
-					plt.axvline(x=prime_response)
-					ax.plot(annulus_mean_vm, label=str(r))
+					plt.axvline(x=numpy.argmax(annulus_mean_vm), color=c, alpha=0.5)
+					ax.plot(annulus_mean_vm, color=c, alpha=0.5)
 					ax.set_ylim([-75.,-50.])
-					plt.legend()
-					fig.add_subplot(ax)
-			s.release()
+
+		# means
+		# trial_avg_prime_response = numpy.mean(trial_avg_prime_response)
+		trial_avg_annulus_mean_vm = numpy.mean(trial_avg_annulus_mean_vm, axis=0)
+
+		# # to compute the statistical significance of the peak 
+		# # mean and std are required (relaxed: maximal value larger than mean+1std)
+		# mean_vms = numpy.mean(trial_avg_annulus_mean_vm[1000:]) # steady state mean
+		# std_vms = numpy.std(trial_avg_annulus_mean_vm[1000:])
+		# # print max_vms > mean_vms + std_vms, "max", max_vms, ">", mean_vms + std_vms, "(mean",mean_vms, "std", std_vms,")" 
+
+		t_max_vms_1 = numpy.argmax(trial_avg_annulus_mean_vm)
+		if t_max_vms_1+500 > len(trial_avg_annulus_mean_vm):
+			# max_vms_2 = numpy.amax(trial_avg_annulus_mean_vm[:t_max_vms_1])
+			t_max_vms_2 = numpy.argmax(trial_avg_annulus_mean_vm[:t_max_vms_1])
+			# if max_vms > mean_vms + std_vms
+		else:
+			# max_vms_2 = numpy.amax(trial_avg_annulus_mean_vm[t_max_vms_1:])
+			t_max_vms_2 = numpy.argmax(trial_avg_annulus_mean_vm[t_max_vms_1:])
+
+		plt.axvline(x=t_max_vms_1, color=c, linewidth=3.)#, linestyle=linestyle)
+		plt.axvline(x=t_max_vms_2, color=c, linewidth=3.)#, linestyle=linestyle)
+		# for mlp in trial_avg_annulus_modes_vm:
+		# 	plt.axvline(x=mlp, color=c, linewidth=2., linestyle='dashed')
+		ax.plot(trial_avg_annulus_mean_vm, color=c, linewidth=3.)
+		ax.set_ylim([-75.,-50.])
+		fig.add_subplot(ax)
+		s.release()
 
 
 	# close image
-	title = "propagation velocity {:f} SD {:f} m/s".format((annulus_radius*.001)/(numpy.mean(arrival)*.0001), numpy.std(arrival)) # 
-	plt.xlabel("time (0.1 ms) "+title)
+	# title = "propagation velocity {:f} SD {:f} m/s".format((annulus_radius*.001)/(numpy.mean(arrival)*.0001), numpy.std(arrival)) # 
+	plt.xlabel("time (0.1 ms) ")#+title)
 	plt.savefig( folder+"/VSDI_mean_vm_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
 
 
-	#########################
-	# FULL MAP FRAMES
-	positions = numpy.transpose(positions)
-	print positions.shape # all 10800
+	# #########################
+	# # FULL MAP FRAMES - ***** SINGLE TRIAL ONLY *****
+	# positions = numpy.transpose(positions)
+	# print positions.shape # all 10800
 
-	# take the sheet_indexes positions of the analog_ids
-	analog_positions = positions[sheet_indexes,:]
-	print analog_positions.shape
-	# print analog_positions
+	# # take the sheet_indexes positions of the analog_ids
+	# analog_positions = positions[sheet_indexes,:]
+	# print analog_positions.shape
+	# # print analog_positions
 
-	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	# pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
-	# print pnv #[0]
-	# pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
-	# # print pnv_ids==analog_ids
-	# orientations = []
-	# for i in pnv_ids:
-	# 	orientations.append( pnv.get_value_by_id(i) )
-	# # print orientations
-	# # colorbar min=0deg, max=180deg
-	# orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
-	# orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
-	# orimapper._A = [] 
+	# # NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# # pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	# # print pnv #[0]
+	# # pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
+	# # # print pnv_ids==analog_ids
+	# # orientations = []
+	# # for i in pnv_ids:
+	# # 	orientations.append( pnv.get_value_by_id(i) )
+	# # # print orientations
+	# # # colorbar min=0deg, max=180deg
+	# # orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	# # orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
+	# # orimapper._A = [] 
 
-	# colorbar min=resting, max=threshold
-	norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
-	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
-	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
-	# ml.rcParams.update({'font.size':22})
-	# ml.rcParams.update({'font.color':'silver'})
+	# # colorbar min=resting, max=threshold
+	# norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
+	# mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+	# # ml.rcParams.update({'font.size':22})
+	# # ml.rcParams.update({'font.color':'silver'})
 
-	for s in segs:
+	# for s in segs:
 
-		dist = eval(s.annotations['stimulus'])
-		print dist['radius']
-		if dist['radius'] < 0.1:
-			continue
+	# 	dist = eval(s.annotations['stimulus'])
+	# 	print dist['radius']
+	# 	if dist['radius'] < 0.1:
+	# 		continue
 
-		s.load_full()
-		# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
+	# 	s.load_full()
+	# 	# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
 
-		for a in s.analogsignalarrays:
-			print "a.name: ",a.name
-			if a.name == 'v':
-				print a.shape # (10291, 900)  (vm instants t, cells)
+	# 	for a in s.analogsignalarrays:
+	# 		print "a.name: ",a.name
+	# 		if a.name == 'v':
+	# 			print a.shape # (10291, 900)  (vm instants t, cells)
 
-				for t,vms in enumerate(a):
-					if t/10 > 500:
-						break
+	# 			for t,vms in enumerate(a):
+	# 				if t/10 > 500:
+	# 					break
 
-					if t%20 == 0: # t in [0,50]: # t%20 == 0:
-						time = '{:04d}'.format(t/10)
+	# 				if t%20 == 0: # t in [0,50]: # t%20 == 0:
+	# 					time = '{:04d}'.format(t/10)
 
-						# # open image
-						# plt.figure()
-						# for vm,i,p in zip(vms, analog_ids, analog_positions):
-						# 	# print vm, i, p
-						# 	plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
-						# 	plt.xlabel(time, color='silver', fontsize=22)
-						# # cbar = plt.colorbar(mapper)
-						# # cbar.ax.set_ylabel('mV', rotation=270)
-						# # close image
-						# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-						# plt.close()
-						# gc.collect()
+	# 					# # open image
+	# 					# plt.figure()
+	# 					# for vm,i,p in zip(vms, analog_ids, analog_positions):
+	# 					# 	# print vm, i, p
+	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
+	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
+	# 					# # cbar = plt.colorbar(mapper)
+	# 					# # cbar.ax.set_ylabel('mV', rotation=270)
+	# 					# # close image
+	# 					# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					# plt.close()
+	# 					# gc.collect()
 
-						# open image polarity
-						plt.figure()
-						for vm,i,p in zip(vms, analog_ids, analog_positions):
-							# print vm, i, p
-							# the alpha value (between 0 and 1) is the normalized Vm
-							a = 1 - (numpy.abs(vm.magnitude)-40.)/(180.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
-							# print a
-							color = 'red' if polarity else 'blue'
-							plt.scatter( p[0][0], p[0][1], marker='o', c=color, alpha=a, edgecolors='none' )
-							plt.xlabel(time, color='silver', fontsize=22)
-						# close image
-						plt.savefig( folder+"/VSDI_polarity_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-						plt.close()
-						gc.collect()
+	# 					# # open image polarity
+	# 					# plt.figure()
+	# 					# for vm,i,p in zip(vms, analog_ids, analog_positions):
+	# 					# 	# print vm, i, p
+	# 					# 	# the alpha value (between 0 and 1) is the normalized Vm
+	# 					# 	a = 1 - (numpy.abs(vm.magnitude)-40.)/(180.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
+	# 					# 	# print a
+	# 					# 	color = 'red' if polarity else 'blue'
+	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=color, alpha=a, edgecolors='none' )
+	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
+	# 					# # close image
+	# 					# plt.savefig( folder+"/VSDI_polarity_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					# plt.close()
+	# 					# gc.collect()
 
-						# # open image
-						# plt.figure()
-						# for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
-						# 	# print vm, i, p, o
-						# 	# the alpha value (between 0 and 1) is the normalized Vm
-						# 	a = 1 - (numpy.abs(vm.magnitude)-40.)/(150.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
-						# 	# print a
-						# 	plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
-						# 	plt.xlabel(time, color='silver', fontsize=22)
-						# # close image
-						# plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-						# plt.close()
-						# gc.collect()
+	# 					# # open image
+	# 					# plt.figure()
+	# 					# for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
+	# 					# 	# print vm, i, p, o
+	# 					# 	# the alpha value (between 0 and 1) is the normalized Vm
+	# 					# 	a = 1 - (numpy.abs(vm.magnitude)-40.)/(150.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
+	# 					# 	# print a
+	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
+	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
+	# 					# # close image
+	# 					# plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					# plt.close()
+	# 					# gc.collect()
 
-		s.release()
+	# 	s.release()
 
 
 
@@ -3959,7 +3995,9 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
-	"Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	"ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -3969,7 +4007,9 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
-	"Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",
