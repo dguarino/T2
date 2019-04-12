@@ -139,7 +139,7 @@ def create_experiments_size(model):
           log_spacing=False, # True
           with_flat=False #use also flat luminance discs
       )
-      # NoStimulation( model, duration=147*7 ),
+      NoStimulation( model, duration=147*7 ),
   ]
 
 def create_experiments_size_overlapping(model):

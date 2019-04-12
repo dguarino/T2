@@ -2764,25 +2764,13 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 		# trial_avg_prime_response = numpy.mean(trial_avg_prime_response)
 		trial_avg_annulus_mean_vm = numpy.mean(trial_avg_annulus_mean_vm, axis=0)
 
-		# # to compute the statistical significance of the peak 
-		# # mean and std are required (relaxed: maximal value larger than mean+1std)
-		# mean_vms = numpy.mean(trial_avg_annulus_mean_vm[1000:]) # steady state mean
-		# std_vms = numpy.std(trial_avg_annulus_mean_vm[1000:])
-		# # print max_vms > mean_vms + std_vms, "max", max_vms, ">", mean_vms + std_vms, "(mean",mean_vms, "std", std_vms,")" 
+		from scipy.signal import argrelextrema
+		peaks = argrelextrema(trial_avg_annulus_mean_vm, numpy.greater, order=200)[0]
+		print peaks
 
-		t_max_vms_1 = numpy.argmax(trial_avg_annulus_mean_vm)
-		if t_max_vms_1+500 > len(trial_avg_annulus_mean_vm):
-			# max_vms_2 = numpy.amax(trial_avg_annulus_mean_vm[:t_max_vms_1])
-			t_max_vms_2 = numpy.argmax(trial_avg_annulus_mean_vm[:t_max_vms_1])
-			# if max_vms > mean_vms + std_vms
-		else:
-			# max_vms_2 = numpy.amax(trial_avg_annulus_mean_vm[t_max_vms_1:])
-			t_max_vms_2 = numpy.argmax(trial_avg_annulus_mean_vm[t_max_vms_1:])
+		for peak in peaks:
+			plt.axvline(x=peak, color=c, linewidth=3.)#, linestyle=linestyle)
 
-		plt.axvline(x=t_max_vms_1, color=c, linewidth=3.)#, linestyle=linestyle)
-		plt.axvline(x=t_max_vms_2, color=c, linewidth=3.)#, linestyle=linestyle)
-		# for mlp in trial_avg_annulus_modes_vm:
-		# 	plt.axvline(x=mlp, color=c, linewidth=2., linestyle='dashed')
 		ax.plot(trial_avg_annulus_mean_vm, color=c, linewidth=3.)
 		ax.set_ylim([-75.,-50.])
 		fig.add_subplot(ax)
@@ -2797,8 +2785,9 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	gc.collect()
 
 
-	# #########################
+	# #################################################
 	# # FULL MAP FRAMES - ***** SINGLE TRIAL ONLY *****
+	# #################################################
 	# positions = numpy.transpose(positions)
 	# print positions.shape # all 10800
 
@@ -2850,18 +2839,18 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	# 				if t%20 == 0: # t in [0,50]: # t%20 == 0:
 	# 					time = '{:04d}'.format(t/10)
 
-	# 					# # open image
-	# 					# plt.figure()
-	# 					# for vm,i,p in zip(vms, analog_ids, analog_positions):
-	# 					# 	# print vm, i, p
-	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
-	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
-	# 					# # cbar = plt.colorbar(mapper)
-	# 					# # cbar.ax.set_ylabel('mV', rotation=270)
-	# 					# # close image
-	# 					# plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-	# 					# plt.close()
-	# 					# gc.collect()
+	# 					# open image
+	# 					plt.figure()
+	# 					for vm,i,p in zip(vms, analog_ids, analog_positions):
+	# 						# print vm, i, p
+	# 						plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
+	# 						plt.xlabel(time, color='silver', fontsize=22)
+	# 					# cbar = plt.colorbar(mapper)
+	# 					# cbar.ax.set_ylabel('mV', rotation=270)
+	# 					# close image
+	# 					plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					plt.close()
+	# 					gc.collect()
 
 	# 					# # open image polarity
 	# 					# plt.figure()
@@ -3996,7 +3985,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
-	"ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
@@ -4008,7 +3998,8 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
