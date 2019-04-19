@@ -9,11 +9,11 @@ from parameters import ParameterSet
 
 def create_experiments_spontaneous(model):
   return [
-      # SPONTANEOUS ACTIVITY (darkness)
+      # SPONTANEOUS ACTIVITY
       # as in LevickWilliams1964, WebbTinsleyBarracloughEastonParkerDerrington2002, (TODO: TsumotoCreutzfeldtLegendy1978)
-      #Lets kick the network up into activation
+      # NoStimulation( model, duration=147*7 ), (darkness)
       # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
-      NoStimulation( model, duration=147*7 )
+      MeasureSpontaneousActivity( model, num_trials=6, duration=147*7 )
   ]
 
 
@@ -123,7 +123,9 @@ def create_experiments_orientation(model):
 
 def create_experiments_size(model):
   return [
-      NoStimulation( model, duration=147*7 ),
+      # NoStimulation( model, duration=147*7 ),
+      # MeasureSpontaneousActivity( model, num_trials=6, duration=147*7 ),
+
       # SIZE TUNING
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
@@ -135,12 +137,15 @@ def create_experiments_size(model):
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
           contrasts=[80], 
-          num_trials=20, #6
+          num_trials=6, #6
           log_spacing=False, # True
           with_flat=False #use also flat luminance discs
-      )
-      NoStimulation( model, duration=147*7 ),
+      ),
+
+      NoStimulation( model, duration=147*7 )
+      # MeasureSpontaneousActivity( model, num_trials=6, duration=147*7 ),
   ]
+
 
 def create_experiments_size_overlapping(model):
   return [

@@ -2657,7 +2657,7 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 
 
-def VSDI( sheet, folder, stimulus, parameter, addon="" ):
+def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
 	print inspect.stack()[0][3]
@@ -2672,16 +2672,18 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	num_stim = 2
 	segs = sorted( 
 		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
 		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
 	)
 	spont_segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(null=True), 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(null=True), # Init 150ms with no stimulus
+		# param_filter_query(data_store, sheet_name=sheet, st_direct_stimulation_name="None", st_name='InternalStimulus').get_segments(),
+		# param_filter_query(data_store, direct_stimulation_name='None', sheet_name=sheet).get_segments(), # 1029ms NoStimulation
 		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
 	)
 	# print segs
+	print "spont_trials:",len(spont_segs)
 	spont_trials = len(spont_segs) / num_stim
 	print "spont_trials:",spont_trials
 	trials = len(segs) / num_stim
@@ -2699,7 +2701,10 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
 
-	# TRAVELING WAVE CHARACTERIZATION
+	################################
+	# Vm PLOTS
+	################################
+	# segs = spont_segs
 
 	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
 	# this mean vm composes a plot of each annulus (row) over time
@@ -2723,7 +2728,7 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 		for s in segs:
 
 			dist = eval(s.annotations['stimulus'])
-			if dist['radius'] < 0.1:
+			if dist['radius'] > 0.1:
 				continue
 			print "radius",dist['radius'], "trial",dist['trial']
 
@@ -2774,8 +2779,7 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 		ax.plot(trial_avg_annulus_mean_vm, color=c, linewidth=3.)
 		ax.set_ylim([-75.,-50.])
 		fig.add_subplot(ax)
-		s.release()
-
+		# s.release()
 
 	# close image
 	# title = "propagation velocity {:f} SD {:f} m/s".format((annulus_radius*.001)/(numpy.mean(arrival)*.0001), numpy.std(arrival)) # 
@@ -2783,11 +2787,14 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	plt.savefig( folder+"/VSDI_mean_vm_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
+	################################
 
 
 	# #################################################
 	# # FULL MAP FRAMES - ***** SINGLE TRIAL ONLY *****
 	# #################################################
+	# # segs = spont_segs # to visualize only spontaneous activity
+
 	# positions = numpy.transpose(positions)
 	# print positions.shape # all 10800
 
@@ -2796,26 +2803,26 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	# print analog_positions.shape
 	# # print analog_positions
 
-	# # NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	# # pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
-	# # print pnv #[0]
-	# # pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
-	# # # print pnv_ids==analog_ids
-	# # orientations = []
-	# # for i in pnv_ids:
-	# # 	orientations.append( pnv.get_value_by_id(i) )
-	# # # print orientations
-	# # # colorbar min=0deg, max=180deg
-	# # orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
-	# # orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
-	# # orimapper._A = [] 
+	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	# print pnv #[0]
+	# pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
+	# # print pnv_ids==analog_ids
+	# orientations = []
+	# for i in pnv_ids:
+	# 	orientations.append( pnv.get_value_by_id(i) )
+	# # print orientations
+	# # colorbar min=0deg, max=180deg
+	# orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	# orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
+	# orimapper._A = [] 
 
-	# # colorbar min=resting, max=threshold
-	# norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
-	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
-	# mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
-	# # ml.rcParams.update({'font.size':22})
-	# # ml.rcParams.update({'font.color':'silver'})
+	# # # colorbar min=resting, max=threshold
+	# # norm = ml.colors.Normalize(vmin=-80., vmax=-50., clip=True)
+	# # mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
+	# # mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+	# # # ml.rcParams.update({'font.size':22})
+	# # # ml.rcParams.update({'font.color':'silver'})
 
 	# for s in segs:
 
@@ -2828,29 +2835,29 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	# 	# print "s.analogsignalarrays", s.analogsignalarrays # if not pre-loaded, it results empty in loop
 
 	# 	for a in s.analogsignalarrays:
-	# 		print "a.name: ",a.name
+	# 		# print "a.name: ",a.name
 	# 		if a.name == 'v':
-	# 			print a.shape # (10291, 900)  (vm instants t, cells)
+	# 			print a.shape # (10291, 900)  (instant t, cells' vm)
 
 	# 			for t,vms in enumerate(a):
 	# 				if t/10 > 500:
 	# 					break
 
-	# 				if t%20 == 0: # t in [0,50]: # t%20 == 0:
+	# 				if t%20 == 0: # each 2 ms
 	# 					time = '{:04d}'.format(t/10)
 
-	# 					# open image
-	# 					plt.figure()
-	# 					for vm,i,p in zip(vms, analog_ids, analog_positions):
-	# 						# print vm, i, p
-	# 						plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
-	# 						plt.xlabel(time, color='silver', fontsize=22)
-	# 					# cbar = plt.colorbar(mapper)
-	# 					# cbar.ax.set_ylabel('mV', rotation=270)
-	# 					# close image
-	# 					plt.savefig( folder+"/VSDI_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-	# 					plt.close()
-	# 					gc.collect()
+	# 					# # open image
+	# 					# plt.figure()
+	# 					# for vm,i,p in zip(vms, analog_ids, analog_positions):
+	# 					# 	# print vm, i, p
+	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=mapper.to_rgba(vm), edgecolors='none' )
+	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
+	# 					# # cbar = plt.colorbar(mapper)
+	# 					# # cbar.ax.set_ylabel('mV', rotation=270)
+	# 					# # close image
+	# 					# plt.savefig( folder+"/VSDI_spont_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					# plt.close()
+	# 					# gc.collect()
 
 	# 					# # open image polarity
 	# 					# plt.figure()
@@ -2867,19 +2874,24 @@ def VSDI( sheet, folder, stimulus, parameter, addon="" ):
 	# 					# plt.close()
 	# 					# gc.collect()
 
-	# 					# # open image
-	# 					# plt.figure()
-	# 					# for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
-	# 					# 	# print vm, i, p, o
-	# 					# 	# the alpha value (between 0 and 1) is the normalized Vm
-	# 					# 	a = 1 - (numpy.abs(vm.magnitude)-40.)/(150.-40.) # 1 - (abs(vm)-vm_peak) / (vm_min-vm_peak)
-	# 					# 	# print a
-	# 					# 	plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
-	# 					# 	plt.xlabel(time, color='silver', fontsize=22)
-	# 					# # close image
-	# 					# plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-	# 					# plt.close()
-	# 					# gc.collect()
+	# 					# open image
+	# 					plt.figure()
+	# 					for vm,i,p,o in zip(vms, analog_ids, analog_positions, orientations):
+	# 						# print vm, i, p, o
+	# 						# the alpha value (between 0 and 1) is the normalized Vm in the range -60 < < -50
+	# 						clipped_vm = vm.magnitude 
+	# 						if vm.magnitude > -50.:
+	# 							clipped_vm = -50.
+	# 						if vm.magnitude < -60.:
+	# 							clipped_vm = -60.
+	# 						a = 1 - (numpy.abs(clipped_vm)-50)/10. # (abs(vm)-vm_min) / (vm_min-vm_peak)
+	# 						# print a
+	# 						plt.scatter( p[0][0], p[0][1], marker='o', c=orimapper.to_rgba(o), alpha=a, edgecolors='none' )
+	# 						plt.xlabel(time, color='silver', fontsize=22)
+	# 					# close image
+	# 					plt.savefig( folder+"/VSDI_oriented_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+	# 					plt.close()
+	# 					gc.collect()
 
 	# 	s.release()
 
@@ -3984,9 +3996,12 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
+	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
+	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_smaller_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
@@ -3997,9 +4012,9 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
+	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
