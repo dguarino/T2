@@ -142,7 +142,7 @@ def create_experiments_size(model):
           with_flat=False #use also flat luminance discs
       ),
 
-      NoStimulation( model, duration=147*7 )
+      # NoStimulation( model, duration=147*7 )
       # MeasureSpontaneousActivity( model, num_trials=6, duration=147*7 ),
   ]
 

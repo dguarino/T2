@@ -55,7 +55,7 @@ CombinationParameterSearch(
 
         # 'l4_cortex_exc.EfferentConnection_LGN.base_weight' : [.00005, .00007], # model A of feedback: .0004
         # 'l4_cortex_exc.EfferentConnection_LGN.num_samples' : [400], # model A of feedback: 250,
-        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [5, 30, 360, 600], # model A of feedback: 60
+        'l4_cortex_exc.EfferentConnection_LGN.weight_functions.f1.params.arborization_constant': [360, 600], # model A of feedback: 60
 
         # 'l4_cortex_exc.EfferentConnection_PGN.base_weight' : [.0006], # model A of feedback: .0006
         # 'l4_cortex_exc.EfferentConnection_PGN.num_samples' : [40], # model A of feedback: 40

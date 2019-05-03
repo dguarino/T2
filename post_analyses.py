@@ -74,7 +74,7 @@ def bimodal_fit(x, y, sd):
 
 
 
-def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=False):
+def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=False, origin=[[0.],[0.],[0.]]):
 	selected_ids = []
 	distances = []
 	min_radius = radius[0]
@@ -82,6 +82,7 @@ def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=F
 
 	for i in sheet_ids:
 		a = numpy.array((positions[0][i],positions[1][i],positions[2][i]))
+		# print a
 
 		if len(box)>1:
 			# Ex box: [ [-.3,.0], [.3,-.4] ]
@@ -93,7 +94,7 @@ def select_ids_by_position(positions, sheet_ids, radius=[0,0], box=[], reverse=F
 				distances.append(0.0)
 		else:
 			# print a # from origin
-			l = numpy.linalg.norm([[0.],[0.],[0.]]-a)
+			l = numpy.linalg.norm(origin-a)
 
 			# print "distance",l
 			# print abs(l),">",min_radius,"and", abs(l), "<", max_radius
@@ -2657,6 +2658,80 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 
 
+def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+	import matplotlib as ml
+	import quantities as pq
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	polarity = True # exc
+	c = 'red'
+	if "Inh" in sheet:
+		polarity = False
+		c = 'blue'
+
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+
+	trials = len(segs) / num_stim
+	print "trials:",trials
+
+	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	if analog_ids == None or len(analog_ids)<1:
+		print "No Vm recorded.\n"
+		return
+	print "Recorded neurons:", len(analog_ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
+
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	print pnv #[0]
+
+	positions = data_store.get_neuron_postions()[sheet]
+	print positions.shape # all 10800
+
+	# take the positions of the analog_ids
+	analog_positions = numpy.transpose(positions)[sheet_indexes,:]
+	print analog_positions.shape
+	# print analog_positions
+
+	##############################
+	# Local Homogeneity Index
+	# sigma = 0.280 # 0.180 # mm, since 1mm = 1deg in this cortical space
+	sigma = 180 # um
+	# for each location P(x,y):
+	# take an interval sigma of cells Q(x,y)
+	# For each Q:
+	# compute the complex domain exp(2i * thetaQ)
+	# weight it by its distance from P
+	# Sum it
+	# Divide the whole by the Gaussian norm factor: 2 * numpy.pi * sigma**2
+
+	dLHI = {}
+	for i,p in zip(analog_ids,analog_positions):
+		# select all cells within sigma distance
+		sheet_Qs = select_ids_by_position(positions, sheet_indexes, radius=[0,sigma/1000.], origin=p.reshape(3,1))
+		Qs = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Qs)
+		# integrate 
+		vector_sum = 0
+		for q,sq in zip(Qs,sheet_Qs):
+			complex_domain = numpy.exp( 1j * (2 * pnv.get_value_by_id(q)))
+			distance = numpy.exp( - numpy.linalg.norm( p*1000 - numpy.transpose(positions)[sq]*1000 )**2 / (2*sigma**2) )
+			# print distance
+			vector_sum = vector_sum + distance*complex_domain
+		dLHI[i] = abs(vector_sum) / (2*numpy.pi*sigma**2)
+	print dLHI
+
+
+
+
 def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
@@ -2701,9 +2776,9 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
 
-	################################
-	# Vm PLOTS
-	################################
+	###############################
+	# # Vm PLOTS
+	###############################
 	# segs = spont_segs
 
 	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
@@ -2719,8 +2794,8 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	arrival = []
 	for n,r in enumerate(numpy.linspace(start, stop, num=num)):
 		radius = [r,r+annulus_radius]
-		print "annulus radius",radius
 		annulus_ids = select_ids_by_position(positions, sheet_indexes, radius=radius)
+		print "annulus:  ",radius, "(radii)  ", len(annulus_ids), "(#ids)"
 		# print len(annulus_ids), annulus_ids
 
 		trial_avg_prime_response = []
@@ -2728,7 +2803,7 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 		for s in segs:
 
 			dist = eval(s.annotations['stimulus'])
-			if dist['radius'] > 0.1:
+			if dist['radius'] < 0.1:
 				continue
 			print "radius",dist['radius'], "trial",dist['trial']
 
@@ -2814,7 +2889,7 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# # print orientations
 	# # colorbar min=0deg, max=180deg
 	# orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
-	# orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.jet)
+	# orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.hsv)
 	# orimapper._A = [] 
 
 	# # # colorbar min=resting, max=threshold
@@ -3996,13 +4071,15 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
-	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	"/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_smaller_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -4082,8 +4159,8 @@ addon = ""
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-# sheets = ['V1_Inh_L4'] 
-sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
@@ -4641,7 +4718,7 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
 			# )
-			VSDI( 
+			LHI( 
 				sheet=s, 
 				folder=f,
 				stimulus='DriftingSinusoidalGratingDisk',
@@ -4649,6 +4726,14 @@ else:
 				# radius = [.0, 0.7], # center
 				addon = addon,
 			)
+			# VSDI( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	# radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
 			# trial_averaged_Vm( 
 			# 	sheet=s, 
 			# 	folder=f,
