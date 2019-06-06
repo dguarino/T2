@@ -156,13 +156,13 @@
         'phase_map_location' : './phase_map',
 
         'base_weight' : 0.0013,
-        'num_samples' : UniformDist(min=45, max=45),
+        'num_samples' : 45,
         'rf_jitter' : 0,
         'off_bias' : 1.0,
         'short_term_plasticity':  {
             'U': 0.3, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0,
+            'tau_psc': 0.0001,
             'tau_fac': 21.0,
         },
     },
@@ -188,7 +188,7 @@
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0,
+            'tau_psc': 0.0001,
             'tau_fac': 21.0,
         },
         'fan_in' : False,
@@ -215,7 +215,7 @@
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0,
+            'tau_psc': 0.0001,
             'tau_fac': 21.0,
         },
         'fan_in' : False,
