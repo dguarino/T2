@@ -144,15 +144,8 @@
         'phase':                   UniformDist(min=0.0, max=6.283185307179586),
         'frequency':               UniformDist(min=0.8, max=0.8),
 
-        'delay_expression': "f1",    
-        'delay_functions' : {
-            "f1" : {
-                'component' : 'mozaik.connectors.modular_connector_functions.PyNNDistributionConnectorFunction',
-                'params' : {
-                    'pynn_distribution': PyNNDistribution(name='uniform',params=(1.4,2.4))
-                }
-            }
-        },
+        'delay_expression': '2.0',
+        'delay_functions' : {},
 
         'topological' : True,
         'fan_in' : True,
@@ -173,32 +166,6 @@
             'tau_fac': 21.0,
         },
     },
-
-    # REVERSED GABOR
-    #'EfferentConnection': {
-    #    'aspect_ratio':            UniformDist(min=0.57, max=0.57),
-    #    'size':                    UniformDist(min=0.2501, max=0.2501),
-    #    'orientation_preference':  UniformDist(min=0.0, max=3.141592653589793),
-    #    'phase':                   UniformDist(min=0.0, max=6.283185307179586),
-    #    'frequency':               UniformDist(min=0.8, max=0.8),
-    #    'delay': 2.0,    
-    #    'topological' : True,
-    #    'fan_in' : False,
-    #
-    #    'or_map' : True,
-    #    'or_map_location' : './or_map_new_6x6',
-    #    'phase_map' : False,
-    #    'phase_map_location' : './phase_map',
-    #
-    #    'base_weight' : 0.0013,
-    #    'num_samples' : 45,
-    #    'short_term_plasticity':  {
-    #        'U': 0.3, 
-    #        'tau_rec': 30.0, 
-    #        'tau_psc': 0.0,
-    #        'tau_fac': 21.0,
-    #    },
-    #},
 
 
     # V1 to LGN
