@@ -144,7 +144,6 @@
         'phase':                   UniformDist(min=0.0, max=6.283185307179586),
         'frequency':               UniformDist(min=0.8, max=0.8),
 
-        'delay': 2.0,   
         'delay_expression': "f1",    
         'delay_functions' : {
             "f1" : {
