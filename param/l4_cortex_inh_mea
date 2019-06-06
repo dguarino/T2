@@ -126,22 +126,28 @@
     'ExcInhAfferentRatio' : 1.25, 
     
     'AfferentConnection': {
-            'aspect_ratio':            UniformDist(min=0.57, max=0.57),
-            'size':                    UniformDist(min=0.2501, max=0.2501),
-            'orientation_preference':  UniformDist(min=0.0, max=3.141592653589793),
-            'phase':                   UniformDist(min=0.0, max=6.283185307179586),
-            'frequency':               UniformDist(min=0.8, max=0.8),
-            'delay': 2.0,    
-            'topological' : True,
-	    
-            'or_map' : True,
-            'or_map_location' : './or_map_new_6x6',
-            'phase_map' : False,
-            'phase_map_location' : './phase_map',
-	    
-            'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh.ExcInhAfferentRatio'),
-            'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
-            'short_term_plasticity':  ref('l4_cortex_exc.AfferentConnection.short_term_plasticity'),
+        'aspect_ratio':            UniformDist(min=0.57, max=0.57),
+        'size':                    UniformDist(min=0.2501, max=0.2501),
+        'orientation_preference':  UniformDist(min=0.0, max=3.141592653589793),
+        'phase':                   UniformDist(min=0.0, max=6.283185307179586),
+        'frequency':               UniformDist(min=0.8, max=0.8),
+
+        'delay': 2.0,    
+        'delay_expression' : ref('l4_cortex_exc_mea.AfferentConnection.delay_expression'),
+        'delay_functions' : ref('l4_cortex_exc_mea.AfferentConnection.delay_functions'),
+        'topological' : True,
         'fan_in' : True,
+
+        'or_map' : True,
+        'or_map_location' : './or_map_new_6x6',
+        'phase_map' : False,
+        'phase_map_location' : './phase_map',
+
+        'base_weight' : ref('l4_cortex_exc_mea.AfferentConnection.base_weight')*ref('l4_cortex_inh_mea.ExcInhAfferentRatio'),
+        'num_samples' : ref('l4_cortex_exc_mea.AfferentConnection.num_samples'),
+        'rf_jitter' : ref('l4_cortex_exc_mea.AfferentConnection.rf_jitter'),
+        'off_bias' : ref('l4_cortex_exc_mea.AfferentConnection.off_bias'),
+        'short_term_plasticity':  ref('l4_cortex_exc_mea.AfferentConnection.short_term_plasticity'),
     }
 }
+

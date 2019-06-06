@@ -24,6 +24,9 @@ class ThalamoCorticalModel(Model):
         'lgn' : ParameterSet ,
         'visual_field' : ParameterSet,
         'only_afferent' : bool,
+        # 'pynn_seed' : int, 
+        # 'mpi_seed' : int, 
+        # 'sheets' : ParameterSet 
     })
     
     def __init__(self, sim, num_threads, parameters):
