@@ -45,8 +45,8 @@
         'short_term_plasticity': {
             'U': 0.5, 
             'tau_rec': 440.0, 
-                'tau_psc': 0.0,
-            'tau_fac': 0.0,
+            'tau_psc': 0.0000001,
+            'tau_psc': 0.0000001,
         },
         'weight_functions' : {                          
             'f1' : {
@@ -162,7 +162,7 @@
         'short_term_plasticity':  {
             'U': 0.3, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0001,
+            'tau_psc': 0.0000001,
             'tau_fac': 21.0,
         },
     },
@@ -188,7 +188,7 @@
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0001,
+            'tau_psc': 0.0000001,
             'tau_fac': 21.0,
         },
         'fan_in' : False,
@@ -215,7 +215,7 @@
         'short_term_plasticity': {
             'U': 1.0, 
             'tau_rec': 30.0, 
-            'tau_psc': 0.0001,
+            'tau_psc': 0.0000001,
             'tau_fac': 21.0,
         },
         'fan_in' : False,
