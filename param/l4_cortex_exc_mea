@@ -156,7 +156,7 @@
         'phase_map_location' : './phase_map',
 
         'base_weight' : 0.0013,
-        'num_samples' : 45,
+        'num_samples' : UniformDist(min=45, max=45),
         'rf_jitter' : 0,
         'off_bias' : 1.0,
         'short_term_plasticity':  {
