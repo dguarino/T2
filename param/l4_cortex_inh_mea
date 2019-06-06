@@ -143,7 +143,7 @@
         'phase_map' : False,
         'phase_map_location' : './phase_map',
 
-        'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh_mea.ExcInhAfferentRatio'),
+        'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh.ExcInhAfferentRatio'),
         'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
         'rf_jitter' : ref('l4_cortex_exc.AfferentConnection.rf_jitter'),
         'off_bias' : ref('l4_cortex_exc.AfferentConnection.off_bias'),
