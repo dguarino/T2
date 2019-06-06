@@ -150,7 +150,7 @@
             "f1" : {
                 'component' : 'mozaik.connectors.modular_connector_functions.PyNNDistributionConnectorFunction',
                 'params' : {
-                    'pynn_distribution': PyNNDistribution(name='uniform',low=1.4,high=2.4)
+                    'pynn_distribution': PyNNDistribution(name='uniform',params=(1.4,2.4))
                 }
             }
         },

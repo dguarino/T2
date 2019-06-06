@@ -24,7 +24,7 @@
                 'tau_syn_I': 5.0,   # 10.0,
             },
             'initial_values' : {
-                'v': -70.0,
+                'v': PyNNDistribution(name='uniform',params=(-70,-60)),
             }
         },
         'artificial_stimulators' : {},  

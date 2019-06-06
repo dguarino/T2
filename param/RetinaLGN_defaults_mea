@@ -79,7 +79,7 @@
                 'tau_syn_I': 1.0, # Not used
             },
             'initial_values': {
-                'v': -70.0,
+                'v': PyNNDistribution(name='uniform',params=(-70,-60)),
             },
         },
         
@@ -113,7 +113,7 @@
                 'tau_syn_I': 5.0, # Kremkow, no inh in WorgotterKoch1991
             },
             'initial_values' : {
-                'v': -70.0,
+                'v': PyNNDistribution(name='uniform',params=(-70,-60)),
             }
         },
 

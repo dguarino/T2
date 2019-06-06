@@ -133,8 +133,8 @@
         'frequency':               UniformDist(min=0.8, max=0.8),
 
         'delay': 2.0,    
-        'delay_expression' : ref('l4_cortex_exc_mea.AfferentConnection.delay_expression'),
-        'delay_functions' : ref('l4_cortex_exc_mea.AfferentConnection.delay_functions'),
+        'delay_expression' : ref('l4_cortex_exc.AfferentConnection.delay_expression'),
+        'delay_functions' : ref('l4_cortex_exc.AfferentConnection.delay_functions'),
         'topological' : True,
         'fan_in' : True,
 
@@ -143,11 +143,11 @@
         'phase_map' : False,
         'phase_map_location' : './phase_map',
 
-        'base_weight' : ref('l4_cortex_exc_mea.AfferentConnection.base_weight')*ref('l4_cortex_inh_mea.ExcInhAfferentRatio'),
-        'num_samples' : ref('l4_cortex_exc_mea.AfferentConnection.num_samples'),
-        'rf_jitter' : ref('l4_cortex_exc_mea.AfferentConnection.rf_jitter'),
-        'off_bias' : ref('l4_cortex_exc_mea.AfferentConnection.off_bias'),
-        'short_term_plasticity':  ref('l4_cortex_exc_mea.AfferentConnection.short_term_plasticity'),
+        'base_weight' : ref('l4_cortex_exc.AfferentConnection.base_weight')*ref('l4_cortex_inh_mea.ExcInhAfferentRatio'),
+        'num_samples' : ref('l4_cortex_exc.AfferentConnection.num_samples'),
+        'rf_jitter' : ref('l4_cortex_exc.AfferentConnection.rf_jitter'),
+        'off_bias' : ref('l4_cortex_exc.AfferentConnection.off_bias'),
+        'short_term_plasticity':  ref('l4_cortex_exc.AfferentConnection.short_term_plasticity'),
     }
 }
 
