@@ -123,7 +123,7 @@ def create_experiments_orientation(model):
 
 def create_experiments_size(model):
   return [
-      # NoStimulation( model, duration=147*7 ),
+      NoStimulation( model, duration=147*7 ),
       # MeasureSpontaneousActivity( model, num_trials=6, duration=147*7 ),
 
       # SIZE TUNING
@@ -138,8 +138,8 @@ def create_experiments_size(model):
           grating_duration=1*147*7, # 1 sec
           contrasts=[80], 
           num_trials=6, #6
-          log_spacing=False, # True
-          with_flat=False #use also flat luminance discs
+          log_spacing=False#, # True
+          # with_flat=False #use also flat luminance discs
       ),
 
       # NoStimulation( model, duration=147*7 )
