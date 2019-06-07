@@ -46,7 +46,7 @@
             'U': 0.5, 
             'tau_rec': 440.0, 
             'tau_psc': 0.0000001,
-            'tau_psc': 0.0000001,
+            'tau_fac': 0.0000001,
         },
         'weight_functions' : {                          
             'f1' : {
