@@ -2688,6 +2688,11 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	print "Recorded neurons:", len(analog_ids)
 	# 900 neurons over 6000 micrometers, 200 micrometers interval
 
+	# LocalHomogeneityIndex( 
+	# 	param_filter_query( data_store, sheet_name=sheet, st_name=stimulus ), 
+	# 	ParameterSet({'sigma':0.3}) 
+	# ).analyse()
+
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
@@ -2702,32 +2707,48 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	print analog_positions.shape
 	# print analog_positions
 
+	# colorbar min=resting, max=threshold
+	norm = ml.colors.Normalize(vmin=0., vmax=45., clip=True)
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
 	##############################
 	# Local Homogeneity Index
-	# sigma = 0.280 # 0.180 # mm, since 1mm = 1deg in this cortical space
-	sigma = 180 # um
+	# the current V1 orientation map has a pixel for each 100 um, so a reasonable way to look at a neighborhood is in the order of 300 um radius
+	sigma = 0.180 # 0.180 # mm, since 1mm = 1deg in this cortical space
+	# sigma = 0.180 # um #   max: 0.0               min:0.0  
 	# for each location P(x,y):
 	# take an interval sigma of cells Q(x,y)
 	# For each Q:
 	# compute the complex domain exp(2i * thetaQ)
+	# multiply by the current Vm for Q <-- to give a measure of how the activity is related to the orientation
 	# weight it by its distance from P
 	# Sum it
 	# Divide the whole by the Gaussian norm factor: 2 * numpy.pi * sigma**2
 
+	plt.figure()
+	
 	dLHI = {}
-	for i,p in zip(analog_ids,analog_positions):
-		# select all cells within sigma distance
-		sheet_Qs = select_ids_by_position(positions, sheet_indexes, radius=[0,sigma/1000.], origin=p.reshape(3,1))
-		Qs = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Qs)
+	for i,x in zip(analog_ids,analog_positions):
+		# select all cells within 3*sigma radius
+		sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+		Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
 		# integrate 
-		vector_sum = 0
-		for q,sq in zip(Qs,sheet_Qs):
-			complex_domain = numpy.exp( 1j * (2 * pnv.get_value_by_id(q)))
-			distance = numpy.exp( - numpy.linalg.norm( p*1000 - numpy.transpose(positions)[sq]*1000 )**2 / (2*sigma**2) )
+		vector_sum = 0.
+		for y,sy in zip(Ys,sheet_Ys):
+			complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+			distance = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2*sigma**2) )
 			# print distance
-			vector_sum = vector_sum + distance*complex_domain
+			vector_sum += distance*complex_domain # * activity
 		dLHI[i] = abs(vector_sum) / (2*numpy.pi*sigma**2)
-	print dLHI
+
+		plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(dLHI[i]), edgecolors='none' )
+
+	print max(dLHI.values()), min(dLHI.values())
+
+	plt.savefig( folder+"/LHI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
 
 
 
@@ -4076,7 +4097,7 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_smaller_____",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_larger_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
@@ -4089,7 +4110,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
-	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	"/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
@@ -4159,8 +4180,8 @@ addon = ""
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
-# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = ['V1_Inh_L4'] 
+sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 

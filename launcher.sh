@@ -44,7 +44,7 @@
 # python parameter_search_full_all_models.py run_size_V1_inhibition_overlapping.py nest param/defaults_mea
 
 # VSDI
-python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
+# python parameter_search_full_all_models.py run_size_closed.py nest param/defaults_mea
 
 # ANALYSIS
 # python parameter_search_analysis.py CombinationParamSearch_intact_nonoverlapping
@@ -168,7 +168,7 @@ python parameter_search_full_all_models.py run_size_closed.py nest param/default
 
 # echo "starting Size" # Feedforward"
 # echo
-# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi_larger'
+mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi'
 # mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi'
 
 
