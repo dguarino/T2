@@ -4071,7 +4071,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
-	"/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
@@ -4092,7 +4092,7 @@ full_list = [
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_____", # DockerMozaik
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",
