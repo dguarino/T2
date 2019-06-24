@@ -4158,8 +4158,8 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
+sheets = ['V1_Exc_L4'] 
+# sheets = ['V1_Inh_L4'] 
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
@@ -4718,14 +4718,14 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
 			# )
-			LHI( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				# radius = [.0, 0.7], # center
-				addon = addon,
-			)
+			# LHI( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	# radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
 			# VSDI( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -5142,20 +5142,20 @@ else:
 			# )
 
 			# stLFP: Exc iso-center postsynaptic response to iso-surround spikes
-			# SpikeTriggeredAverage(
-			# 	lfp_sheet='V1_Exc_L4', 
-			# 	spike_sheet='V1_Exc_L4', 
-			# 	folder=f, 
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	ylim=[0,50],
-			# 	lfp_opposite=False, # ISO
-			# 	spike_opposite=False, # ISO
-			# 	tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
-			# 	radius = [1.,1.8], # surround
-			# 	addon = addon + "_center2surround",
-			# 	color = color,
-			# )
+			SpikeTriggeredAverage(
+				lfp_sheet='V1_Exc_L4', 
+				spike_sheet='V1_Exc_L4', 
+				folder=f, 
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				ylim=[0,50],
+				lfp_opposite=False, # ISO
+				spike_opposite=False, # ISO
+				tip_box = [[-.6,-.6],[.6,.6]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+				radius = [1.,1.8], # surround
+				addon = addon + "_center2surround",
+				color = color,
+			)
 
 			# stLFP: Inh iso-center postsynaptic response to iso-surround spikes
 			# SpikeTriggeredAverage(
