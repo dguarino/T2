@@ -2712,12 +2712,13 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# compute the complex domain exp(2i * thetaQ)
 	# weight it by its distance from P
 	# Sum it
-	# Divide the whole by the Gaussian norm factor: 2 * numpy.pi * sigma**2
+	# Divide the whole by the Gaussian norm factor: sqrt(2 * numpy.pi) * sigma
 
 	dLHI = {}
 	for i,p in zip(analog_ids,analog_positions):
-		# select all cells within sigma distance
-		sheet_Qs = select_ids_by_position(positions, sheet_indexes, radius=[0,sigma/1000.], origin=p.reshape(3,1))
+		# select all cells within sigma distance (optimisation, too slow otherwise)
+		# sheet_Qs = select_ids_by_position(positions, sheet_indexes, radius=[0,sigma/1000.], origin=p.reshape(3,1))
+		sheet_Qs = sheet_indexes
 		Qs = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Qs)
 		# integrate 
 		vector_sum = 0
@@ -2725,8 +2726,9 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 			complex_domain = numpy.exp( 1j * (2 * pnv.get_value_by_id(q)))
 			distance = numpy.exp( - numpy.linalg.norm( p*1000 - numpy.transpose(positions)[sq]*1000 )**2 / (2*sigma**2) )
 			# print distance
-			vector_sum = vector_sum + distance*complex_domain
-		dLHI[i] = abs(vector_sum) / (2*numpy.pi*sigma**2)
+			vector_sum = vector_sum + distance*complex_domain#*activity # vm for a certain stimulus feature presentation normalized by the same cell's response for all values of the stimulus feature
+		# dLHI[i] = abs(vector_sum) / (2*numpy.pi*sigma**2)
+		dLHI[i] = abs(vector_sum) / (numpy.sqrt(2*numpy.pi)*sigma)
 	print dLHI
 
 

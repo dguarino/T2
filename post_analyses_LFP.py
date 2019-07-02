@@ -26,6 +26,7 @@ import pylab
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
+matplotlib.use('Agg') # for Docker
 
 import quantities as qt
 
@@ -159,12 +160,22 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	# data_store.print_content(full_recordings=False)
 
+	segs = param_filter_query(data_store,sheet_name="V1_Exc_L4").get_segments()
+	for s in segs:
+		print "ann", s.annotations
+
 	# LFP
 	# 95% of the LFP signal is a result of all exc and inh cells conductances from 250um radius from the tip of the electrode (Katzner et al. 2009).
 	# Therefore we include all recorded cells but account for the distance-dependent contribution weighting currents /r^2
 	# We assume that the electrode has been placed in the cortical coordinates <tip>
-	# Only excitatory neurons are relevant for the LFP (because of their geometry) Bartos
-	lfp_neurons = param_filter_query(data_store, sheet_name=lfp_sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	# Only excitatory neurons are relevant for the LFP (because of their geometry) Bartosz
+	filtered_dsv = param_filter_query(data_store, sheet_name=lfp_sheet, st_name=stimulus)
+	print filtered_dsv
+	filtered_segs = filtered_dsv.get_segments()
+	for s in filtered_segs:
+		print "SpikeTriggeredAverage",s
+	lfp_neurons = filtered_segs[0].get_stored_vm_ids()
+	print lfp_neurons
 
 	if lfp_neurons == None:
 		print "No Exc Vm recorded.\n"
@@ -433,7 +444,7 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 full_list = [ 
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_____", 
+	"ThalamoCorticalModel_data_size_feedforward_vsdi", 
 	]
 
 
