@@ -132,7 +132,8 @@ def create_experiments_size(model):
           model, 
           num_sizes=2, # 10,
           max_size=1.4, # 5., # radius
-          orientation=0., #numpy.pi/2, 
+          # orientations=[0.0], 
+          orientations=[0.0, numpy.pi/8, numpy.pi/4, 3*numpy.pi/8, numpy.pi/2], 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
@@ -156,7 +157,7 @@ def create_experiments_size_overlapping(model):
           model, 
           num_sizes=10, # 10,
           max_size=5.0, # radius
-          orientation=0., 
+          orientations=[0.], 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
@@ -176,7 +177,7 @@ def create_experiments_size_nonoverlapping(model):
           model, 
           num_sizes=10, # 10,
           max_size=5.0, # radius
-          orientation=numpy.pi/2, 
+          orientations=[numpy.pi/2], 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
@@ -202,7 +203,7 @@ def create_experiments_size_V1_inactivated_overlapping(model):
           injection_current=-.5, # nA
           num_sizes=10, 
           max_size=5.0, # max radius
-          orientation=0., #numpy.pi/2, 
+          orientations=[0.], #numpy.pi/2, 
           spatial_frequency=0.5, #
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
@@ -227,7 +228,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
           injection_current=-.5, # nA
           num_sizes=10, 
           max_size=5.0, # max radius
-          orientation=numpy.pi/2, 
+          orientations=[numpy.pi/2], 
           spatial_frequency=0.5, #
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7,
@@ -252,7 +253,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
 #           injection_current=-.5, # nA
 #           num_sizes=10, 
 #           max_size=5.0, # max radius
-#           orientation=0., #numpy.pi/2, 
+#           orientations=[0.], #numpy.pi/2, 
 #           spatial_frequency=0.5, #
 #           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
 #           grating_duration=1*147*7,
@@ -277,7 +278,7 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
 #           injection_current=-.5, # nA
 #           num_sizes=10, 
 #           max_size=5.0, # max radius
-#           orientation=numpy.pi/2, 
+#           orientations=[numpy.pi/2], 
 #           spatial_frequency=0.5, #
 #           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
 #           grating_duration=1*147*7,

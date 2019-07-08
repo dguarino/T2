@@ -168,8 +168,8 @@
 
 # echo "starting Size" # Feedforward"
 # echo
-mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi'
-# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi'
+mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi_100micron'
+mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi_100micron'
 
 
 # echo "starting Orientation Feedforward"

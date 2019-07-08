@@ -2664,11 +2664,6 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
 	print "sheet: ",sheet
-	polarity = True # exc
-	c = 'red'
-	if "Inh" in sheet:
-		polarity = False
-		c = 'blue'
 
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
@@ -2688,16 +2683,20 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	print "Recorded neurons:", len(analog_ids)
 	# 900 neurons over 6000 micrometers, 200 micrometers interval
 
-	# LocalHomogeneityIndex( 
-	# 	param_filter_query( data_store, sheet_name=sheet, st_name=stimulus ), 
-	# 	ParameterSet({'sigma':0.3}) 
-	# ).analyse()
-
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
 
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
 	print pnv #[0]
+	pnv_ids = sorted( set(pnv.ids).intersection(set(analog_ids)) )
+	# print pnv_ids==analog_ids
+	orientations = []
+	for i in pnv_ids:
+		orientations.append( pnv.get_value_by_id(i) )
+	# print orientations
+	orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.hsv)
+	orimapper._A = [] 
 
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
@@ -2707,48 +2706,126 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	print analog_positions.shape
 	# print analog_positions
 
-	# colorbar min=resting, max=threshold
-	norm = ml.colors.Normalize(vmin=0., vmax=45., clip=True)
-	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.jet)
-	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+	# ##############################
+	# # Local Homogeneity Index
+	# # the current V1 orientation map has a pixel for each 100 um, so a reasonable way to look at a neighborhood is in the order of 300 um radius
+	# sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
+	# # sigma = 0.180 # um #   max: 0.0               min:0.0  
+	# # for each location P(x,y):
+	# # take an interval sigma of cells Q(x,y)
+	# # For each Q:
+	# # compute the complex domain exp(2i * thetaQ)
+	# # multiply by the current Vm for Q <-- to give a measure of how the activity is related to the orientation
+	# # Gaussianly weight it by its distance from P
+	# # Sum it
+	# # Divide the whole by the norm factor: 2 * numpy.pi * sigma**2
+
+	# norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True)
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray)
+	# mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
+	# plt.figure()
+	# # print (2 * numpy.pi * sigma**2), numpy.sqrt(2 * numpy.pi) * sigma
+
+	# LHI = {}
+	# for i,x in zip(analog_ids,analog_positions):
+	# 	# select all cells within 3*sigma radius
+	# 	sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+	# 	Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+	# 	# integrate 
+	# 	vector_sum = 0.
+	# 	for y,sy in zip(Ys,sheet_Ys):
+	# 		# print "dist",numpy.linalg.norm( x - numpy.transpose(positions)[sy] )
+	# 		complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+	# 		distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+	# 		vector_sum += distance_weight * complex_domain # * activity
+	# 	LHI[i] = abs(vector_sum) # normalization outside of the loop
+	# 	# LHI[i] = abs(vector_sum) / (2 * numpy.pi * sigma*sigma) 
+
+	# # print max(LHI.values()), min(LHI.values())
+	# for l in LHI:
+	# 	LHI[l] = LHI[l] / max(LHI.values()) # nomrliazation based on maximal value
+
+	# for i,x,o in zip(analog_ids, analog_positions, orientations):
+	# 	plt.scatter( x[0][0], x[0][1], marker='o', c=orimapper.to_rgba(o), alpha=LHI[i], edgecolors='none' ) # color orientation, alpha LHI
+	# 	# plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(LHI[i]), edgecolors='none' ) # b/w LHI
+
+	# plt.savefig( folder+"/LHI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	# plt.close()
+	# gc.collect()
 
 	##############################
-	# Local Homogeneity Index
-	# the current V1 orientation map has a pixel for each 100 um, so a reasonable way to look at a neighborhood is in the order of 300 um radius
-	sigma = 0.180 # 0.180 # mm, since 1mm = 1deg in this cortical space
+	# Synergy Index
+	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
+	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
-	# for each location P(x,y):
-	# take an interval sigma of cells Q(x,y)
-	# For each Q:
-	# compute the complex domain exp(2i * thetaQ)
-	# multiply by the current Vm for Q <-- to give a measure of how the activity is related to the orientation
-	# weight it by its distance from P
-	# Sum it
-	# Divide the whole by the Gaussian norm factor: 2 * numpy.pi * sigma**2
 
-	plt.figure()
-	
-	dLHI = {}
-	for i,x in zip(analog_ids,analog_positions):
-		# select all cells within 3*sigma radius
-		sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
-		Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
-		# integrate 
-		vector_sum = 0.
-		for y,sy in zip(Ys,sheet_Ys):
-			complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
-			distance = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2*sigma**2) )
-			# print distance
-			vector_sum += distance*complex_domain # * activity
-		dLHI[i] = abs(vector_sum) / (2*numpy.pi*sigma**2)
+	norm = ml.colors.Normalize(vmin=1., vmax=3., clip=True) # -40/-40 = 1 ... -200/-40 = 5
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
-		plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(dLHI[i]), edgecolors='none' )
+	# # search the maximum over all trials and orientations to get the normalization value for each cell
+	# normSI = numpy.ones(len(analog_ids)) * -numpy.Inf # init to -infinity
+	for s in segs:
+		dist = eval(s.annotations['stimulus'])
+		# print dist
+		if dist['radius'] < 0.1:
+			continue
+		if dist['trial'] > 0: # only one trial, for the moment
+			continue
+		if dist['orientation'] > 0.0: # only one orientation, for the moment
+			continue
 
-	print max(dLHI.values()), min(dLHI.values())
+		s.load_full()
 
-	plt.savefig( folder+"/LHI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
-	plt.close()
-	gc.collect()
+		for a in s.analogsignalarrays:
+			# print "a.name: ",a.name
+			if a.name == 'v':
+				# print "a",a.shape # (10291, 900)  (vm instants t, cells)
+				# print "max", numpy.amax(a.magnitude, axis=0)#.shape
+				# normSI = numpy.maximum(normSI, numpy.amax(a.magnitude, axis=0)) 
+				# print "normSI",normSI
+
+				plt.figure()
+				# print (2 * numpy.pi * sigma**2), numpy.sqrt(2 * numpy.pi) * sigma
+
+				for t,vms in enumerate(a):
+					# print vms.shape
+					if t/10 > 500:
+						break
+
+					if t%20 == 0: # each 2 ms
+						time = '{:04d}'.format(t/10)
+
+						# open image
+						plt.figure()
+						SI = {}
+						ivms = dict(zip(analog_ids, vms))
+						for vm, i, x in zip(vms, analog_ids, analog_positions):
+							# select all cells within 3*sigma radius
+							sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+							Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+							# integrate 
+							local_sum = 0.
+							vector_sum = 0.
+							for y,sy in zip(Ys,sheet_Ys):
+								complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+								distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+								vector_sum += distance_weight * complex_domain * ivms[y].magnitude
+							SI[i] = abs(vector_sum)
+
+						norm = max(SI.values())
+						for l in SI: # normalization based on maximal value
+							SI[l] = SI[l] / norm
+
+						for i,x in zip(analog_ids, analog_positions):
+							# print i, x
+							plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(SI[i]), edgecolors='none' )
+							plt.xlabel(time, color='silver', fontsize=22)
+						# close image
+						plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+						plt.close()
+						gc.collect()
 
 
 
@@ -3532,14 +3609,14 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		ax.xaxis.set_ticks(ticks, ticks)
 		ax.yaxis.set_ticks_position('left')
 
-		# text
-		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseConductances_"+sheet+"_"+parameter+"_"+str(ticks[s])+".png", dpi=200, transparent=True )
-		plt.savefig( folder+"/TimecourseConductances_"+sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
-		fig.clf()
-		plt.close()
-		# garbage
-		gc.collect()
+		# # text
+		# plt.tight_layout()
+		# plt.savefig( folder+"/TimecourseConductances_"+sheet+"_"+parameter+"_"+str(ticks[s])+".png", dpi=200, transparent=True )
+		# plt.savefig( folder+"/TimecourseConductances_"+sheet+"_"+parameter+"_"+str(ticks[s])+".svg", dpi=200, transparent=True )
+		# fig.clf()
+		# plt.close()
+		# # garbage
+		# gc.collect()
 
 
 		# Conductances contrast
@@ -3555,18 +3632,18 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		# garbage
 		gc.collect()
 
-		# Conductances ratio
-		fig,ax = plt.subplots()
-		color = 'black' if 'closed' in folder else 'gray'
-		ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/mean_pop_i[s], color=color, linewidth=3 )
-		ax.set_xlabel( parameter )
-		# ax.set_ylim([0,2])
-		plt.tight_layout()
-		plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
-		fig.clf()
-		plt.close()
-		# garbage
-		gc.collect()
+		# # Conductances ratio
+		# fig,ax = plt.subplots()
+		# color = 'black' if 'closed' in folder else 'gray'
+		# ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/mean_pop_i[s], color=color, linewidth=3 )
+		# ax.set_xlabel( parameter )
+		# # ax.set_ylim([0,2])
+		# plt.tight_layout()
+		# plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
+		# fig.clf()
+		# plt.close()
+		# # garbage
+		# gc.collect()
 
 
 
@@ -4092,7 +4169,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
-	"/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
@@ -4101,6 +4178,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -4110,7 +4189,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
-	"/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
@@ -4121,11 +4200,11 @@ full_list = [
 	# "/data1/do/ThalamoCorticalModel_data_size_nonoverlapping_many_____",
 	# "/data1/do/ThalamoCorticalModel_data_size_overlapping_many_____",
 
-	# "ThalamoCorticalModel_data_orientation_feedforward_____2",
-	# "ThalamoCorticalModel_data_orientation_closed_____2",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
-	# "Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	# "/media/do/Sauvegarde Système/old/ThalamoCorticalModel_data_orientation_feedforward_____2",
+	# "/media/do/Sauvegarde Système/old/ThalamoCorticalModel_data_orientation_closed_____2",
+	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
+	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
@@ -5667,6 +5746,19 @@ else:
 			# 	useXlog=False, 
 			# 	radius = [.0, 8.7], # center
 			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_conductance_timecourse( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	ticks=[0.0, 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 55., 60.],
+			# 	ylim=[0,20],
+			# 	# box = [[-.5,-.5],[.5,.5]], # CENTER
+			# 	addon = "center",
+			# 	# box = [[-.5,.0],[.5,.8]], # mixed surround (more likely to be influenced by the recorded thalamus)
+			# 	# box = [[-.5,.5],[.5,1.]], # strict surround
+			# 	# box = [[-0.1,.6],[.3,1.]], # surround
 			# )
 			# trial_averaged_tuning_curve_errorbar( 
 			# 	sheet=s, 
