@@ -2760,7 +2760,7 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
 
-	norm = ml.colors.Normalize(vmin=1., vmax=3., clip=True) # -40/-40 = 1 ... -200/-40 = 5
+	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
 	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
@@ -2813,10 +2813,13 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 								distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
 								vector_sum += distance_weight * complex_domain * ivms[y].magnitude
 							SI[i] = abs(vector_sum)
+							# print "SI",SI[i]
 
 						norm = max(SI.values())
+						# print "norm", norm
 						for l in SI: # normalization based on maximal value
 							SI[l] = SI[l] / norm
+						print max(SI.values())
 
 						for i,x in zip(analog_ids, analog_positions):
 							# print i, x
