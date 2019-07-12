@@ -2759,13 +2759,40 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
 	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
+	deltat = 50 #sim at 0.1ms # to be computed from 'recording_interval':0.1
 
-	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
-	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
+	norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
+	# norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
-	# # search the maximum over all trials and orientations to get the normalization value for each cell
-	# normSI = numpy.ones(len(analog_ids)) * -numpy.Inf # init to -infinity
+	def dLHI(sheet, positions, sheet_indexes, vms, analog_ids, analog_positions, sigma):
+		dLHI = {}
+		ivms = dict(zip(analog_ids, vms))
+		for vm, i, x in zip(vms, analog_ids, analog_positions):
+			# select all cells within 3*sigma radius
+			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+			# integrate 
+			local_sum = 0.
+			vector_sum = 0.
+			for y,sy in zip(Ys,sheet_Ys):
+				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+				vector_sum += distance_weight * complex_domain * ivms[y].magnitude
+			dLHI[i] = abs(vector_sum)
+			# print "dLHI",dLHI[i]
+		norm = max(dLHI.values())
+		# print "norm", norm
+		for l in dLHI: # normalization based on maximal value
+			normdlhi = dLHI[l] / norm # 0 to 1
+			dLHI[l] = normdlhi + (normdlhi-1.) # -1 to 1
+		print "dLHI extremes",min(dLHI.values()), max(dLHI.values())
+		return dLHI
+
+	# # SI over all trials and orientations to get the normalization value for each cell
+	# SI = numpy.zeros(len(analog_ids)) # init to zero
 	for s in segs:
 		dist = eval(s.annotations['stimulus'])
 		# print dist
@@ -2778,6 +2805,8 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 		s.load_full()
 
+		deltaff = {}
+
 		for a in s.analogsignalarrays:
 			# print "a.name: ",a.name
 			if a.name == 'v':
@@ -2785,50 +2814,91 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 				# print "max", numpy.amax(a.magnitude, axis=0)#.shape
 				# normSI = numpy.maximum(normSI, numpy.amax(a.magnitude, axis=0)) 
 				# print "normSI",normSI
-
-				plt.figure()
 				# print (2 * numpy.pi * sigma**2), numpy.sqrt(2 * numpy.pi) * sigma
+
+				avg_resting_dLHI = {}
+				for i in analog_ids:
+					avg_resting_dLHI[i] = 0.0
 
 				for t,vms in enumerate(a):
 					# print vms.shape
-					if t/10 > 500:
-						break
 
-					if t%20 == 0: # each 2 ms
-						time = '{:04d}'.format(t/10)
+					if t < 100: #from 10ms on (to avoid beginnings)
+						continue
+
+					if t%50 != 0: # Dt=5ms
+						continue
+
+					if t<400: # from 10ms to 40ms
+						resting_dLHI = dLHI(sheet, positions, sheet_indexes, vms, analog_ids, analog_positions, sigma)
+						# print "resting_dLHI",resting_dLHI # will be averaged over the 40ms
+						for k in analog_ids:
+							avg_resting_dLHI[k] = avg_resting_dLHI[k] + resting_dLHI[k]
+
+					if t==400: # avg
+						for k in analog_ids:
+							avg_resting_dLHI[k] = avg_resting_dLHI[k] / 6 # (30ms)/5ms
+						print "avg resting dLHI extremes",min(avg_resting_dLHI.values()), max(avg_resting_dLHI.values())
+
+					if t>400 and t<5000: # from 400ms up to 500ms
+						stim_dLHI = dLHI(sheet, positions, sheet_indexes, vms, analog_ids, analog_positions, sigma)
+
+						SI = {}
+						# average resting_dLHI
+						for k in analog_ids:
+							SI[k] = (stim_dLHI[k] - avg_resting_dLHI[k]) / avg_resting_dLHI[k]
+						print "SI extremes",min(SI.values()), max(SI.values())
+
+						time = '{:04d}'.format(t/10) # sim at 0.1ms
 
 						# open image
 						plt.figure()
-						SI = {}
-						ivms = dict(zip(analog_ids, vms))
-						for vm, i, x in zip(vms, analog_ids, analog_positions):
-							# select all cells within 3*sigma radius
-							sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
-							Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
-							# integrate 
-							local_sum = 0.
-							vector_sum = 0.
-							for y,sy in zip(Ys,sheet_Ys):
-								complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
-								distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
-								vector_sum += distance_weight * complex_domain * ivms[y].magnitude
-							SI[i] = abs(vector_sum)
-							# print "SI",SI[i]
-
-						norm = max(SI.values())
-						# print "norm", norm
-						for l in SI: # normalization based on maximal value
-							SI[l] = SI[l] / norm
-						print max(SI.values())
 
 						for i,x in zip(analog_ids, analog_positions):
 							# print i, x
 							plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(SI[i]), edgecolors='none' )
 							plt.xlabel(time, color='silver', fontsize=22)
 						# close image
+						print 'printing', time
 						plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
 						plt.close()
 						gc.collect()
+
+
+					# if t%20 == 0: # each 2 ms
+					# 	time = '{:04d}'.format(t/10)
+					# 	# open image
+					# 	# plt.figure()
+					# 	stim_dLHI = {}
+					# 	ivms = dict(zip(analog_ids, vms))
+					# 	for vm, i, x in zip(vms, analog_ids, analog_positions):
+					# 		# select all cells within 3*sigma radius
+					# 		sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+					# 		Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+					# 		# integrate 
+					# 		local_sum = 0.
+					# 		vector_sum = 0.
+					# 		for y,sy in zip(Ys,sheet_Ys):
+					# 			complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+					# 			distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+					# 			vector_sum += distance_weight * complex_domain * ivms[y].magnitude
+					# 		stim_dLHI[i] = abs(vector_sum)
+					# 		# print "stim_dLHI",stim_dLHI[i]
+
+					# 	norm = max(stim_dLHI.values())
+					# 	# print "norm", norm
+					# 	for l in stim_dLHI: # normalization based on maximal value
+					# 		stim_dLHI[l] = stim_dLHI[l] / norm
+					# 	# print max(stim_dLHI.values())
+
+					# 	# for i,x in zip(analog_ids, analog_positions):
+					# 	# 	# print i, x
+					# 	# 	plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(stim_dLHI[i]), edgecolors='none' )
+					# 	# 	plt.xlabel(time, color='silver', fontsize=22)
+					# 	# # close image
+					# 	# plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+					# 	# plt.close()
+					# 	# gc.collect()
 
 
 
