@@ -2761,9 +2761,10 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
 	deltat = 50 #sim at 0.1ms # to be computed from 'recording_interval':0.1
 
-	norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
-	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
-	# norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
+	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.binary) # form black 0 to white 1
 	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
@@ -2783,16 +2784,15 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 				vector_sum += distance_weight * complex_domain * ivms[y].magnitude
 			dLHI[i] = abs(vector_sum)
 			# print "dLHI",dLHI[i]
-		norm = max(dLHI.values())
-		# print "norm", norm
-		for l in dLHI: # normalization based on maximal value
-			normdlhi = dLHI[l] / norm # 0 to 1
-			dLHI[l] = normdlhi + (normdlhi-1.) # -1 to 1
-		print "dLHI extremes",min(dLHI.values()), max(dLHI.values())
+		print "dLHI extremes",numpy.mean(dLHI.values()),numpy.std(dLHI.values()),min(dLHI.values()), max(dLHI.values())
 		return dLHI
 
-	# # SI over all trials and orientations to get the normalization value for each cell
-	# SI = numpy.zeros(len(analog_ids)) # init to zero
+	# SI over all trials and orientations
+	trials_SI = {}
+	for i in analog_ids:
+		trials_SI[i] = 0.0
+	SItrials = 0
+
 	for s in segs:
 		dist = eval(s.annotations['stimulus'])
 		# print dist
@@ -2805,7 +2805,7 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 		s.load_full()
 
-		deltaff = {}
+		SItrials += 1
 
 		for a in s.analogsignalarrays:
 			# print "a.name: ",a.name
@@ -2823,82 +2823,78 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 				for t,vms in enumerate(a):
 					# print vms.shape
 
-					if t < 100: #from 10ms on (to avoid beginnings)
+					if t < 50: #from 2ms on (to avoid beginnings)
 						continue
 
-					if t%50 != 0: # Dt=5ms
+					if t%30 != 0: # Dt=3ms
 						continue
 
-					if t<400: # from 10ms to 40ms
+					if t<210: # from 5ms to 20ms
 						resting_dLHI = dLHI(sheet, positions, sheet_indexes, vms, analog_ids, analog_positions, sigma)
 						# print "resting_dLHI",resting_dLHI # will be averaged over the 40ms
 						for k in analog_ids:
 							avg_resting_dLHI[k] = avg_resting_dLHI[k] + resting_dLHI[k]
+							# print avg_resting_dLHI[k]
 
-					if t==400: # avg
+					if t==210: # avg
 						for k in analog_ids:
-							avg_resting_dLHI[k] = avg_resting_dLHI[k] / 6 # (30ms)/5ms
-						print "avg resting dLHI extremes",min(avg_resting_dLHI.values()), max(avg_resting_dLHI.values())
+							avg_resting_dLHI[k] = avg_resting_dLHI[k] / 5 # (15ms)/3ms
+						# print "avg resting dLHI extremes",numpy.mean(avg_resting_dLHI.values()),numpy.std(avg_resting_dLHI.values()),min(avg_resting_dLHI.values()), max(avg_resting_dLHI.values())
 
-					if t>400 and t<5000: # from 400ms up to 500ms
+					# if t>210 and t<5000: # from 200ms up to 500ms
+					if t>210 and t<250: # from 200ms up to 500ms
 						stim_dLHI = dLHI(sheet, positions, sheet_indexes, vms, analog_ids, analog_positions, sigma)
 
 						SI = {}
 						# average resting_dLHI
 						for k in analog_ids:
 							SI[k] = (stim_dLHI[k] - avg_resting_dLHI[k]) / avg_resting_dLHI[k]
-						print "SI extremes",min(SI.values()), max(SI.values())
+						# print "SI extremes",numpy.mean(SI.values()),numpy.std(SI.values()),min(SI.values()), max(SI.values())
 
-						time = '{:04d}'.format(t/10) # sim at 0.1ms
+						norm = max(SI.values())
+						for l in SI: # normalization based on maximal value, done at the end to avoid loosing info
+							SI[l] = SI[l] / norm # 0 to 1
+							# trial avg
+							trials_SI[l] = trials_SI[l] + SI[l]
+							# print trials_SI[l]
 
-						# open image
-						plt.figure()
+						## plot each instant
+						# time = '{:04d}'.format(t/10) # sim at 0.1ms
 
-						for i,x in zip(analog_ids, analog_positions):
-							# print i, x
-							plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(SI[i]), edgecolors='none' )
-							plt.xlabel(time, color='silver', fontsize=22)
-						# close image
-						print 'printing', time
-						plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-						plt.close()
-						gc.collect()
+						# # open image
+						# plt.figure()
 
+						# for i,x in zip(analog_ids, analog_positions):
+						# 	# print i, x
+						# 	plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(SI[i]), edgecolors='none' )
+						# 	plt.xlabel(time, color='silver', fontsize=22)
+						# # close image
+						# print 'printing', time
+						# plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+						# plt.close()
+						# gc.collect()
 
-					# if t%20 == 0: # each 2 ms
-					# 	time = '{:04d}'.format(t/10)
-					# 	# open image
-					# 	# plt.figure()
-					# 	stim_dLHI = {}
-					# 	ivms = dict(zip(analog_ids, vms))
-					# 	for vm, i, x in zip(vms, analog_ids, analog_positions):
-					# 		# select all cells within 3*sigma radius
-					# 		sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
-					# 		Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
-					# 		# integrate 
-					# 		local_sum = 0.
-					# 		vector_sum = 0.
-					# 		for y,sy in zip(Ys,sheet_Ys):
-					# 			complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
-					# 			distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
-					# 			vector_sum += distance_weight * complex_domain * ivms[y].magnitude
-					# 		stim_dLHI[i] = abs(vector_sum)
-					# 		# print "stim_dLHI",stim_dLHI[i]
+	# SI means
+	for cell in trials_SI: 
+		print len(trials_SI[cell]), trials_SI[cell]
+		trial_avg_SI = numpy.zeros( len(trials_SI[cell]) )
+		break
+	# print "len(trials_SI[l])", len(trials_SI[list(trials_SI)[0]]) # we just want the length of considered instants (which may vary)
+	# average over cells (axis=0) and trials
+	# trial_avg_SI = numpy.zeros( len(trials_SI[list(trials_SI)[0]]) )
+	for cell in trials_SI: 
+		trial_avg_SI += trials_SI[cell] 
+	trial_avg_SI /= SItrials 
 
-					# 	norm = max(stim_dLHI.values())
-					# 	# print "norm", norm
-					# 	for l in stim_dLHI: # normalization based on maximal value
-					# 		stim_dLHI[l] = stim_dLHI[l] / norm
-					# 	# print max(stim_dLHI.values())
-
-					# 	# for i,x in zip(analog_ids, analog_positions):
-					# 	# 	# print i, x
-					# 	# 	plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(stim_dLHI[i]), edgecolors='none' )
-					# 	# 	plt.xlabel(time, color='silver', fontsize=22)
-					# 	# # close image
-					# 	# plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
-					# 	# plt.close()
-					# 	# gc.collect()
+	# trial_avg_std_SI = trial_avg_SI.std(axis=0)
+	plt.figure()
+	# err_max = mean_pop_i[s] + std_pop_i[s]
+	# err_min = mean_pop_i[s] - std_pop_i[s]
+	# ax.fill_between(range(0,len(mean_pop_i[s])), err_max, err_min, color='blue', alpha=0.3)
+	plt.plot(trial_avg_SI, color="black", linewidth=3.)
+	plt.savefig( folder+"/trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
 
 
 
@@ -4215,6 +4211,7 @@ def trial_averaged_connectivity_count( sheet, folder, stimulus, parameter, incom
 
 
 
+
 ###################################################
 # Execution
 
@@ -4331,9 +4328,9 @@ addon = ""
 # sheets = ['X_ON']
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
-# sheets = ['V1_Exc_L4'] 
+sheets = ['V1_Exc_L4'] 
 # sheets = ['V1_Inh_L4'] 
-sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
