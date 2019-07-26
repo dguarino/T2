@@ -89,9 +89,9 @@
 # mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
 
 
-# echo "starting Orientation"
-# echo
-# mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orientation_open'
+echo "starting Orientation"
+echo
+mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orientation_open'
 
 
 
@@ -132,9 +132,9 @@
 # mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_overlapping'
 
 
-# echo "starting Orientation"
-# echo
-# mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
+echo "starting Orientation"
+echo
+mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
 
 
 # echo "starting XCorr"
@@ -168,8 +168,8 @@
 
 # echo "starting Size" # Feedforward"
 # echo
-mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi_100micron'
-mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi_100micron'
+# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi_100micron'
+# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi_100micron'
 
 
 # echo "starting Orientation Feedforward"

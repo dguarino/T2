@@ -12,18 +12,7 @@ from parameters import ParameterSet
 
 from model_V1_full import ThalamoCorticalModel
     
-from experiments import create_experiments_spontaneous
-from experiments import create_experiments_luminance
-from experiments import create_experiments_contrast
-from experiments import create_experiments_spatial
-from experiments import create_experiments_temporal
-from experiments import create_experiments_size
 from experiments import create_experiments_orientation
-from experiments import create_experiments_correlation
-
-from analysis_and_visualization import perform_analysis_test
-from analysis_and_visualization import perform_analysis_and_visualization
-# from analysis_and_visualization import perform_analysis_and_visualization_size
 
 
 try:
@@ -45,17 +34,5 @@ withFeedback_CxPGN = True # closed loop
 withFeedback_CxLGN = True # closed loop
 
 # Model execution
-if True:
-    data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
-    data_store.save()
-
-else:
-    setup_logging()
-    data_store = PickledDataStore(load=True,parameters=ParameterSet({'root_directory':'ThalamoCorticalModel_data_orientation_closed_____', 'store_stimuli' : False}),replace=True)
-    logger.info('Loaded data store')
-
-    # Analysis and Plotting
-    if mpi_comm.rank == MPI_ROOT:
-        perform_analysis_and_visualization( data_store, 'orientation', withPGN, withV1 )
-
-    data_store.save()
+data_store,model = run_workflow('ThalamoCorticalModel', ThalamoCorticalModel, create_experiments_orientation )
+data_store.save()
