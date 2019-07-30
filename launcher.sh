@@ -89,9 +89,9 @@
 # mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
 
 
-echo "starting Orientation"
-echo
-mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orientation_open'
+# echo "starting Orientation"
+# echo
+# mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orientation_open'
 
 
 
@@ -123,55 +123,17 @@ mpirun -np 1 python run_orientation_open.py nest 8 param/defaults_mea 'data_orie
 # mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
 
+echo "starting bar"
+echo
+mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'data_interrupted_bar'
+
+python post_analyses.py
+
+
 # echo "starting Size"
 # echo
 # mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed'
 # mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
 # mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_nonoverlapping'
 # mpirun -np 1 python run_size_closed_overlapping.py nest 8 param/defaults_mea 'data_size_closed_overlapping'
-# mpirun -np 1 python run_size_V1_inhibition_overlapping.py nest 8 param/defaults_mea 'data_size_overlapping'
-
-
-echo "starting Orientation"
-echo
-mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
-
-
-# echo "starting XCorr"
-# echo
-# mpirun -np 1 python run_xcorr_closed.py nest 8 param/defaults_xcorr 'data_xcorr_closed'
-
-
-# echo "starting Line completion"
-# echo
-# mpirun -np 1 python run_bar_open.py nest 8 param/defaults_mea 'data_bar_open'
-# mpirun -np 1 python run_bar_closed.py nest 8 param/defaults_mea 'data_bar_closed'
-
-
-
-################################################
-# EXPERIMENTS Closed loop 3 (LGN+PGN+V1)
-# with V1 but without feedback
-
-
-# echo "starting Contrast Feedforward"
-# echo
-# mpirun -np 1 python run_size_open2.py nest 8 param/defaults 'data_contrast_open2'
-
-
-# echo "starting Spatial Feedforward"
-# echo
-# mpirun -np 1 python run_orientation_open2.py nest 8 param/defaults 'data_spatial_open2'
-
-# mpirun -np 1 python run_bar_feedforward.py nest 1 param/defaults_mea 'data_bar_feedforward'
-
-
-# echo "starting Size" # Feedforward"
-# echo
-# mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_closed_vsdi_100micron'
-# mpirun -np 1 python run_size_feedforward.py nest 8 param/defaults_mea 'data_size_feedforward_vsdi_100micron'
-
-
-# echo "starting Orientation Feedforward"
-# echo
-# mpirun -np 1 python run_orientation_feedforward.py nest 8 param/defaults_mea 'data_orientation_feedforward'
+# mpiru

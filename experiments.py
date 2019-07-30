@@ -238,99 +238,30 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
       )
   ]
 
-# def create_experiments_size_V1_inactivated_overlapping(model):
-#   return [
-#       NoStimulation( model, duration=147*7 ),
-#       # SIZE TUNING
-#       # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
-#       MeasureSizeTuningWithInactivation(
-#           model, 
-#           sheet_list=["V1_Exc_L4"],
-#           injection_configuration={
-#             'component':'mozaik.sheets.population_selector.RCSpace', 
-#             'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':0.0}
-#           },
-#           injection_current=-.5, # nA
-#           num_sizes=10, 
-#           max_size=5.0, # max radius
-#           orientations=[0.], #numpy.pi/2, 
-#           spatial_frequency=0.5, #
-#           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
-#           grating_duration=1*147*7,
-#           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-#           num_trials=6,
-#           log_spacing=True
-#       )
-#   ]
 
-# def create_experiments_size_V1_inactivated_nonoverlapping(model):
-#   return [
-#       NoStimulation( model, duration=147*7 ),
-#       # SIZE TUNING
-#       # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
-#       MeasureSizeTuningWithInactivation(
-#           model, 
-#           sheet_list=["V1_Exc_L4"],
-#           injection_configuration={
-#             'component':'mozaik.sheets.population_selector.RCSpace', 
-#             'params':{'radius':0.4, 'offset_x':0.0, 'offset_y':600.0} 
-#           },
-#           injection_current=-.5, # nA
-#           num_sizes=10, 
-#           max_size=5.0, # max radius
-#           orientations=[numpy.pi/2], 
-#           spatial_frequency=0.5, #
-#           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
-#           grating_duration=1*147*7,
-#           contrasts=[80], #40,100  to look for contrast-dependent RF expansion
-#           num_trials=6,
-#           log_spacing=True
-#       )
-#   ]
-
-
-
-
-def create_experiments_brokenbar(model):
+def create_interrupted_bar(model):
   return [
       NoStimulation( model, duration=147*7 ),
-      # CONTOUR COMPLETION
-      # as in Mumford1991
-      MeasureBrokenBarResponse(
-          model, 
-          relative_luminance = 0., # 0. is dark, 1.0 is double the background luminance
-          orientation = 0., # 0, pi
-          width = 0.5, # cpd
-          length = 5., # cpd, length of the bar
-          flash_duration = 300., # ms, duration of the bar presentation
-          distance = .5, # degrees, radius of the gap
-          x = .0, # degrees, x location of the center of the bar
-          y = .0, # degrees, y location of the center of the bar
-          duration = 100*7,
-          num_trials = 1
-      ),
+
+      MapResponseToInterruptedBarStimulus(
+        model,
+        ParameterSet({
+          'x' : 0,
+          'y' : 0,
+          'length' : 1/0.8/2.0 * 12.0,
+          'width' :  1/0.8/4.0,
+          'orientation' : 0,
+          'max_offset' : 1/0.8/2.0 * 1.5,
+          'steps' : 1,
+          'duration' : 1000,
+          'flash_duration' : 500, 
+          'relative_luminances' : [0.0,0.7,1.0],
+          'num_trials' : 1,
+          'gap_lengths' : [0.3,0.6]
+        })
+      )
   ]
 
-
-
-
-
-def create_experiments_correlation(model):
-  return [
-      NoStimulation( model, duration=147*7 ),
-      # CONTOUR COMPLETION
-      # as in SillitoJonesGersteinWest1994, SillitoCudeiroMurphy1993
-      MeasureFeatureInducedCorrelation(
-          model, 
-          contrast=80, 
-          spatial_frequencies=[0.5],
-          separation=1.5, #[1,2,3,4] # SillitoJonesGersteinWest1994 (at 13deg eccentricity) # degrees of visual field
-          temporal_frequency=2.0,
-          exp_duration=1*147*7,
-          frame_duration=7,
-          num_trials=2,
-      ),
-  ]
 
 
 

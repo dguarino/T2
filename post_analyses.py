@@ -2681,7 +2681,7 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 		print "No Vm recorded.\n"
 		return
 	ids = analog_ids
-	
+
 	# spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	# if spike_ids == None or len(spike_ids)<1:
 	# 	print "No spike recorded.\n"
@@ -2894,9 +2894,341 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
 	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
 	plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
+	# plt.yscale('log')
 	plt.savefig( folder+"/trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
+
+
+
+
+def SynergyIndex_Vm( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+	import matplotlib as ml
+	import quantities as pq
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+
+	trials = len(segs) / num_stim
+	print "trials:",trials
+
+	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
+	if analog_ids == None or len(analog_ids)<1:
+		print "No Vm recorded.\n"
+		return
+	ids = analog_ids
+
+	print "Recorded neurons:", len(ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+
+	positions = data_store.get_neuron_postions()[sheet]
+	print positions.shape # all 10800
+
+	# take the positions of the ids
+	ids_positions = numpy.transpose(positions)[sheet_indexes,:]
+	print ids_positions.shape
+	# print ids_positions
+
+	##############################
+	# Synergy Index
+	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
+	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
+	# sigma = 0.180 # um #   max: 0.0               min:0.0  
+
+	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
+	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.binary) # form black 0 to white 1
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
+	def dLHI(sheet, positions, sheet_indexes, vms, ids, ids_positions, sigma):
+		dLHI = {}
+		ivms = dict(zip(ids, vms))
+		for vm, i, x in zip(vms, ids, ids_positions):
+			# select all cells within 3*sigma radius
+			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+			# integrate 
+			local_sum = 0.
+			vector_sum = 0.
+			for y,sy in zip(Ys,sheet_Ys):
+				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+				vector_sum += distance_weight * complex_domain * ivms[y].magnitude
+			dLHI[i] = abs(vector_sum)
+			# print "dLHI",dLHI[i]
+		print "dLHI extremes",numpy.mean(dLHI.values()),numpy.std(dLHI.values()),min(dLHI.values()), max(dLHI.values())
+		return dLHI
+
+	# SI over all trials and orientations
+	trial_avg_mean_SI = []
+	trial_avg_stdev_SI = []
+	SItrials = 0 # index of trials
+
+	for s in segs:
+		dist = eval(s.annotations['stimulus'])
+		# print dist
+		if dist['radius'] < 0.1:
+			continue
+		# if dist['trial'] > 0: 
+		# 	continue
+		if dist['orientation'] > 0.0: # only one orientation, for the moment
+			continue
+
+		s.load_full()
+
+		SItrials += 1
+
+		for a in s.analogsignalarrays:
+			# print "a.name: ",a.name
+			if a.name == 'v':
+				# print "a",a.shape # (10291, 900)  (vm instants t, cells)
+				# print "max", numpy.amax(a.magnitude, axis=0)#.shape
+				# normSI = numpy.maximum(normSI, numpy.amax(a.magnitude, axis=0)) 
+				# print "normSI",normSI
+				# print (2 * numpy.pi * sigma**2), numpy.sqrt(2 * numpy.pi) * sigma
+
+				avg_resting_dLHI = {}
+				for i in ids:
+					avg_resting_dLHI[i] = 0.0
+
+				for t,vms in enumerate(a):
+					# print vms.shape
+
+					if t < 50: #from 2ms on (to avoid beginnings)
+						continue
+
+					if t%30 != 0: # Dt=3ms
+						continue
+					print t
+
+					if t<210: # from 5ms to 20ms
+						resting_dLHI = dLHI(sheet, positions, sheet_indexes, vms, ids, ids_positions, sigma)
+						# print "resting_dLHI",resting_dLHI # will be averaged over the 40ms
+						for k in ids:
+							avg_resting_dLHI[k] = avg_resting_dLHI[k] + resting_dLHI[k]
+							# print avg_resting_dLHI[k]
+
+					if t==210: # avg
+						for k in ids:
+							avg_resting_dLHI[k] = avg_resting_dLHI[k] / 5 # (15ms)/3ms
+						# print "avg resting dLHI extremes",numpy.mean(avg_resting_dLHI.values()),numpy.std(avg_resting_dLHI.values()),min(avg_resting_dLHI.values()), max(avg_resting_dLHI.values())
+
+					if t>210 and t<5000: # from 200ms up to 500ms
+						stim_dLHI = dLHI(sheet, positions, sheet_indexes, vms, ids, ids_positions, sigma)
+
+						SI = {}
+						# average resting_dLHI
+						for k in ids:
+							SI[k] = (stim_dLHI[k] - avg_resting_dLHI[k]) / avg_resting_dLHI[k]
+						# print "SI extremes",numpy.mean(SI.values()),numpy.std(SI.values()),min(SI.values()), max(SI.values())
+
+						trialSI = [] # avg over all cells for this timestep
+						norm = max(SI.values())
+						for l in SI: # normalization based on maximal value, done at the end to avoid loosing info
+							SI[l] = SI[l] / norm # 0 to 1
+							trialSI.append(SI[l])
+						trial_avg_mean_SI.append( numpy.mean(trialSI) )
+						trial_avg_stdev_SI.append( numpy.std(trialSI) )
+
+						## plot each instant
+						# time = '{:04d}'.format(t/10) # sim at 0.1ms
+
+						# # open image
+						# plt.figure()
+
+						# for i,x in zip(ids, ids_positions):
+						# 	# print i, x
+						# 	plt.scatter( x[0][0], x[0][1], marker='o', c=mapper.to_rgba(SI[i]), edgecolors='none' )
+						# 	plt.xlabel(time, color='silver', fontsize=22)
+						# # close image
+						# print 'printing', time
+						# plt.savefig( folder+"/SI_"+sheet+"_"+addon+"_time"+time+".svg", dpi=300, transparent=True )
+						# plt.close()
+						# gc.collect()
+
+	# SI mean over trials
+	# print "trial_avg_mean_SI", trial_avg_mean_SI, len(trial_avg_mean_SI)
+	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)
+	trial_avg_mean_SI /= SItrials 
+	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)
+	trial_avg_stdev_SI /= SItrials 
+	print "max mean:",max(trial_avg_mean_SI), "max std:",max(trial_avg_stdev_SI)
+
+	plt.figure()
+	# err_max = trial_avg_mean_SI + trial_avg_stdev_SI
+	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
+	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
+	plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
+	plt.yscale('log')
+	plt.savefig( folder+"/trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
+
+
+
+
+def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+	import matplotlib as ml
+	import quantities as pq
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+
+	trials = len(segs) / num_stim
+	print "trials:",trials
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	if spike_ids == None or len(spike_ids)<1:
+		print "No spikes recorded.\n"
+		return
+	ids = spike_ids
+
+	print "Recorded neurons:", len(ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+
+	positions = data_store.get_neuron_postions()[sheet]
+	print positions.shape # all 10800
+
+	# take the positions of the ids
+	ids_positions = numpy.transpose(positions)[sheet_indexes,:]
+	print ids_positions.shape
+	# print ids_positions
+
+	##############################
+	# Synergy Index
+	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
+	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
+	# sigma = 0.180 # um #   max: 0.0               min:0.0  
+
+	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
+	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.binary) # form black 0 to white 1
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
+	def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma):
+		dLHI = {}
+		if h is None:
+			h = {}
+			for i in ids:
+				h[i] = 1.
+			# h = dict( zip(ids, numpy.array([1])) )
+		for i, x in zip(ids, ids_positions):
+			# select all cells within 3*sigma radius
+			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+			# integrate 
+			local_sum = 0.
+			vector_sum = 0.
+			for y,sy in zip(Ys,sheet_Ys):
+				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+				vector_sum += distance_weight * complex_domain * h[y]
+				# vector_sum += distance_weight * complex_domain * h[y].sum()
+			dLHI[i] = abs(vector_sum)
+			# print "dLHI",dLHI[i]
+		for i in ids:
+			dLHI[i] /= max(dLHI.values()) # normalization
+		return dLHI
+
+	# SI over all trials and orientations
+	trial_avg_mean_SI = []
+	trial_avg_stdev_SI = []
+	SItrials = 0 # index of trials
+
+	# the resting SI is the static LHI
+	LHI = {}
+	for i in ids:
+		LHI[i] =  dLHI(sheet, positions, sheet_indexes, None, ids, ids_positions, sigma)
+
+	# each segment has all cells spiketrains for one trial
+	for s in segs:
+		dist = eval(s.annotations['stimulus'])
+		# print dist
+		if dist['radius'] < 0.1:
+			continue
+		# if dist['trial'] > 0: 
+		# 	continue
+		if dist['orientation'] > 0.0: # only one orientation, for the moment
+			continue
+
+		s.load_full()
+
+		SItrials += 1
+
+		print "cell's spiketrains:", len(s.spiketrains) # (900) (#cells)
+		h = {}
+		for a in s.spiketrains: # spiketrains of one trial
+			# print "notes",
+			# print "a ",a # spiketrains are already in ms
+			# print numpy.histogram(a, bins=102, range=(0.0,1029.0))[0]
+			# h[ a.annotations['source_id'] ] = numpy.histogram(a, bins=102, range=(0.0,1029.0))[0] ) # 10ms bin
+			h[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
+			# print h
+
+		stim_dLHI = dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma)
+
+		SI = {}
+		# average resting_dLHI
+		for k in ids:
+			SI[k] = (stim_dLHI[k] - LHI[k]) / LHI[k]
+			# print "SI extremes",numpy.mean(SI.values()),numpy.std(SI.values()),min(SI.values()), max(SI.values())
+
+		trialSI = [] # avg over all cells for this timestep
+		norm = max(SI.values())
+		for l in SI: # normalization based on maximal value, done at the end to avoid loosing info
+			SI[l] = SI[l] / norm # 0 to 1
+			trialSI.append(SI[l])
+		trial_avg_mean_SI.append( numpy.mean(trialSI) )
+		trial_avg_stdev_SI.append( numpy.std(trialSI) )
+
+	# SI mean over trials
+	# print "trial_avg_mean_SI", trial_avg_mean_SI, len(trial_avg_mean_SI)
+	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)
+	trial_avg_mean_SI /= SItrials 
+	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)
+	trial_avg_stdev_SI /= SItrials 
+	print "max mean:",max(trial_avg_mean_SI), "max std:",max(trial_avg_stdev_SI)
+
+	plt.figure()
+	# err_max = trial_avg_mean_SI + trial_avg_stdev_SI
+	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
+	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
+	plt.plot(abs(trial_avg_mean_SI), color="black", linewidth=3.)
+	plt.yscale('log')
+	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
+
 
 
 
@@ -3718,6 +4050,41 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 
 
 
+def save_positions( sheet, folder, stimulus, parameter ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	analog_ids = sorted( param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids() )
+	print "Recorded neurons:", len(analog_ids)
+
+	sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
+	positions = data_store.get_neuron_postions()[sheet]
+
+	idpos = {}
+	for i in sheet_ids:
+		idpos[i[0]] = [ positions[0][i][0],positions[1][i][0],positions[2][i][0] ]
+	print idpos
+
+	import json
+	json = json.dumps(idpos)
+	print folder+"/id_positions_"+str(sheet)+".json"
+	f = open(folder+"/id_positions_"+str(sheet)+".json", 'w')
+	f.write(json)
+	f.close()
+
+
+	# segs = sorted( 
+	# 	param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+	# 	# key = lambda x : MozaikParametrized.idd(x.annotations['stimulus']).radius 
+	# 	key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	# )
+
+
+
+
 
 def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, lfp_opposite=False, spike_opposite=False, addon="", color="black"):
 	print inspect.stack()[0][3]
@@ -4331,8 +4698,8 @@ addon = ""
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
-# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = ['V1_Inh_L4'] 
+sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
@@ -4890,7 +5257,15 @@ else:
 			# 	# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
 			# 	# data_curve=False,
 			# )
-			LHI( 
+			# LHI( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	# radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
+			SynergyIndex_spikes( 
 				sheet=s, 
 				folder=f,
 				stimulus='DriftingSinusoidalGratingDisk',
@@ -5229,6 +5604,13 @@ else:
 			# 	addon = "ortho_surround_" + addon,
 			# )
 
+			save_positions( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+			)
+
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -5297,7 +5679,7 @@ else:
 			
 			# # stLFP: LGN postsynaptic response to iso-surround spikes
 						
-			# stLFP: Exc iso-surround postsynaptic response to iso-center spikes
+			# # stLFP: Exc iso-surround postsynaptic response to iso-center spikes
 			# SpikeTriggeredAverage(
 			# 	lfp_sheet='V1_Exc_L4', 
 			# 	spike_sheet='V1_Exc_L4', 
