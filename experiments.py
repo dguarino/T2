@@ -249,6 +249,31 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
   ]
 
 
+def create_experiment_interrupted_bar(model):
+  return [
+      NoStimulation( model, ParameterSet({'duration':147*7}) ),
+      # SIZE TUNING
+      # as in Jones et al. 2012: inactivation of a region corresponding to 0.5 deg in cortex
+      MapResponseToInterruptedBarStimulus(
+        model,
+        ParameterSet({
+          'x' : 0,
+          'y' : 0,
+          'length' : 1/0.8/2.0 * 12.0,
+          'width' :  1/0.8/4.0,
+          'orientation' : 0,
+          'max_offset' : 1/0.8/2.0 * 1.5,
+          'steps' : 1,
+          'duration' : 1000,
+          'flash_duration' : 500, 
+          'relative_luminances' : [0.0,0.7,1.0],
+          'num_trials' : 1,
+          'gap_lengths' : [0.3,0.6]
+        })
+      )
+  ]
+
+
 
 # LIFELONG SPARSENESS
 # as in RathbunWarlandUsrey2010, AndolinaJonesWangSillito2007
