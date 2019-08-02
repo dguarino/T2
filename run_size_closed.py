@@ -12,18 +12,7 @@ from parameters import ParameterSet
 
 from model_V1_full import ThalamoCorticalModel
     
-from experiments import create_experiments_spontaneous
-from experiments import create_experiments_luminance
-from experiments import create_experiments_contrast
-from experiments import create_experiments_spatial
-from experiments import create_experiments_temporal
 from experiments import create_experiments_size
-from experiments import create_experiments_orientation
-from experiments import create_experiments_correlation
-
-from analysis_and_visualization import perform_analysis_test
-from analysis_and_visualization import perform_analysis_and_visualization
-from analysis_and_visualization import perform_analysis_and_visualization_radius
 
 
 try:

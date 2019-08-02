@@ -131,14 +131,14 @@ def create_experiments_size(model):
       MeasureSizeTuning(
           model, 
           num_sizes=2, # 10,
-          max_size=1.4, # 5., # radius
-          # orientations=[0.0], 
-          orientations=[0.0, numpy.pi/8, numpy.pi/4, 3*numpy.pi/8, numpy.pi/2], 
+          max_size=0.1, # 1.4, #5., # radius
+          orientations=[0.0], 
+          # orientations=[0.0, numpy.pi/8, numpy.pi/4, 3*numpy.pi/8, numpy.pi/2], 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
           contrasts=[80], 
-          num_trials=4, #6
+          num_trials=20, #6
           log_spacing=False, # True
           with_flat=False #use also flat luminance discs
       )
@@ -245,20 +245,18 @@ def create_interrupted_bar(model):
 
       MapResponseToInterruptedBarStimulus(
         model,
-        ParameterSet({
-          'x' : 0,
-          'y' : 0,
-          'length' : 1/0.8/2.0 * 12.0,
-          'width' :  1/0.8/4.0,
-          'orientation' : 0,
-          'max_offset' : 1/0.8/2.0 * 1.5,
-          'steps' : 1,
-          'duration' : 1000,
-          'flash_duration' : 500, 
-          'relative_luminances' : [0.0,0.7,1.0],
-          'num_trials' : 1,
-          'gap_lengths' : [0.3,0.6]
-        })
+        x=0,
+        y=0,
+        length=1/0.8/2.0 * 12.0,
+        width= 1/0.8/4.0,
+        orientation=0,
+        max_offset= 1/0.8/2.0 * 1.5,
+        steps= 1,
+        duration= 1000,
+        flash_duration= 500, 
+        relative_luminances= [0.0,0.7,1.0],
+        num_trials= 1,
+        gap_lengths= [0.3,0.6]
       )
   ]
 

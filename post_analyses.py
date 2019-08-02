@@ -3127,6 +3127,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
 	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
+	bins = 102 # 10ms for 1029ms
 
 	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
 	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
@@ -3135,29 +3136,24 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
-	def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma):
+	def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins):
 		dLHI = {}
-		if h is None:
-			h = {}
-			for i in ids:
-				h[i] = 1.
-			# h = dict( zip(ids, numpy.array([1])) )
 		for i, x in zip(ids, ids_positions):
 			# select all cells within 3*sigma radius
 			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
 			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
 			# integrate 
 			local_sum = 0.
-			vector_sum = 0.
+			vector_sum = numpy.zeros(bins)
 			for y,sy in zip(Ys,sheet_Ys):
 				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
 				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
-				vector_sum += distance_weight * complex_domain * h[y]
-				# vector_sum += distance_weight * complex_domain * h[y].sum()
+				if h is None:
+					vector_sum += [distance_weight * complex_domain] * bins
+				else:
+					vector_sum += distance_weight * complex_domain * h[y]
 			dLHI[i] = abs(vector_sum)
-			# print "dLHI",dLHI[i]
-		for i in ids:
-			dLHI[i] /= max(dLHI.values()) # normalization
+			# print "dLHI[i]",dLHI[i]
 		return dLHI
 
 	# SI over all trials and orientations
@@ -3166,9 +3162,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	SItrials = 0 # index of trials
 
 	# the resting SI is the static LHI
-	LHI = {}
-	for i in ids:
-		LHI[i] =  dLHI(sheet, positions, sheet_indexes, None, ids, ids_positions, sigma)
+	print "resting LHI ..."
+	LHI = dLHI(sheet, positions, sheet_indexes, None, ids, ids_positions, sigma, bins)
 
 	# each segment has all cells spiketrains for one trial
 	for s in segs:
@@ -3176,55 +3171,50 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 		# print dist
 		if dist['radius'] < 0.1:
 			continue
-		# if dist['trial'] > 0: 
-		# 	continue
+		if dist['trial'] > 0: 
+			continue
 		if dist['orientation'] > 0.0: # only one orientation, for the moment
 			continue
 
-		s.load_full()
+		# s.load_full()
 
 		SItrials += 1
 
-		print "cell's spiketrains:", len(s.spiketrains) # (900) (#cells)
+		print "cell's spiketrains:", len(s.spiketrains) # number of cells
 		h = {}
 		for a in s.spiketrains: # spiketrains of one trial
 			# print "notes",
 			# print "a ",a # spiketrains are already in ms
-			# print numpy.histogram(a, bins=102, range=(0.0,1029.0))[0]
-			# h[ a.annotations['source_id'] ] = numpy.histogram(a, bins=102, range=(0.0,1029.0))[0] ) # 10ms bin
-			h[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
-			# print h
+			# print numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0]
+			h[ a.annotations['source_id'] ] = numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0] # 10ms bin
+			# h[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
 
-		stim_dLHI = dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma)
+		print "stimulation dLHI ...", SItrials
+		stim_dLHI = dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins)
+		# print stim_dLHI
 
 		SI = {}
 		# average resting_dLHI
 		for k in ids:
-			SI[k] = (stim_dLHI[k] - LHI[k]) / LHI[k]
-			# print "SI extremes",numpy.mean(SI.values()),numpy.std(SI.values()),min(SI.values()), max(SI.values())
+			SI[k] = abs(stim_dLHI[k] - LHI[k]) / LHI[k] # resting LHI has been initialised with ones
+		# print "SI", len(SI), SI
 
-		trialSI = [] # avg over all cells for this timestep
-		norm = max(SI.values())
-		for l in SI: # normalization based on maximal value, done at the end to avoid loosing info
-			SI[l] = SI[l] / norm # 0 to 1
-			trialSI.append(SI[l])
-		trial_avg_mean_SI.append( numpy.mean(trialSI) )
-		trial_avg_stdev_SI.append( numpy.std(trialSI) )
+		trial_avg_mean_SI.append( numpy.mean(SI.values(), axis=0) )
+		trial_avg_stdev_SI.append( numpy.std(SI.values(), axis=0) )
 
 	# SI mean over trials
-	# print "trial_avg_mean_SI", trial_avg_mean_SI, len(trial_avg_mean_SI)
-	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)
+	# print "trial_avg_mean_SI before", trial_avg_mean_SI, len(trial_avg_mean_SI)
+	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)[0]
 	trial_avg_mean_SI /= SItrials 
-	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)
+	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)[0]
 	trial_avg_stdev_SI /= SItrials 
-	print "max mean:",max(trial_avg_mean_SI), "max std:",max(trial_avg_stdev_SI)
 
 	plt.figure()
 	# err_max = trial_avg_mean_SI + trial_avg_stdev_SI
 	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
 	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
-	plt.plot(abs(trial_avg_mean_SI), color="black", linewidth=3.)
-	plt.yscale('log')
+	plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
+	# plt.yscale('log')
 	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
@@ -4084,8 +4074,6 @@ def save_positions( sheet, folder, stimulus, parameter ):
 
 
 
-
-
 def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, ylim=[0.,100.], tip_box=[[.0,.0],[.0,.0]], radius=False, lfp_opposite=False, spike_opposite=False, addon="", color="black"):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -4600,9 +4588,9 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_temporal_closed_____",
 	# "Deliverable/ThalamoCorticalModel_data_temporal_open_____",
 
-	# "Deliverable/Thalamocortical_size_closed", # BIG
+	# "/media/do/HANGAR/Thalamocortical_size_closed", # BIG
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_cond_____",
-	# "Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
+	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_size_closed_____", # <<<<<<< ISO Coherence, V1 conductance
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_____large",
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
@@ -4612,13 +4600,18 @@ full_list = [
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
-	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_larger_____",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
+
+	# # Synergy Index
 	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
+
+	# # sizes of feedback radius
+	"/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
+	"/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
+	"/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_smaller_10-15_____6trials",
+	"/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_larger_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "Deliverable/Thalamocortical_size_feedforward", # BIG
@@ -5604,12 +5597,12 @@ else:
 			# 	addon = "ortho_surround_" + addon,
 			# )
 
-			save_positions( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-			)
+			# save_positions( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# )
 
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
