@@ -3274,9 +3274,14 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
 	# this mean vm composes a plot of each annulus (row) over time
+	# annulus_radius = 0.3
+	# start = 1.4
+	# stop = 3. - annulus_radius
+	# num = 5 # annuli
+
 	annulus_radius = 0.3
-	start = 1.4
-	stop = 3. - annulus_radius
+	start = 0.0
+	stop = 1.6 - annulus_radius
 	num = 5 # annuli
 
 	# open image
@@ -4601,16 +4606,17 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
+	"ThalamoCorticalModel_data_size_Yves_____",
 
 	# # Synergy Index
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
-	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
 
-	# # sizes of feedback radius
-	"/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
-	"/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
-	"/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_smaller_10-15_____6trials",
-	"/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
+	# # # sizes of feedback radius
+	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
+	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____30radius",
+	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_smaller_10-15_____6trials",
+	# "/media/do/OLD_SYST/ThalamoCorticalModel_data_size_closed_vsdi_larger_120-270_____6trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_larger_____",
 
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
@@ -5258,15 +5264,7 @@ else:
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
-			SynergyIndex_spikes( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				# radius = [.0, 0.7], # center
-				addon = addon,
-			)
-			# VSDI( 
+			# SynergyIndex_spikes( 
 			# 	sheet=s, 
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
@@ -5274,6 +5272,14 @@ else:
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
+			VSDI( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				# radius = [.0, 0.7], # center
+				addon = addon,
+			)
 			# trial_averaged_Vm( 
 			# 	sheet=s, 
 			# 	folder=f,
