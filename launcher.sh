@@ -123,14 +123,15 @@
 # mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
 
-# echo "starting bar"
-# echo
-mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'data_interrupted_bar_control'
-
-
-
-echo "starting Size"
+echo "starting bar"
 echo
+mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'data_interrupted_bar_ver3_closed'
+mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'data_interrupted_bar_ver3_ffw'
+
+
+
+# echo "starting Size"
+# echo
 # mpirun -np 1 python run_size_closed.py nest 8 param/defaults_mea 'data_size_Yves'
 # mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
 # mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_nonoverlapping'

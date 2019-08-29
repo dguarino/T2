@@ -4,11 +4,11 @@ import neo
 import glob
 
 # loading a neo file
-folder = "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_size_closed_____/" # example on my machine
+folder = "ThalamoCorticalModel_data_interrupted_bar_ver2_____/" # example on my machine
 # folder = 	"/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_closed_____/" # example on my machine
 
 filenames = [ x for x in glob.glob(folder+"*.pickle") ]
-print filenames
+# print filenames
 
 for name in filenames:
 	print name
@@ -28,6 +28,6 @@ for name in filenames:
 		for a in seg.analogsignalarrays:
 			print
 			print a.name, a.annotations
-			print a
+			# print a
 
 	# vm = seg.filter(name = 'v')[0]

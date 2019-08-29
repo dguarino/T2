@@ -253,7 +253,7 @@ def create_interrupted_bar(model):
       #   orientation=0,
       #   max_offset= 1/0.8/2.0 * 1,
       #   steps= 3,
-      #   duration= 1000,
+      #   duration= 700,
       #   flash_duration= 500, 
       #   relative_luminances= [1.0],
       #   num_trials= 1,
@@ -270,14 +270,14 @@ def create_interrupted_bar(model):
       #   orientation=0,
       #   max_offset= 1/0.8/2.0 * 1,
       #   steps= 3,
-      #   duration= 1000,
+      #   duration= 700,
       #   flash_duration= 500, 
       #   relative_luminances= [0.55],
       #   num_trials= 1,
       #   gap_lengths= [0.0,0.1,0.2,0.4,0.8,1.6,3.2]
       # )
 
-      ## Control
+      ## version 3
       MapResponseToInterruptedBarStimulus(
         model,
         x=0,
@@ -285,14 +285,31 @@ def create_interrupted_bar(model):
         length= 20,
         width= 1/0.8/4.0,
         orientation=0,
-        max_offset= 1/0.8/2.0 * 1.5,
-        steps= 8,
-        duration= 1000,
-        flash_duration= 500, 
+        max_offset= 1/0.8/2.0 * 1,
+        steps= 1,
+        duration= 2*143*7,
+        flash_duration= 2*143*7, 
         relative_luminances= [1.0],
         num_trials= 10,
-        gap_lengths= [0.0]
+        gap_lengths=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,1.6,3.2]
       )
+
+      # ## Control
+      # MapResponseToInterruptedBarStimulus(
+      #   model,
+      #   x=0,
+      #   y=0,
+      #   length= 20,
+      #   width= 1/0.8/4.0,
+      #   orientation=0,
+      #   max_offset= 1/0.8/2.0 * 1.5,
+      #   steps= 8,
+      #   duration= 700,
+      #   flash_duration= 500, 
+      #   relative_luminances= [1.0],
+      #   num_trials= 10,
+      #   gap_lengths= [0.0]
+      # )
 
   ]
 
