@@ -17,17 +17,17 @@ for name in filenames:
 
 	if 'V1_Exc_L4' in seg.description or 'V1_Inh_L4' in seg.description:
 		print
-		print seg.description
+		print seg.name, seg.description
 
 		print
 		print len(seg.spiketrains)
 		for st in seg.spiketrains:
-			print st.annotations
+			print st.name, st.description, st.annotations
 
 		print
 		for a in seg.analogsignalarrays:
 			print
-			print a.name, a.annotations
+			print a.name, a.description, a.annotations
 			# print a
 
 	# vm = seg.filter(name = 'v')[0]
