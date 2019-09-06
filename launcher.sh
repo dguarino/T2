@@ -125,8 +125,8 @@
 
 echo "starting bar"
 echo
-mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'data_interrupted_bar_ver3_closed'
-mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'data_interrupted_bar_ver3_ffw'
+mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'int_bar_ver3_closed'
+mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'int_bar_ver3_ffw'
 
 
 
