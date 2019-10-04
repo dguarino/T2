@@ -449,143 +449,6 @@ def trial_averaged_raster( sheet, folder, stimulus, parameter, opposite=False, b
 
 
 
-def LFP2( sheet, folder, stimulus, parameter, tip=[.0,.0,.0], sigma=0.300, ylim=[0.,-1.], addon="", color='black' ):
-	import matplotlib as ml
-	import quantities as pq
-	print inspect.stack()[0][3]
-	print "folder: ",folder
-	print "sheet: ",sheet
-
-	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
-	data_store.print_content(full_recordings=False)
-
-	segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
-		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
-	)
-
-	analog_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
-	if analog_ids == None or len(analog_ids)<1:
-		print "No Vm recorded.\n"
-		return
-	ids = analog_ids
-
-	print "Recorded neurons:", len(ids)
-	# 900 neurons over 6000 micrometers, 200 micrometers interval
-
-	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
-	recorded_sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
-
-	# NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-	# pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
-	# print pnv #[0]
-	# pnv_ids = sorted( set(pnv.ids).intersection(set(ids)) )
-	# # print pnv_ids==ids
-
-	positions = data_store.get_neuron_postions()[sheet]
-	print "positions.shape",positions.shape # all 10800
-
-	# take the positions of the recorded ids
-	ids_positions = numpy.transpose(positions)[recorded_sheet_indexes,:]
-	print "ids_positions.shape",ids_positions.shape
-	# print ids_positions
-
-	##############################
-	# LFP calculation
-	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
-
-	trials = 0
-	trial_avg_lfp = []
-	for s in segs:
-		dist = eval(s.annotations['stimulus'])
-
-		s.load_full()
-
-		trials += 1
-
-		lfp = 0. # simple sum of all Vms
-		for idd,pos in zip(ids,ids_positions):
-			vms = s.get_vm(idd)
-			ge = s.get_esyn(idd)
-			gi = s.get_isyn(idd)
-			# print ge.shape
-
-			# Produce the current for the whole recorded time, with the Ohm law:
-			# I = ge(V-Ee) + gi(V+Ei)
-			# where 
-			# Ee is the equilibrium for exc, which is 0.0
-			# Ei is the equilibrium for inh, which is -80.0
-			# Inhibitory neurons have negligeble contribution
-			i = pop_e*(pop_v-0.0) + 0.9*pop_i*(pop_v-80.0)
-			lfp += i/(4*numpy.pi*sigma) # Z-score
-			# mm, since 1mm = 1deg in this cortical space 
-			# sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
-			# sigma = 0.25 # 0.25 Bartos et al.
-			# lfp /= 1000. # from milli to micro
-		print "LFP:", lfp.shape, lfp.mean(), lfp.min(), lfp.max()
-		print lfp
-
-			# full_vm = [ for s in segs] # all segments
-			# full_gsyn_es = [s.get_esyn(idd) for s in segs]
-			# full_gsyn_is = [s.get_isyn(idd) for s in segs]
-
-		# for a in s.analogsignalarrays:
-		# 	# print "a.name: ",a.name
-		# 	if a.name == 'v':
-		# 		print "v",a.shape # (10291, 900)  (vm instants t, cells)
-
-				# for t,vms in enumerate(a):
-					# print vms.shape
-
-	# 				resting_dLHI = dLHI(sheet, positions, sheet_indexes, vms, ids, ids_positions, sigma)
-
-	# 			#def dLHI(sheet, positions, sheet_indexes, vms, ids, ids_positions, sigma):
-	# 			lfp = 0.
-	# 			for vm, i, x in zip(vms, ids, ids_positions):
-	# 				# select all cells within 3*sigma radius
-	# 				# selected_sheet_indexes = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
-	# 				# selected_sheet_ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=selected_sheet_indexes)
-	# 				# integrate 
-	# 				sum_i = 0.
-	# 				for y,sy in zip(ids, ids_positions):
-	# 					distance_weight = numpy.linalg.norm( x - numpy.transpose(positions)[sy] )
-
-	# 					sum_i += distance_weight * 
-
-	# 					# Produce the current for each cell for this time interval, with the Ohm law:
-	# 					# I = ge(V-Ee) + gi(V+Ei)
-	# 					# where 
-	# 					# Ee is the equilibrium for exc, which is 0.0
-	# 					# Ei is the equilibrium for inh, which is -80.0
-	# 					# Inhibitory neurons have negligeble contribution
-	# 					i = pop_e*(pop_v-0.0) + pop_i*(pop_v-80.0)
-	# 					# i = pop_e*(pop_v-0.0) + 0.3*pop_i*(pop_v-80.0)
-	# 					# i = pop_e*(pop_v-0.0) # only exc
-	# 					# the LFP is the result of cells' currents
-	# 					sum_i = numpy.sum(i, axis=0 )
-	# 					lfp = sum_i/(4*numpy.pi*sigma) # Z-score
-	# 					# avg_i = numpy.average( i, weights=distances**2, axis=0 )
-	# 					# mm, since 1mm = 1deg in this cortical space 
-	# 					# sigma = 0.1 # [0.1, 0.01] # Dobiszewski_et_al2012.pdf
-	# 					# sigma = 0.25 # 0.25 Bartos et al.
-	# 					lfp /= 1000. # from milli to micro
-	# 					print "LFP:", lfp.shape, lfp.mean(), lfp.min(), lfp.max()
-	# 					print lfp
-
-
-	# 		lfp[i] = abs(vector_sum)
-	# 		# print "dLHI",dLHI[i]
-	# 	print "dLHI extremes",numpy.mean(dLHI.values()),numpy.std(dLHI.values()),min(dLHI.values()), max(dLHI.values())
-	# 	return dLHI
-
-	# # over all trials and stimulus variations
-	# trial_avg_mean_SI = []
-	# trial_avg_stdev_SI = []
-	# trials = 0
-
-
-
-
 
 def LFP( sheet, folder, stimulus, parameter, tip=[.0,.0,.0], sigma=0.300, ylim=[0.,-1.], addon="", color='black' ):
 	import matplotlib as ml
@@ -597,18 +460,22 @@ def LFP( sheet, folder, stimulus, parameter, tip=[.0,.0,.0], sigma=0.300, ylim=[
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	segs = sorted( 
-		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
-		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
-	)
-	print len(segs)
-	# for s in segs:
-	# 	s.load_full()
+	ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_esyn_ids()
+	if ids == None or len(ids)<1:
+		print "No gesyn recorded.\n"
+		return
+	print "Recorded gesyn:", len(ids), ids
 
 	ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_vm_ids()
 	if ids == None or len(ids)<1:
 		print "No Vm recorded.\n"
 		return
+	print "Recorded Vm:", len(ids), ids
+
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	l4_exc_or_many = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
+	ids = list(l4_exc_or_many)
 
 	print "Recorded neurons:", len(ids), ids
 	# 900 neurons over 6000 micrometers, 200 micrometers interval
@@ -714,7 +581,6 @@ def LFP( sheet, folder, stimulus, parameter, tip=[.0,.0,.0], sigma=0.300, ylim=[
 	# i = pop_e*(pop_v-0.0) + 0.3*pop_i*(pop_v-80.0)
 	# i = pop_e*(pop_v-0.0) # only exc
 	# the LFP is the result of cells' currents divided by the distance
-	i = i/distances
 	sum_i = numpy.sum(i, axis=0 )
 	lfp = sum_i/(4*numpy.pi*sigma) #
 	lfp /= 1000. # from milli to micro
@@ -752,6 +618,99 @@ def LFP( sheet, folder, stimulus, parameter, tip=[.0,.0,.0], sigma=0.300, ylim=[
 
 
 
+def trial_averaged_LFP_rate( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", ylim=[0.,100.], radius=None, addon="" ):
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	neurons = []
+	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	print "Recorded neurons:", len(neurons)
+
+	### cascading requirements
+	if radius:
+		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
+		positions = data_store.get_neuron_postions()[sheet]
+		if radius:
+			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
+		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+	####
+	# if orientation:
+	#	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# 	l4_or = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)
+	# 	l4_phase = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentPhase', sheet_name=sheet)
+	# 	# print "l4_phase", l4_phase
+	# 	neurons = numpy.array([neurons[numpy.argmin([circular_dist(o,numpy.pi/2,numpy.pi) for (o,p) in zip(l4_or[0].get_value_by_id(neurons),l4_phase[0].get_value_by_id(neurons))])] ])
+
+	print "Selected neurons:", len(neurons)#, neurons
+	if len(neurons) < 1:
+		return
+
+	SpikeCount( 
+		param_filter_query(data_store, sheet_name=sheet, st_name=stimulus), 
+		ParameterSet({'bin_length':5, 'neurons':list(neurons), 'null':False}) 
+		# ParameterSet({'bin_length':bin, 'neurons':list(neurons), 'null':False}) 
+	).analyse()
+	# datastore.save()
+	TrialMean(
+		param_filter_query( data_store, name='AnalogSignalList', analysis_algorithm='SpikeCount' ),
+		ParameterSet({'vm':False, 'cond_exc':False, 'cond_inh':False})
+	).analyse()
+
+	dsvTM = param_filter_query( data_store, sheet_name=sheet, st_name=stimulus, analysis_algorithm='TrialMean' )
+	# dsvTM.print_content(full_recordings=False)
+	pnvsTM = [ dsvTM.get_analysis_result() ]
+	# print pnvsTM
+	# get stimuli from PerNeuronValues
+	st = [MozaikParametrized.idd(s.stimulus_id) for s in pnvsTM[-1]]
+
+	asl_id = numpy.array([z.get_asl_by_id(neurons) for z in pnvsTM[-1]])
+	print asl_id.shape
+	# Example:
+	# (8, 133, 1029)
+	# 8 stimuli
+	# 133 cells
+	# 1029 bins
+
+	dic = colapse_to_dictionary([z.get_asl_by_id(neurons) for z in pnvsTM[-1]], st, parameter)
+	for k in dic:
+		(b, a) = dic[k]
+		par, val = zip( *sorted( zip(b, numpy.array(a)) ) )
+		dic[k] = (par,numpy.array(val))
+
+	stimuli = dic.values()[0][0]
+	means = asl_id.mean(axis=1) # mean of
+	print means.shape
+	# print "means", means, "stimuli", stimuli
+
+	#plot the LFP for each stimulus
+	for s in range(0,len(means)):
+		# for each stimulus plot the average conductance per cell over time
+		matplotlib.rcParams.update({'font.size':22})
+		fig,ax = plt.subplots()
+
+		ax.plot( range(0,len(means[s])), means[s], color=color, linewidth=3 )
+
+		# ax.set_ylim([lfp.min(), lfp.max()])
+		# ax.set_ylim(ylim)
+		ax.set_ylabel( "LFP (uV)" )
+		ax.set_xlabel( "Time (us)" )
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+
+		# text
+		plt.tight_layout()
+		plt.savefig( folder+"/TimecourseLFPrate_"+sheet+"_"+parameter+"_"+str(s)+"_"+addon+".svg", dpi=200, transparent=True )
+		fig.clf()
+		plt.close()
+		# garbage
+		gc.collect()
+
+
+
+
 def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, start, end, xlabel="", ylabel="", color="black", percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], xlim=False, opposite=False, box=None, radius=None, addon="", data=None, data_curve=True ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -763,14 +722,17 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	neurons = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
 	print "Recorded neurons:", len(neurons)
 
-	if radius or box:
+	if radius:
 		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=neurons)
 		positions = data_store.get_neuron_postions()[sheet]
-		if box:
-			ids1 = select_ids_by_position(positions, sheet_ids, box=box)
 		if radius:
 			ids1 = select_ids_by_position(positions, sheet_ids, radius=radius)
 		neurons = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	l4_exc_or_many = numpy.array(neurons)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in neurons]) < .1)[0]]
+	neurons = list(l4_exc_or_many)
 
 	print "Selected neurons:", len(neurons)#, neurons
 	if len(neurons) < 1:
@@ -793,7 +755,7 @@ def trial_averaged_tuning_curve_errorbar( sheet, folder, stimulus, parameter, st
 	        'sheet_name' : sheet
 	   }), 
 	   fig_param={'dpi' : 200}, 
-	   plot_file_name= folder+"/TrialAveragedSensitivity_"+stimulus+"_"+parameter+"_"+str(sheet)+"_"+addon+"_mean.svg"
+	   plot_file_name= folder+"/TrialAveragedSensitivityNew_"+stimulus+"_"+parameter+"_"+str(sheet)+"_"+addon+"_mean.svg"
 	).plot({
 		# '*.y_lim':(0,30), 
 		# '*.x_lim':(-10,100), 
@@ -823,7 +785,9 @@ full_list = [
 
 	"ThalamoCorticalModel_interrupted_bar_ver3_closed_____",
 	# "ThalamoCorticalModel_interrupted_bar_ver3_ffw_____",
+	# "ThalamoCorticalModel_int_bar_ver3_ffw_____",
 
+	# "ThalamoCorticalModel_annulus_closed_____",
 	]
 
 
@@ -860,7 +824,70 @@ for i,f in enumerate(full_list):
 		print color
 
 
-		# # SIZE
+		# # # 
+		# trial_averaged_LFP_rate(
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='DriftingSinusoidalGratingRing',
+		# 	parameter="inner_appareture_radius",
+		# 	start=0., 
+		# 	end=2000., 
+		# 	xlabel="gap", 
+		# 	ylabel="firing rate (sp/s)", 
+		# 	color=color, 
+		# 	radius = [.0,.1], # center
+		# )
+
+		# LFP(
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='DriftingSinusoidalGratingRing',
+		# 	parameter="inner_appareture_radius",
+		# 	ylim=[-4., 0.0],
+		# 	tip = [.0,.0,.0], # CENTER box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+		# 	# tip_box = [[0.,0.],[0.,0.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+		# 	# tip_box = [[0.,0.],[0.,0.]], # box in which to search a centroid for LFP to measure the conductance effect in lfp_sheet
+		# 	sigma = .4, # spikes from the center of spike_sheet
+		# 	# sigma = 0.1, # [0.1, 0.01] # Dobiszewski_et_al2012.pdf  mm, since 1mm = 1deg in this cortical space 
+		# 	# sigma = 0.25, # 0.25 Bartos et al.
+		# 	addon = addon + "_center",
+		# 	color = color,
+		# )
+
+		# trial_averaged_tuning_curve_errorbar( 
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='DriftingSinusoidalGratingRing',
+		# 	parameter="inner_appareture_radius",
+		# 	start=100., 
+		# 	end=2000., 
+		# 	xlabel="inner radius", 
+		# 	ylabel="firing rate (sp/s)", 
+		# 	color=color, 
+		# 	useXlog=False, 
+		# 	useYlog=False, 
+		# 	percentile=False,
+		# 	# ylim=[0,50],
+		# 	opposite=False, # to select cells with SAME orientation preference
+		# 	radius = [.0,.7], # center
+		# 	addon = addon,
+		# )
+
+		# 
+		# trial_averaged_LFP_rate(
+		# 	sheet=s, 
+		# 	folder=f, 
+		# 	stimulus='FlashedInterruptedBar',
+		# 	parameter="gap_length",
+		# 	bin=10, # us, so in ms
+		# 	start=0., 
+		# 	end=2000., 
+		# 	xlabel="gap", 
+		# 	ylabel="firing rate (sp/s)", 
+		# 	color=color, 
+		# 	radius = [.0,.9], # center
+		# )
+
 		trial_averaged_tuning_curve_errorbar( 
 			sheet=s, 
 			folder=f, 
@@ -876,10 +903,8 @@ for i,f in enumerate(full_list):
 			percentile=False,
 			# ylim=[0,50],
 			opposite=False, # to select cells with SAME orientation preference
-			radius = [.0,.7], # center
+			radius = [.0,.5], # center
 			addon = addon,
-			# data="/home/do/Dropbox/PhD/LGN_data/deliverable/AlittoUsrey2008_6AC_fit.csv",
-			# data_curve=False,
 		)
 
 		# VSDI( 

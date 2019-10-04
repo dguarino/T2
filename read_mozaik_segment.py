@@ -4,7 +4,7 @@ import neo
 import glob
 
 # loading a neo file
-folder = 	"ThalamoCorticalModel_interrupted_bar_ver3_closed_____/" # example on my machine
+folder = 	"ThalamoCorticalModel_int_bar_ver3_closed_____/" # example on my machine
 # folder = 	"/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_closed_____/" # example on my machine
 
 # ds = pickle.load( open(folder+"datastore.recordings.pickle", "rb") )

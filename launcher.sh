@@ -123,10 +123,23 @@
 # mpirun -np 1 python run_temporal_closed.py nest 8 param/defaults 'data_temporal_closed'
 
 
-echo "starting bar"
-echo
-mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'int_bar_ver3_closed'
-mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'int_bar_ver3_ffw'
+# echo
+# echo "starting bar"
+# echo
+# mpirun -np 1 python run_interrupted_bar.py nest 8 param/defaults 'int_bar_ver4_closed'
+# mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'int_bar_ver4_ffw'
+
+# echo
+# echo "annulus"
+# echo
+# mpirun -np 1 python run_annulus.py nest 8 param/defaults 'annulus_closed'
+# mpirun -np 1 python run_annulus_ffw.py nest 8 param/defaults 'annulus_ffw'
+
+# echo
+# echo "mismatch"
+# echo
+# mpirun -np 1 python run_annulus.py nest 8 param/defaults 'mismatch_closed'
+# mpirun -np 1 python run_annulus_ffw.py nest 8 param/defaults 'mismatch_ffw'
 
 
 
@@ -136,4 +149,9 @@ mpirun -np 1 python run_interrupted_bar_ffw.py nest 8 param/defaults 'int_bar_ve
 # mpirun -np 1 python run_size_closed_nonoverlapping.py nest 8 param/defaults_mea 'data_size_closed_nonoverlapping'
 # mpirun -np 1 python run_size_V1_inhibition_nonoverlapping.py nest 8 param/defaults_mea 'data_size_nonoverlapping'
 # mpirun -np 1 python run_size_closed_overlapping.py nest 8 param/defaults_mea 'data_size_closed_overlapping'
-# mpiru
+
+
+
+echo "starting Orientation"
+echo
+mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'

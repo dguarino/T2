@@ -239,9 +239,47 @@ def create_experiments_size_V1_inactivated_nonoverlapping(model):
   ]
 
 
-def create_interrupted_bar(model):
+
+def create_experiments_annulus(model):
   return [
       NoStimulation( model, duration=147*7 ),
+      MeasureAnnulusTuning(
+          model, 
+          num_sizes=10, 
+          max_inner_diameter=3., # deg
+          outer_diameter=10.0, # max radius
+          orientation=0, 
+          log_spacing=False, 
+          spatial_frequency=0.5, #
+          temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
+          grating_duration=2*147*7,
+          contrasts=[100], #40,100  to look for contrast-dependent RF expansion
+          num_trials=10
+      )
+  ]
+
+
+
+def create_interrupted_bar(model):
+  return [
+      # NoStimulation( model, duration=147*7 ),
+
+      # ## Control
+      # MapResponseToInterruptedBarStimulus(
+      #   model,
+      #   x=0,
+      #   y=0,
+      #   length= 20,
+      #   width= 1/0.8/4.0,
+      #   orientation=0,
+      #   max_offset= 1/0.8/2.0 * 1.5,
+      #   steps= 8,
+      #   duration= 700,
+      #   flash_duration= 500, 
+      #   relative_luminances= [1.0],
+      #   num_trials= 10,
+      #   gap_lengths= [0.0]
+      # )
 
       # ## version 1
       # MapResponseToInterruptedBarStimulus(
@@ -277,24 +315,7 @@ def create_interrupted_bar(model):
       #   gap_lengths= [0.0,0.1,0.2,0.4,0.8,1.6,3.2]
       # )
 
-      ## version 3
-      MapResponseToInterruptedBarStimulus(
-        model,
-        x=0,
-        y=0,
-        length= 20,
-        width= 1/0.8/4.0,
-        orientation=0,
-        max_offset= 1/0.8/2.0 * 1,
-        steps= 1,
-        duration= 2*143*7,
-        flash_duration= 2*143*7, 
-        relative_luminances= [1.0],
-        num_trials= 10,
-        gap_lengths=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,1.6,3.2]
-      )
-
-      # ## Control
+      # ## version 3
       # MapResponseToInterruptedBarStimulus(
       #   model,
       #   x=0,
@@ -302,14 +323,32 @@ def create_interrupted_bar(model):
       #   length= 20,
       #   width= 1/0.8/4.0,
       #   orientation=0,
-      #   max_offset= 1/0.8/2.0 * 1.5,
-      #   steps= 8,
-      #   duration= 700,
-      #   flash_duration= 500, 
+      #   max_offset= 1/0.8/2.0 * 1,
+      #   steps= 1,
+      #   duration= 2*143*7,
+      #   flash_duration= 2*143*7, 
       #   relative_luminances= [1.0],
       #   num_trials= 10,
-      #   gap_lengths= [0.0]
+      #   gap_lengths=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,1.6,3.2]
       # )
+
+      ## version latest
+      MapResponseToInterruptedBarStimulus(
+        model,
+        x=0,
+        y=0,
+        length= 20,
+        width= 1/0.8/4.0,
+        orientation=0,
+        max_offset= 2.4*1/0.8/4.0,
+        steps= 3,
+        duration= 2*143*7,
+        flash_duration= 2*143*7, 
+        relative_luminances= [1.0],
+        num_trials= 10,
+        gap_lengths=[0.4],
+        disalignment=[0,0.05,0.1,0.2,0.3,0.4],
+      )
 
   ]
 

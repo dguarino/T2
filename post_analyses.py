@@ -3111,8 +3111,18 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
 
+	# # get only preferred orientation
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+
+	# get only preferred orientation
+	or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
+	ids = list(or_ids)
+	# opposite_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in ids]) < .1)[0]]
+	# ids = list(opposite_ids)
+	# addon = addon + "opposite"
+
+	print "Selected neurons:", len(ids)
 
 	positions = data_store.get_neuron_postions()[sheet]
 	print positions.shape # all 10800
@@ -3218,7 +3228,6 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
-
 
 
 
@@ -3595,22 +3604,22 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
 	data_store.print_content(full_recordings=False)
 
-	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_vm_ids()
+	analog_ids = param_filter_query(data_store,sheet_name=sheet).get_segments()[0].get_stored_esyn_ids()
 	if analog_ids == None:
 		print "No Vm recorded.\n"
 		return
 	print "Recorded neurons:", len(analog_ids)
 
-	if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
-		NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
-		l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
-		if opposite:
-			addon = addon +"_opposite"
-			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < .1)[0]]
-		else:
-			addon = addon +"_same"
-			l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < .1)[0]]
-		analog_ids = list(l4_exc_or_many)
+	# if sheet=='V1_Exc_L4' or sheet=='V1_Inh_L4':
+	# 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	# 	l4_exc_or = data_store.get_analysis_result(identifier='PerNeuronValue', value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	# 	if opposite:
+	# 		addon = addon +"_opposite"
+	# 		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in analog_ids]) < .1)[0]]
+	# 	else:
+	# 		addon = addon +"_same"
+	# 		l4_exc_or_many = numpy.array(analog_ids)[numpy.nonzero(numpy.array([circular_dist(l4_exc_or.get_value_by_id(i),0,numpy.pi)  for i in analog_ids]) < .1)[0]]
+	# 	analog_ids = list(l4_exc_or_many)
 
 	if radius or box:
 		sheet_ids = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=analog_ids)
@@ -3676,10 +3685,11 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	pop_i = numpy.array(pop_gsyn_i)
 
 	# mean and std over cells
-	mean_pop_e = numpy.mean(pop_e, axis=(2,0) )
-	mean_pop_i = numpy.mean(pop_i, axis=(2,0) ) 
-	std_pop_e = numpy.std(pop_e, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
-	std_pop_i = numpy.std(pop_i, axis=(2,0), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	print pop_e.shape
+	mean_pop_e = numpy.mean(pop_e, axis=(2,1) )
+	mean_pop_i = numpy.mean(pop_i, axis=(2,1) ) 
+	std_pop_e = numpy.std(pop_e, axis=(2,1), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
+	std_pop_i = numpy.std(pop_i, axis=(2,1), ddof=1) # ddof to calculate the 'corrected' sample sd = sqrt(N/(N-1)) times population sd, where N is the number of points
 	print "mean std exc:", mean_pop_e, std_pop_e
 	print "mean std inh:", mean_pop_i, std_pop_i
 
@@ -3706,9 +3716,10 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	# Conductances contrast
 	fig,ax = plt.subplots()
 	color = 'black' if 'closed' in folder else 'gray'
+	print final_sorted_e[1]/(final_sorted_e[1]+final_sorted_i[1])
 	ax.plot( final_sorted_e[0], final_sorted_e[1]/(final_sorted_e[1]+final_sorted_i[1]), color=color, linewidth=3 )
 	ax.set_xlabel( parameter )
-	ax.set_ylim([0,1])
+	# ax.set_ylim([0,1])
 	plt.tight_layout()
 	dist = box if not radius else radius
 	plt.savefig( folder+"/TrialAveragedConductancesContrast_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
@@ -4606,11 +4617,11 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
-	"ThalamoCorticalModel_data_size_Yves_____",
+	# "ThalamoCorticalModel_data_size_Yves_____",
 
-	# # Synergy Index
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
-	# "ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
+	# Synergy Index
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -4629,7 +4640,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
-	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_____10trials",
+	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
@@ -4638,11 +4649,10 @@ full_list = [
 	# "/data1/do/ThalamoCorticalModel_data_size_nonoverlapping_many_____",
 	# "/data1/do/ThalamoCorticalModel_data_size_overlapping_many_____",
 
-	# "/media/do/Sauvegarde Système/old/ThalamoCorticalModel_data_orientation_feedforward_____2",
-	# "/media/do/Sauvegarde Système/old/ThalamoCorticalModel_data_orientation_closed_____2",
-	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
-	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
-	# "/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_orientation_closed_____",
+	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_orientation_feedforward_____",
+	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_orientation_open_____",
+	# "ThalamoCorticalModel_data_orientation_open_____",
 
 	# "ThalamoCorticalModel_data_xcorr_open_____1", # just one trial
 	# "ThalamoCorticalModel_data_xcorr_open_____2deg", # 2 trials
@@ -4954,11 +4964,12 @@ else:
 			# 	folder=f,
 			# 	stimulus='FullfieldDriftingSinusoidalGrating',
 			# 	parameter="contrast",
+			# 	radius=[0., 5.],
 			# 	percentile=False,
 			# 	ylim=[0,10],
 			# 	useXlog=False, 
 			# 	addon = addon,
-			# 	inputoutputratio = True,
+			# 	inputoutputratio = False,
 			# )
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
@@ -5264,15 +5275,7 @@ else:
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
-			# SynergyIndex_spikes( 
-			# 	sheet=s, 
-			# 	folder=f,
-			# 	stimulus='DriftingSinusoidalGratingDisk',
-			# 	parameter="radius",
-			# 	# radius = [.0, 0.7], # center
-			# 	addon = addon,
-			# )
-			VSDI( 
+			SynergyIndex_spikes( 
 				sheet=s, 
 				folder=f,
 				stimulus='DriftingSinusoidalGratingDisk',
@@ -5280,6 +5283,14 @@ else:
 				# radius = [.0, 0.7], # center
 				addon = addon,
 			)
+			# VSDI( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	# radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
 			# trial_averaged_Vm( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -6199,6 +6210,18 @@ else:
 			# 	useXlog=False, 
 			# 	radius = [.0, 8.7], # center
 			# 	addon = "center_" + addon,
+			# )
+			# trial_averaged_conductance_tuning_curve( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='FullfieldDriftingSinusoidalGrating',
+			# 	parameter="orientation",
+			# 	radius=[0., 1.],
+			# 	percentile=False,
+			# 	ylim=[-10,50],
+			# 	useXlog=False, 
+			# 	addon = addon,
+			# 	inputoutputratio = False,
 			# )
 			# trial_averaged_conductance_timecourse( 
 			# 	sheet=s, 
