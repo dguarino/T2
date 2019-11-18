@@ -3111,15 +3111,16 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
 
-	# # get only preferred orientation
+	# # get orientation
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
 
 	# get only preferred orientation
-	or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
-	ids = list(or_ids)
-	# opposite_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in ids]) < .1)[0]]
-	# ids = list(opposite_ids)
+	# or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
+	# ids = list(or_ids)
+	opposite_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/4,numpy.pi)  for i in ids]) < .2)[0]]
+	ids = list(opposite_ids)
+	addon = addon + "_mid"
 	# addon = addon + "opposite"
 
 	print "Selected neurons:", len(ids)
@@ -3212,8 +3213,13 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 		trial_avg_mean_SI.append( numpy.mean(SI.values(), axis=0) )
 		trial_avg_stdev_SI.append( numpy.std(SI.values(), axis=0) )
 
-	# SI mean over trials
-	# print "trial_avg_mean_SI before", trial_avg_mean_SI, len(trial_avg_mean_SI)
+	# # SI mean over trials
+	# csvfile = open(folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".csv", 'w')
+	# for f in trial_avg_mean_SI[0]:
+	# 	csvfile.write( "{:.3f}\n".format(f) )
+	# csvfile.close()
+
+	# print "trial_avg_mean_SI before", trial_avg_mean_SI, len(trial_avg_mean_SI[0])
 	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)[0]
 	trial_avg_mean_SI /= SItrials 
 	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)[0]
@@ -3222,12 +3228,124 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	plt.figure()
 	# err_max = trial_avg_mean_SI + trial_avg_stdev_SI
 	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
+	# below_threshold_indices = err_min < 0.0
+	# err_min[below_threshold_indices] = 0.0
 	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
 	plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
 	# plt.yscale('log')
 	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
+
+
+
+
+def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+	import matplotlib as ml
+	import quantities as pq
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	if True:
+		segs = sorted( 
+			param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+			key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+		)
+	else: # spontaneous
+		segs = sorted( 
+			param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(null=True), # Init 150ms with no stimulus
+			key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+		)
+
+	trials = len(segs) / num_stim
+	print "trials:",trials
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	if spike_ids == None or len(spike_ids)<1:
+		print "No spikes recorded.\n"
+		return
+	ids = spike_ids
+
+	print "Recorded neurons:", len(ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+
+	# # get orientation
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+	# print pnv #[0]
+	pnv_ids = sorted( set(pnv.ids).intersection(set(ids)) )
+	# print pnv_ids==ids
+	print "Selected neurons:", len(pnv_ids)
+ 
+	# # positions
+	# sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+	# positions = data_store.get_neuron_postions()[sheet]
+	# print positions.shape # all 10800
+	# # print zip(positions[0],positions[1],ids)
+	# sorted_ids = [x for _,_,x in sorted(zip(positions[0],positions[1],ids), key=lambda p: math.sqrt((p[0]-0.0)**2 + (p[1]-0.0)**2))]
+
+	# orientations
+	orientations = []
+	for i in pnv_ids:
+		orientations.append( pnv.get_value_by_id(i) )
+	# print orientations
+	sorted_ids = [x for _,x in sorted(zip(orientations,ids), key=lambda x: x[0])]
+
+	# colorbar min=0deg, max=180deg
+	orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
+	orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.hsv)
+	# print orimapper
+	orimapper._A = [] 
+
+	# each segment has all cells spiketrains for one trial
+	for s in segs:
+		dist = eval(s.annotations['stimulus'])
+		# print dist
+		if dist['radius'] < 0.1:
+			continue
+		if dist['trial'] > 0: 
+			continue
+		if dist['orientation'] > 0.0: # only one orientation, for the moment
+			continue
+
+		print "cell's spiketrains:", len(s.spiketrains) # number of cells
+
+		# open image
+		plt.figure()
+		orifr = []
+		for i,o in enumerate(sorted_ids):
+
+			for a in s.spiketrains: # spiketrains of one trial
+				# print type(a)
+				# print type(i), type(a.annotations["source_id"])
+				# print o, a.annotations["source_id"]
+				if o == a.annotations["source_id"]:
+					orifr.append( len(a) )
+					for t in a:
+						# plt.scatter( t, i, marker='o', edgecolors='none', s=1 )
+						plt.scatter( t, i, marker='o', c=orimapper.to_rgba(pnv.get_value_by_id(o)), edgecolors='none', s=1 )
+					break # no need to iterate over the whole array once we found the id
+
+		plt.xlabel(time, color='silver', fontsize=22)
+		# close image
+		plt.savefig( folder+"/VSDI_orisorted_evoked_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.savefig( folder+"/VSDI_orisorted_spont_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.savefig( folder+"/VSDI_orisorted_test_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.close()
+
+		# Firing rate by orientation
+		plt.figure()
+		plt.plot(orifr)
+		plt.savefig( folder+"/VSDI_orisorted_evoked_fr_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.close()
+
+		gc.collect()
 
 
 
@@ -3283,6 +3401,7 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 	# the cortical surface is going to be divided into annuli (beyond the current stimulus size)
 	# this mean vm composes a plot of each annulus (row) over time
+	
 	# annulus_radius = 0.3
 	# start = 1.4
 	# stop = 3. - annulus_radius
@@ -3728,19 +3847,19 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 	# garbage
 	gc.collect()
 
-	# # Conductances ratio
-	# fig,ax = plt.subplots()
-	# color = 'black' if 'closed' in folder else 'gray'
-	# ax.plot( final_sorted_i[0], final_sorted_e[1]/final_sorted_i[1], color=color, linewidth=3 )
-	# ax.set_xlabel( parameter )
-	# # ax.set_ylim([0,2])
-	# plt.tight_layout()
-	# dist = box if not radius else radius
-	# plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
-	# fig.clf()
-	# plt.close()
-	# # garbage
-	# gc.collect()
+	# Conductances ratio
+	fig,ax = plt.subplots()
+	color = 'black' if 'closed' in folder else 'gray'
+	ax.plot( final_sorted_i[0], final_sorted_e[1]/final_sorted_i[1], color=color, linewidth=3 )
+	ax.set_xlabel( parameter )
+	# ax.set_ylim([0,2])
+	plt.tight_layout()
+	dist = box if not radius else radius
+	plt.savefig( folder+"/TrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(dist)+"_"+addon+".svg", dpi=300, transparent=True )
+	fig.clf()
+	plt.close()
+	# garbage
+	gc.collect()
 
 	# Plotting tuning curve
 	fig,ax = plt.subplots()
@@ -4041,18 +4160,18 @@ def trial_averaged_conductance_timecourse( sheet, folder, stimulus, parameter, t
 		# garbage
 		gc.collect()
 
-		# # Conductances ratio
-		# fig,ax = plt.subplots()
-		# color = 'black' if 'closed' in folder else 'gray'
-		# ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/mean_pop_i[s], color=color, linewidth=3 )
-		# ax.set_xlabel( parameter )
-		# # ax.set_ylim([0,2])
-		# plt.tight_layout()
-		# plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
-		# fig.clf()
-		# plt.close()
-		# # garbage
-		# gc.collect()
+		# Conductances ratio
+		fig,ax = plt.subplots()
+		color = 'black' if 'closed' in folder else 'gray'
+		ax.plot( range(0,len(mean_pop_e[s])), mean_pop_e[s]/mean_pop_i[s], color=color, linewidth=3 )
+		ax.set_xlabel( parameter )
+		# ax.set_ylim([0,2])
+		plt.tight_layout()
+		plt.savefig( folder+"/TimecourseTrialAveragedConductancesRatio_"+sheet+"_"+parameter+str(box)+"_"+addon+"_"+str(ticks[s])+".svg", dpi=300, transparent=True )
+		fig.clf()
+		plt.close()
+		# garbage
+		gc.collect()
 
 
 
@@ -4366,7 +4485,6 @@ def SpikeTriggeredAverage(lfp_sheet, spike_sheet, folder, stimulus, parameter, y
 
 
 
-
 def data_significance(closed_file, open_file, testtype, removefirst=False):
 	closed_data = numpy.genfromtxt(closed_file, delimiter='\n')
 	open_data = numpy.genfromtxt(open_file, delimiter='\n')
@@ -4611,16 +4729,21 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_closed_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_overlapping_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_nonoverlapping_____",
+
+	# "ThalamoCorticalModel_data_size_Yves_____", # control: small static bar
 	# "Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_00_radius14_____",
 	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_closed_vsdi_08_radius14_____",
-	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
 	# "/media/do/DATA/Deliverable/ThalamoCorticalModel_data_size_closed_vsdi_____10trials",
 	# "ThalamoCorticalModel_data_size_closed_vsdi_____",
-	# "ThalamoCorticalModel_data_size_Yves_____",
+	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
+	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
+	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____20trials",
+	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
-	# Synergy Index
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+	# # Synergy Index
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
 
 	# # # sizes of feedback radius
@@ -4638,10 +4761,7 @@ full_list = [
 	# "Deliverable/ThalamoCorticalModel_data_size_LGNonly_____",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_____large",
 	# "Deliverable/ThalamoCorticalModel_data_size_feedforward_vsdi_00_radius14_____",
-	# "/media/do/HANGAR/ThalamoCorticalModel_data_size_feedforward_vsdi_08_radius14_____",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____20trials",
 	# "Deliverable/ThalamoCorticalModel_data_size_open_____",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Andrew's machine
 	# "/data1/do/ThalamoCorticalModel_data_size_open_____",
@@ -5275,12 +5395,28 @@ else:
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
-			SynergyIndex_spikes( 
+			# SynergyIndex_spikes( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	# radius = [.0, 0.7], # center
+			# 	addon = addon,
+			# )
+			# trial_averaged_raster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	opposite=False, #
+			# 	radius = [.0, 1.4], # center
+			# 	addon = addon,
+			# )
+			OrientedRaster( 
 				sheet=s, 
 				folder=f,
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
-				# radius = [.0, 0.7], # center
 				addon = addon,
 			)
 			# VSDI( 
@@ -6589,6 +6725,12 @@ else:
 
 
 # STATISTICAL SIGNIFICANCE
+
+# data_significance(
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/ongoing_closed.csv",
+# 	"/home/do/Dropbox/PhD/LGN_data/deliverable/ongoing_open.csv",
+# 	'anova'
+# )
 
 # # ONGOING ACTIVITY (WaleszczykBekiszWrobel2005)
 # data_significance(
