@@ -3240,7 +3240,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 
 
 
-def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, radius=None, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
 	print inspect.stack()[0][3]
@@ -3264,16 +3264,17 @@ def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	trials = len(segs) / num_stim
 	print "trials:",trials
 
-	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
-	if spike_ids == None or len(spike_ids)<1:
+	ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	if ids == None or len(ids)<1:
 		print "No spikes recorded.\n"
 		return
-	ids = spike_ids
-
-	print "Recorded neurons:", len(ids)
-	# 900 neurons over 6000 micrometers, 200 micrometers interval
-
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+	print "Recorded neurons:", len(ids)
+
+	if radius:
+		positions = data_store.get_neuron_postions()[sheet]
+		ids1 = select_ids_by_position(positions, sheet_indexes, radius=radius)
+		ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=sorted(ids1))
 
 	# # get orientation
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
@@ -3283,13 +3284,6 @@ def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# print pnv_ids==ids
 	print "Selected neurons:", len(pnv_ids)
  
-	# # positions
-	# sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
-	# positions = data_store.get_neuron_postions()[sheet]
-	# print positions.shape # all 10800
-	# # print zip(positions[0],positions[1],ids)
-	# sorted_ids = [x for _,_,x in sorted(zip(positions[0],positions[1],ids), key=lambda p: math.sqrt((p[0]-0.0)**2 + (p[1]-0.0)**2))]
-
 	# orientations
 	orientations = []
 	for i in pnv_ids:
@@ -3300,8 +3294,12 @@ def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	# colorbar min=0deg, max=180deg
 	orinorm = ml.colors.Normalize(vmin=0., vmax=numpy.pi, clip=True)
 	orimapper = ml.cm.ScalarMappable(norm=orinorm, cmap=plt.cm.hsv)
-	# print orimapper
 	orimapper._A = [] 
+
+	# cell trial averg spike count
+	trial_avg_count = {}
+	for o in sorted_ids:
+		trial_avg_count[o] = 0.0
 
 	# each segment has all cells spiketrains for one trial
 	for s in segs:
@@ -3309,43 +3307,52 @@ def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 		# print dist
 		if dist['radius'] < 0.1:
 			continue
-		if dist['trial'] > 0: 
-			continue
 		if dist['orientation'] > 0.0: # only one orientation, for the moment
 			continue
 
-		print "cell's spiketrains:", len(s.spiketrains) # number of cells
+		# trial avg spike count
+		for o in sorted_ids:
+			for a in s.spiketrains: # spiketrains of one trial
+				if o == a.annotations["source_id"]:
+					trial_avg_count[o] = trial_avg_count[o] + len(a)
+					break # no need to iterate over the whole array once we found the id
 
-		# open image
+		if dist['trial'] > 0: 
+			continue
+
 		plt.figure()
 		orifr = []
 		for i,o in enumerate(sorted_ids):
 
 			for a in s.spiketrains: # spiketrains of one trial
-				# print type(a)
-				# print type(i), type(a.annotations["source_id"])
-				# print o, a.annotations["source_id"]
 				if o == a.annotations["source_id"]:
 					orifr.append( len(a) )
 					for t in a:
-						# plt.scatter( t, i, marker='o', edgecolors='none', s=1 )
 						plt.scatter( t, i, marker='o', c=orimapper.to_rgba(pnv.get_value_by_id(o)), edgecolors='none', s=1 )
 					break # no need to iterate over the whole array once we found the id
 
 		plt.xlabel(time, color='silver', fontsize=22)
-		# close image
-		plt.savefig( folder+"/VSDI_orisorted_evoked_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
-		# plt.savefig( folder+"/VSDI_orisorted_spont_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
-		# plt.savefig( folder+"/VSDI_orisorted_test_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.savefig( folder+"/orisorted_evoked_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.savefig( folder+"/orisorted_spont_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.savefig( folder+"/orisorted_test_raster_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
 		plt.close()
 
-		# Firing rate by orientation
+		# Spike count by orientation
 		plt.figure()
 		plt.plot(orifr)
-		plt.savefig( folder+"/VSDI_orisorted_evoked_fr_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+		plt.savefig( folder+"/orisorted_evoked_nspikes_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
 		plt.close()
 
-		gc.collect()
+	# Trial avg spike count by orientation
+	plt.figure()
+	trial_avg_sc = []
+	for o in sorted_ids:
+		trial_avg_sc.append( trial_avg_count[o] / trials )
+	plt.plot(trial_avg_sc)
+	plt.savefig( folder+"/trials_orisorted_evoked_nspikes_"+parameter+"_"+str(sheet)+"_radius"+str(dist['radius'])+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+
+	gc.collect()
 
 
 
@@ -4743,8 +4750,8 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Synergy Index
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -5416,6 +5423,7 @@ else:
 				sheet=s, 
 				folder=f,
 				stimulus='DriftingSinusoidalGratingDisk',
+				radius = [.0, 1.2], # center
 				parameter="radius",
 				addon = addon,
 			)
