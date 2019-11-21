@@ -3082,7 +3082,47 @@ def SynergyIndex_Vm( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 
 
-def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
+def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, parameter, num_stim=2, sigma=.280, bins=102, addon="" ):
+	print inspect.stack()[0][3]
+	print "folder1: ",folder1
+	print "sheet1: ",sheet1
+	print "folder2: ",folder2
+	print "sheet2: ",sheet2
+
+	SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, addon=addon )
+	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, addon=addon )
+
+	import scipy.stats as stats
+	r, p = stats.pearsonr(SI1, SI2)
+	print "Scipy computed Pearson r: ",r," and p-value: ",p
+	# iso cross full - Pearson r:  0.919129693878  and p-value:  3.02948884563e-42
+	# iso cross ffw  - Pearson r:  0.884136698631  and p-value:  8.05506594409e-35
+	# iso-full iso-ffw - Pearson r:  0.249474498973  and p-value:  0.0114507861861
+	# iso-full cross-ffw - Pearson r:  0.314796808134  and p-value:  0.00127099771683
+	# cross-full cross-ffw - Pearson r:  0.439838045185  and p-value:  3.7382938663e-06
+
+	fig, [ax1, ax2, ax3] = plt.subplots(3, 1, sharex=True)
+
+	ax1.xcorr(SI1, SI2, usevlines=False, maxlags=None, normed=True, lw=2, ls='-', ms=0.)
+	ax1.set_ylim([0.,1.])
+	ax1.grid(True)
+
+	ax2.acorr(SI1, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+	ax2.set_ylim([0.,1.])
+	ax2.grid(True)
+
+	ax3.acorr(SI2, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+	ax3.set_ylim([0.,1.])
+	ax3.grid(True)
+
+	plt.savefig( folder1+"/xcorr_trial_avg_SI_"+sheet1+"_"+sheet2+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.close()
+	gc.collect()
+
+
+
+
+def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num_stim=2, sigma=.280, bins=102, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
 	print inspect.stack()[0][3]
@@ -3116,12 +3156,14 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
 
 	# get only preferred orientation
-	# or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
-	# ids = list(or_ids)
-	opposite_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/4,numpy.pi)  for i in ids]) < .2)[0]]
-	ids = list(opposite_ids)
-	addon = addon + "_mid"
-	# addon = addon + "opposite"
+	if preferred:
+		or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
+		ids = list(or_ids)
+	else:
+		or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in ids]) < .2)[0]]
+		ids = list(or_ids)
+		addon = addon + "_mid"
+		# addon = addon + "opposite"
 
 	print "Selected neurons:", len(ids)
 
@@ -3136,9 +3178,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	##############################
 	# Synergy Index
 	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
-	sigma = 0.280 # mm, since 1mm = 1deg in this cortical space
 	# sigma = 0.180 # um #   max: 0.0               min:0.0  
-	bins = 102 # 10ms for 1029ms
+	# bins = 102 # 10ms for 1029ms
 
 	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
 	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
@@ -3213,12 +3254,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 		trial_avg_mean_SI.append( numpy.mean(SI.values(), axis=0) )
 		trial_avg_stdev_SI.append( numpy.std(SI.values(), axis=0) )
 
-	# # SI mean over trials
-	# csvfile = open(folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".csv", 'w')
-	# for f in trial_avg_mean_SI[0]:
-	# 	csvfile.write( "{:.3f}\n".format(f) )
-	# csvfile.close()
-
+	# SI mean over trials
 	# print "trial_avg_mean_SI before", trial_avg_mean_SI, len(trial_avg_mean_SI[0])
 	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)[0]
 	trial_avg_mean_SI /= SItrials 
@@ -3236,6 +3272,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, num_stim=2, addon="
 	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
+	return trial_avg_mean_SI
 
 
 
@@ -4751,7 +4788,7 @@ full_list = [
 
 	# # Synergy Index
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -4834,8 +4871,8 @@ addon = ""
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-# sheets = ['V1_Inh_L4'] 
-sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+sheets = ['V1_Inh_L4'] 
+# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
@@ -5410,6 +5447,17 @@ else:
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
+			Xcorr_SynergyIndex_spikes( 
+				sheet1=s, 
+				folder1=f,
+				sheet2=s, 
+				folder2=f,
+				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				# radius = [.0, 0.7], # center
+				addon = addon,
+			)
 			# trial_averaged_raster( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -5419,14 +5467,14 @@ else:
 			# 	radius = [.0, 1.4], # center
 			# 	addon = addon,
 			# )
-			OrientedRaster( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				radius = [.0, 1.2], # center
-				parameter="radius",
-				addon = addon,
-			)
+			# OrientedRaster( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	radius = [.0, 1.2], # center
+			# 	parameter="radius",
+			# 	addon = addon,
+			# )
 			# VSDI( 
 			# 	sheet=s, 
 			# 	folder=f,
