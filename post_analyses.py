@@ -726,6 +726,7 @@ def activity_ratio( sheet, folder, stimulus, stimulus_parameter, arborization_di
 def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="black", box=False, radius=None, preferred=True, ylim=[0.,200.] ):
 	print inspect.stack()[0][3]
 	import ast
+	import scipy.signal as signal
 	from matplotlib.ticker import NullFormatter
 	from scipy import signal
 
@@ -758,11 +759,6 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 	asls = dsv.get_analysis_result( sheet_name=sheet )
 
 	# store the mean PSTH (over the selected neurons) in a dict
-	dt = 0.002 # sampling interval, PyNN default time is in ms, 'bin_length': 2.0
-	fs = 1.029/dt # 
-	nfft = 4 #int(fs*dt) # closest to 514 number of samples at 
-	noverlap = 2 #int((fs*dt)/2.)
-	# print nfft, noverlap
 	psths = {}
 	spectra = {}
 	for asl in asls:
@@ -782,54 +778,55 @@ def spectrum( sheet, folder, stimulus, stimulus_parameter, addon="", color="blac
 
 
 	powers = []
+	dt = 0.002 # sampling interval, PyNN default time is in ms, 'bin_length': 2.0
+	fs = 1.0/dt # 
+	sr = fs**2
+	plt.figure()
 	for stim, ps in psths.items():
-		print stim
-
-		# mps = numpy.mean(ps, axis=0)
-		# # trial-averaged psth spectrogram
-		# plt.figure()
-		# plt.specgram( mps, Fs=fs, vmin=-40, vmax=50)#, NFFT=nfft, noverlap=noverlap )
-		# plt.tight_layout()
-		# plt.savefig( folder+"/spectrogram_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
-		# plt.close()
-		# gc.collect()
+		print stim, ps
 
 		# spectrum
-		spectra = []
 		for psth in ps:
-			spectra.append( numpy.abs(numpy.fft.fft(psth))**2 )
-			freqs = numpy.fft.fftfreq(psth.size, dt)
+			freq, power = signal.welch(ps, sr, window='hamming')
+			plt.semilogx( freq, power, linewidth=1, color=color, linestyle='-' )
 
-		power = numpy.mean(spectra, axis=0)
-		
-		powers.append( power )
-
-		# if float(stim) > 4.:
-		# 	plt.figure()
-		# 	idx = numpy.argsort(freqs) # last one is as all the others
-		# 	plt.plot( freqs[idx], power[idx], linewidth=3, color=color, linestyle='-' )
-		# 	plt.ylim([0., 30000000.])
-		# 	plt.xlim([0., 150.])
-		# 	plt.tight_layout()
-		# 	plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
-		# 	plt.close()
-		# 	gc.collect()
-
-	powers = numpy.array(powers)
-	# print powers.shape
-
-	powers = numpy.mean(powers, axis=0)
-	idx = numpy.argsort(freqs) # last one is as all the others
-	plt.figure()
-	idx = numpy.argsort(freqs) # last one is as all the others
-	plt.plot( freqs[idx], powers[idx], linewidth=3, color=color, linestyle='-' )
-	plt.ylim([0., 30000000.])
-	plt.xlim([0., 150.])
-	plt.tight_layout()
-	# plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
-	plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
+	plt.ylabel("Power (μV2)")
+	plt.xlabel("Frequency (Hz)")
+	plt.savefig( folder+"/spectrums_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
+
+
+	# 	power = numpy.mean(spectra, axis=0)
+		
+	# 	powers.append( power )
+
+	# 	# if float(stim) > 4.:
+	# 	# 	plt.figure()
+	# 	# 	idx = numpy.argsort(freqs) # last one is as all the others
+	# 	# 	plt.plot( freqs[idx], power[idx], linewidth=3, color=color, linestyle='-' )
+	# 	# 	plt.ylim([0., 30000000.])
+	# 	# 	plt.xlim([0., 150.])
+	# 	# 	plt.tight_layout()
+	# 	# 	plt.savefig( folder+"/spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
+	# 	# 	plt.close()
+	# 	# 	gc.collect()
+
+	# powers = numpy.array(powers)
+	# # print powers.shape
+
+	# powers = numpy.mean(powers, axis=0)
+	# idx = numpy.argsort(freqs) # last one is as all the others
+	# plt.figure()
+	# idx = numpy.argsort(freqs) # last one is as all the others
+	# plt.plot( freqs[idx], powers[idx], linewidth=3, color=color, linestyle='-' )
+	# plt.ylim([0., 30000000.])
+	# plt.xlim([0., 150.])
+	# plt.tight_layout()
+	# # plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".png", dpi=300, transparent=True )
+	# plt.savefig( folder+"/avg_spectrum_"+str(sheet)+"_"+stim+"_"+addon+".svg", dpi=300, transparent=True )
+	# plt.close()
+	# gc.collect()
 
 
 
@@ -3122,7 +3119,7 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 
 
 
-def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num_stim=2, sigma=.280, bins=102, addon="" ):
+def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num_stim=2, sigma=.280, bins=102, radius=None, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
 	print inspect.stack()[0][3]
@@ -3151,6 +3148,11 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 
 	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
 
+	if radius:
+		positions = data_store.get_neuron_postions()[sheet]
+		ids1 = select_ids_by_position(positions, sheet_indexes, radius=radius)
+		ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
 	# # get orientation
 	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
 	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
@@ -3162,8 +3164,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 	else:
 		or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in ids]) < .2)[0]]
 		ids = list(or_ids)
-		addon = addon + "_mid"
-		# addon = addon + "opposite"
+		# addon = addon + "_mid"
+		addon = addon + "opposite"
 
 	print "Selected neurons:", len(ids)
 
@@ -3983,7 +3985,6 @@ def trial_averaged_conductance_tuning_curve( sheet, folder, stimulus, parameter,
 
 
 
-
 def trial_averaged_ratio_tuning_curve( sheet1, sheet2, folder, stimulus, parameter, percentile=False, useXlog=False, useYlog=False, ylim=[0.,100.], opposite=False, box=None, radius=None, addon="", dashed=False ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -4071,7 +4072,6 @@ def trial_averaged_ratio_tuning_curve( sheet1, sheet2, folder, stimulus, paramet
 	plt.close()
 	# garbage
 	gc.collect()
-
 
 
 
@@ -4583,12 +4583,10 @@ def data_significance(closed_file, open_file, testtype, removefirst=False):
 
 
 
-
 def normalize(a, axis=-1, order=2):
 	l2 = numpy.atleast_1d( numpy.linalg.norm(a, order, axis) )
 	l2[l2==0] = 1
 	return a/ numpy.expand_dims(l2, axis)
-
 
 
 
@@ -4648,7 +4646,6 @@ def comparison_tuning_map(directory, xvalues, yvalues, ticks):
 
 
 
-
 def comparison_size_tuning_map(filename, xvalues, yvalues, ticks):
 
 	colors = numpy.zeros( (len(xvalues),len(yvalues)) )
@@ -4682,7 +4679,6 @@ def comparison_size_tuning_map(filename, xvalues, yvalues, ticks):
 	plt.ylabel('PGN-LGN arborization radius')
 	plt.savefig( mapname, dpi=300, transparent=True )
 	plt.close()
-
 
 
 
@@ -4788,7 +4784,7 @@ full_list = [
 
 	# # Synergy Index
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -4871,8 +4867,8 @@ addon = ""
 # sheets = ['X_OFF'] 
 # sheets = ['PGN']
 # sheets = ['V1_Exc_L4'] 
-sheets = ['V1_Inh_L4'] 
-# sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
+# sheets = ['V1_Inh_L4'] 
+sheets = ['V1_Exc_L4', 'V1_Inh_L4'] 
 # sheets = [ ['V1_Exc_L4', 'V1_Inh_L4'] ]
 # sheets = ['V1_Exc_L4', 'V1_Inh_L4', 'X_OFF', 'PGN'] 
 
@@ -5444,20 +5440,28 @@ else:
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	parameter="radius",
+			# 	addon = addon,
+			# )
+			SynergyIndex_spikes( 
+				sheet=s, 
+				folder=f,
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				radius = [1.4, 2.], # surround
+				preferred = False,
+				addon = addon,
+			)
+			# Xcorr_SynergyIndex_spikes( 
+			# 	sheet1='V1_Exc_L4', 
+			# 	folder1=f,
+			# 	sheet2='V1_Inh_L4', 
+			# 	folder2=f,
+			# 	# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
 			# 	# radius = [.0, 0.7], # center
 			# 	addon = addon,
 			# )
-			Xcorr_SynergyIndex_spikes( 
-				sheet1=s, 
-				folder1=f,
-				sheet2=s, 
-				folder2=f,
-				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				# radius = [.0, 0.7], # center
-				addon = addon,
-			)
 			# trial_averaged_raster( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -6012,6 +6016,18 @@ else:
 			# 	preferred=True, # 
 			# 	color = color,
 			# )
+
+			# spectrum(
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	stimulus_parameter='radius',
+			# 	radius = [.0,1.4], 
+			# 	addon = addon,
+			# 	preferred=True, # 
+			# 	color = color,
+			# )
+
 			# spectrum(
 			# 	sheet=s, 
 			# 	folder=f,
