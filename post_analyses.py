@@ -2654,7 +2654,6 @@ def response_boxplot( sheet, folder, stimulus, parameter, start, end, box=None, 
 
 
 
-
 def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
@@ -2898,7 +2897,6 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 
 
-
 def SynergyIndex_Vm( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 	import matplotlib as ml
 	import quantities as pq
@@ -3078,7 +3076,6 @@ def SynergyIndex_Vm( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 
 
-
 def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, parameter, num_stim=2, sigma=.280, bins=102, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder1: ",folder1
@@ -3086,8 +3083,9 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 	print "folder2: ",folder2
 	print "sheet2: ",sheet2
 
-	SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, addon=addon )
-	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, addon=addon )
+
+	SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.4, 2.7], addon=addon )
 
 	import scipy.stats as stats
 	r, p = stats.pearsonr(SI1, SI2)
@@ -3115,7 +3113,6 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 	plt.savefig( folder1+"/xcorr_trial_avg_SI_"+sheet1+"_"+sheet2+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
-
 
 
 
@@ -3250,7 +3247,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 		SI = {}
 		# average resting_dLHI
 		for k in ids:
-			SI[k] = abs(stim_dLHI[k] - LHI[k]) / LHI[k] # resting LHI has been initialised with ones
+			SI[k] = abs(stim_dLHI[k] - LHI[k]) / (stim_dLHI[k] + LHI[k]) # resting LHI has been initialised with ones
 		# print "SI", len(SI), SI
 
 		trial_avg_mean_SI.append( numpy.mean(SI.values(), axis=0) )
@@ -3263,19 +3260,20 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)[0]
 	trial_avg_stdev_SI /= SItrials 
 
-	plt.figure()
-	# err_max = trial_avg_mean_SI + trial_avg_stdev_SI
-	# err_min = trial_avg_mean_SI - trial_avg_stdev_SI
-	# below_threshold_indices = err_min < 0.0
-	# err_min[below_threshold_indices] = 0.0
-	# plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
-	plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
-	# plt.yscale('log')
-	plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
-	plt.close()
-	gc.collect()
+	# plt.figure()
+	# # err_max = trial_avg_mean_SI + trial_avg_stdev_SI
+	# # err_min = trial_avg_mean_SI - trial_avg_stdev_SI
+	# # below_threshold_indices = err_min < 0.0
+	# # err_min[below_threshold_indices] = 0.0
+	# # plt.fill_between(range(0,len(trial_avg_mean_SI)), err_max, err_min, color='grey', alpha=0.3)
+	# plt.plot(trial_avg_mean_SI, color="black", linewidth=3.)
+	# # plt.yscale('log')
+	# plt.ylim([0.,1.])
+	# plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
+	# plt.close()
+	# gc.collect()
+	
 	return trial_avg_mean_SI
-
 
 
 
@@ -3392,7 +3390,6 @@ def OrientedRaster( sheet, folder, stimulus, parameter, num_stim=2, radius=None,
 	plt.close()
 
 	gc.collect()
-
 
 
 
@@ -3642,7 +3639,6 @@ def VSDI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 
 
 
-
 def trial_averaged_Vm( sheet, folder, stimulus, parameter, opposite=False, box=None, radius=None, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -3705,7 +3701,6 @@ def trial_averaged_Vm( sheet, folder, stimulus, parameter, opposite=False, box=N
 
 
 
-
 def trial_averaged_raster( sheet, folder, stimulus, parameter, opposite=False, box=None, radius=None, addon="" ):
 	print inspect.stack()[0][3]
 	print "folder: ",folder
@@ -3758,7 +3753,6 @@ def trial_averaged_raster( sheet, folder, stimulus, parameter, opposite=False, b
 		fig_param={'dpi' : 100,'figsize': (100,50)},
 		plot_file_name=folder+"/HistRaster_"+parameter+"_"+str(sheet)+"_radius"+str(dist)+"_"+addon+".svg"
 	).plot({'SpikeRasterPlot.group_trials':True})
-
 
 
 
@@ -4784,7 +4778,7 @@ full_list = [
 
 	# # Synergy Index
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -5440,28 +5434,47 @@ else:
 			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	parameter="radius",
+			# 	radius = [.0, 1.3], 
+			# 	preferred = False,
 			# 	addon = addon,
 			# )
-			SynergyIndex_spikes( 
-				sheet=s, 
-				folder=f,
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				radius = [1.4, 2.], # surround
-				preferred = False,
-				addon = addon,
-			)
-			# Xcorr_SynergyIndex_spikes( 
-			# 	sheet1='V1_Exc_L4', 
-			# 	folder1=f,
-			# 	sheet2='V1_Inh_L4', 
-			# 	folder2=f,
-			# 	# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+			# SynergyIndex_spikes( 
+			# 	sheet=s, 
+			# 	folder=f,
 			# 	stimulus='DriftingSinusoidalGratingDisk',
 			# 	parameter="radius",
-			# 	# radius = [.0, 0.7], # center
+			# 	radius = [.0, 1.3],
+			# 	preferred = True,
 			# 	addon = addon,
 			# )
+			# SynergyIndex_spikes( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	radius = [1.4, 3.], # surround
+			# 	preferred = False,
+			# 	addon = addon + "_surround_",
+			# )
+			# SynergyIndex_spikes( 
+			# 	sheet=s, 
+			# 	folder=f,
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	radius = [1.4, 3.], # surround
+			# 	preferred = True,
+			# 	addon = addon + "_surround_",
+			# )
+			Xcorr_SynergyIndex_spikes( 
+				sheet1='V1_Inh_L4', 
+				folder1=f,
+				sheet2='V1_Inh_L4', 
+				folder2=f,
+				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+				stimulus='DriftingSinusoidalGratingDisk',
+				parameter="radius",
+				addon = addon,
+			)
 			# trial_averaged_raster( 
 			# 	sheet=s, 
 			# 	folder=f,
