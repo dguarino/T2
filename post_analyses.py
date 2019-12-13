@@ -3083,9 +3083,22 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 	print "folder2: ",folder2
 	print "sheet2: ",sheet2
 
-
+	# # center iso vs center iso
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# # center iso vs center cross
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# # center iso vs surround iso
 	SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
-	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.4, 2.7], addon=addon )
+	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.5, 2.9], addon=addon )
+	# center iso vs surround cross
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 0.7], addon=addon )
+	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.7, 2.2], addon=addon )
+
 
 	import scipy.stats as stats
 	r, p = stats.pearsonr(SI1, SI2)
@@ -3260,6 +3273,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)[0]
 	trial_avg_stdev_SI /= SItrials 
 
+	print "mean S:", trial_avg_mean_SI.mean()
+	print "mean std S:", trial_avg_stdev_SI.mean()
 	# plt.figure()
 	# # err_max = trial_avg_mean_SI + trial_avg_stdev_SI
 	# # err_min = trial_avg_mean_SI - trial_avg_stdev_SI
@@ -3272,7 +3287,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 	# plt.savefig( folder+"/spikes_trial_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	# plt.close()
 	# gc.collect()
-	
+
 	return trial_avg_mean_SI
 
 
@@ -4778,7 +4793,7 @@ full_list = [
 
 	# # Synergy Index
 	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
-	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
+	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -5466,10 +5481,11 @@ else:
 			# 	addon = addon + "_surround_",
 			# )
 			Xcorr_SynergyIndex_spikes( 
-				sheet1='V1_Inh_L4', 
+				sheet1=s, 
 				folder1=f,
-				sheet2='V1_Inh_L4', 
+				sheet2=s, 
 				folder2=f,
+				# sheet2='V1_Inh_L4', 
 				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
 				stimulus='DriftingSinusoidalGratingDisk',
 				parameter="radius",
