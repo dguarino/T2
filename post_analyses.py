@@ -3083,6 +3083,10 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 	print "folder2: ",folder2
 	print "sheet2: ",sheet2
 
+	import scipy.stats as stats
+
+	#######################################
+	# SI is trial avgd then xcorr is computed
 	# # center iso vs center iso
 	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
 	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
@@ -3092,40 +3096,65 @@ def Xcorr_SynergyIndex_spikes( sheet1, folder1, sheet2, folder2, stimulus, param
 	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
 	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
 	# # center iso vs surround iso
-	SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
-	SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.5, 2.9], addon=addon )
+	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.5, 2.9], addon=addon )
 	# center iso vs surround cross
 	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
 	# SI1 = SynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 0.7], addon=addon )
 	# SI2 = SynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[1.7, 2.2], addon=addon )
 
+	# r, p = stats.pearsonr(SI1, SI2)
+	# print "Scipy computed Pearson r: ",r," and p-value: ",p
+	# # iso cross full - Pearson r:  0.919129693878  and p-value:  3.02948884563e-42
+	# # iso cross ffw  - Pearson r:  0.884136698631  and p-value:  8.05506594409e-35
+	# # iso-full iso-ffw - Pearson r:  0.249474498973  and p-value:  0.0114507861861
+	# # iso-full cross-ffw - Pearson r:  0.314796808134  and p-value:  0.00127099771683
+	# # cross-full cross-ffw - Pearson r:  0.439838045185  and p-value:  3.7382938663e-06
+	# fig, [ax1, ax2, ax3] = plt.subplots(3, 1, sharex=True)
+	# ax1.xcorr(SI1, SI2, usevlines=False, maxlags=None, normed=True, lw=2, ls='-', ms=0.)
+	# ax1.set_ylim([0.,1.])
+	# ax1.grid(True)
+	# ax2.acorr(SI1, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+	# ax2.set_ylim([0.,1.])
+	# ax2.grid(True)
+	# ax3.acorr(SI2, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+	# ax3.set_ylim([0.,1.])
+	# ax3.grid(True)
+	# plt.savefig( folder1+"/trial_avg_SI_xcorr_"+sheet1+"_"+sheet2+"_"+addon+".svg", dpi=300, transparent=True )
+	# plt.close()
+	# gc.collect()
 
-	import scipy.stats as stats
-	r, p = stats.pearsonr(SI1, SI2)
-	print "Scipy computed Pearson r: ",r," and p-value: ",p
-	# iso cross full - Pearson r:  0.919129693878  and p-value:  3.02948884563e-42
-	# iso cross ffw  - Pearson r:  0.884136698631  and p-value:  8.05506594409e-35
-	# iso-full iso-ffw - Pearson r:  0.249474498973  and p-value:  0.0114507861861
-	# iso-full cross-ffw - Pearson r:  0.314796808134  and p-value:  0.00127099771683
-	# cross-full cross-ffw - Pearson r:  0.439838045185  and p-value:  3.7382938663e-06
+	#######################################
+	# SI is computed, then xcorr per trial, then avgd
 
-	fig, [ax1, ax2, ax3] = plt.subplots(3, 1, sharex=True)
+	# center iso vs center cross
+	SI1 = SingleTrialSynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	SI2 = SingleTrialSynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI1 = SingleTrialSynergyIndex_spikes( sheet1, folder1, stimulus, parameter, preferred=False, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# SI2 = SingleTrialSynergyIndex_spikes( sheet2, folder2, stimulus, parameter, preferred=True, num_stim=num_stim, sigma=sigma, bins=bins, radius=[.0, 1.3], addon=addon )
+	# print len(SI1), SI1
+	for i,j in zip(SI1, SI2):
+		r, p = stats.pearsonr(i, j)
+		print "Scipy computed Pearson r: ",r," and p-value: ",p
+		# # iso cross full - Pearson r:  0.919129693878  and p-value:  3.02948884563e-42
+		# # iso cross ffw  - Pearson r:  0.884136698631  and p-value:  8.05506594409e-35
+		# # iso-full iso-ffw - Pearson r:  0.249474498973  and p-value:  0.0114507861861
+		# # iso-full cross-ffw - Pearson r:  0.314796808134  and p-value:  0.00127099771683
+		# # cross-full cross-ffw - Pearson r:  0.439838045185  and p-value:  3.7382938663e-06
+		# fig, [ax1, ax2, ax3] = plt.subplots(3, 1, sharex=True)
+		# ax1.xcorr(SI1, SI2, usevlines=False, maxlags=None, normed=True, lw=2, ls='-', ms=0.)
+		# ax1.set_ylim([0.,1.])
+		# ax1.grid(True)
+		# ax2.acorr(SI1, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+		# ax2.set_ylim([0.,1.])
+		# ax2.grid(True)
+		# ax3.acorr(SI2, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
+		# ax3.set_ylim([0.,1.])
+		# ax3.grid(True)
+		# plt.savefig( folder1+"/trial_avg_SI_xcorr_"+sheet1+"_"+sheet2+"_"+addon+".svg", dpi=300, transparent=True )
+		# plt.close()
+		# gc.collect()
 
-	ax1.xcorr(SI1, SI2, usevlines=False, maxlags=None, normed=True, lw=2, ls='-', ms=0.)
-	ax1.set_ylim([0.,1.])
-	ax1.grid(True)
-
-	ax2.acorr(SI1, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
-	ax2.set_ylim([0.,1.])
-	ax2.grid(True)
-
-	ax3.acorr(SI2, usevlines=False, normed=True, maxlags=None, lw=2, ls='-', ms=0.)
-	ax3.set_ylim([0.,1.])
-	ax3.grid(True)
-
-	plt.savefig( folder1+"/xcorr_trial_avg_SI_"+sheet1+"_"+sheet2+"_"+addon+".svg", dpi=300, transparent=True )
-	plt.close()
-	gc.collect()
 
 
 
@@ -3221,6 +3250,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 		return dLHI
 
 	# SI over all trials and orientations
+	trials_mean_SI = []
+	trials_stdev_SI = []
 	trial_avg_mean_SI = []
 	trial_avg_stdev_SI = []
 	SItrials = 0 # index of trials
@@ -3235,8 +3266,8 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 		# print dist
 		if dist['radius'] < 0.1:
 			continue
-		if dist['trial'] > 0: 
-			continue
+		# if dist['trial'] > 0: 
+		# 	continue
 		if dist['orientation'] > 0.0: # only one orientation, for the moment
 			continue
 
@@ -3263,14 +3294,14 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 			SI[k] = abs(stim_dLHI[k] - LHI[k]) / (stim_dLHI[k] + LHI[k]) # resting LHI has been initialised with ones
 		# print "SI", len(SI), SI
 
-		trial_avg_mean_SI.append( numpy.mean(SI.values(), axis=0) )
-		trial_avg_stdev_SI.append( numpy.std(SI.values(), axis=0) )
+		trials_mean_SI.append( numpy.mean(SI.values(), axis=0) )
+		trials_stdev_SI.append( numpy.std(SI.values(), axis=0) )
 
 	# SI mean over trials
 	# print "trial_avg_mean_SI before", trial_avg_mean_SI, len(trial_avg_mean_SI[0])
-	trial_avg_mean_SI = numpy.array(trial_avg_mean_SI)[0]
+	trial_avg_mean_SI = numpy.array(trials_mean_SI)[0]
 	trial_avg_mean_SI /= SItrials 
-	trial_avg_stdev_SI = numpy.array(trial_avg_stdev_SI)[0]
+	trial_avg_stdev_SI = numpy.array(trials_stdev_SI)[0]
 	trial_avg_stdev_SI /= SItrials 
 
 	print "mean S:", trial_avg_mean_SI.mean()
@@ -3289,6 +3320,150 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 	# gc.collect()
 
 	return trial_avg_mean_SI
+
+
+
+def SingleTrialSynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num_stim=2, sigma=.280, bins=102, radius=None, addon="" ):
+	import matplotlib as ml
+	import quantities as pq
+	print inspect.stack()[0][3]
+	print "folder: ",folder
+	print "sheet: ",sheet
+
+	data_store = PickledDataStore(load=True, parameters=ParameterSet({'root_directory':folder, 'store_stimuli' : False}),replace=True)
+	data_store.print_content(full_recordings=False)
+
+	segs = sorted( 
+		param_filter_query(data_store, st_name=stimulus, sheet_name=sheet).get_segments(), 
+		key = lambda x : getattr(MozaikParametrized.idd(x.annotations['stimulus']), parameter) 
+	)
+
+	trials = len(segs) / num_stim
+	print "trials:",trials
+
+	spike_ids = param_filter_query(data_store, sheet_name=sheet, st_name=stimulus).get_segments()[0].get_stored_spike_train_ids()
+	if spike_ids == None or len(spike_ids)<1:
+		print "No spikes recorded.\n"
+		return
+	ids = spike_ids
+
+	print "Recorded neurons:", len(ids)
+	# 900 neurons over 6000 micrometers, 200 micrometers interval
+
+	sheet_indexes = data_store.get_sheet_indexes(sheet_name=sheet, neuron_ids=ids)
+
+	if radius:
+		positions = data_store.get_neuron_postions()[sheet]
+		ids1 = select_ids_by_position(positions, sheet_indexes, radius=radius)
+		ids = data_store.get_sheet_ids(sheet_name=sheet, indexes=ids1)
+
+	# # get orientation
+	NeuronAnnotationsToPerNeuronValues(data_store,ParameterSet({})).analyse()
+	pnv = data_store.get_analysis_result(identifier='PerNeuronValue',value_name='LGNAfferentOrientation', sheet_name=sheet)[0]
+
+	# get only preferred orientation
+	if preferred:
+		or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),0,numpy.pi)  for i in ids]) < .1)[0]]
+		ids = list(or_ids)
+	else:
+		or_ids = numpy.array(ids)[numpy.nonzero(numpy.array([circular_dist(pnv.get_value_by_id(i),numpy.pi/2,numpy.pi)  for i in ids]) < .2)[0]]
+		ids = list(or_ids)
+		# addon = addon + "_mid"
+		addon = addon + "opposite"
+
+	print "Selected neurons:", len(ids)
+
+	positions = data_store.get_neuron_postions()[sheet]
+	print positions.shape # all 10800
+
+	# take the positions of the ids
+	ids_positions = numpy.transpose(positions)[sheet_indexes,:]
+	print ids_positions.shape
+	# print ids_positions
+
+	##############################
+	# Synergy Index
+	# computed from the static LHI for each cell * by its activity over time / normalized by all orientations
+	# sigma = 0.180 # um #   max: 0.0               min:0.0  
+	# bins = 102 # 10ms for 1029ms
+
+	# norm = ml.colors.Normalize(vmin=-1., vmax=1., clip=True) 
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.PiYG) # form black pink to green
+	norm = ml.colors.Normalize(vmin=0., vmax=1., clip=True) 
+	mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.binary) # form black 0 to white 1
+	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
+	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+
+	def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins):
+		dLHI = {}
+		for i, x in zip(ids, ids_positions):
+			# select all cells within 3*sigma radius
+			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+			# integrate 
+			local_sum = 0.
+			vector_sum = numpy.zeros(bins)
+			for y,sy in zip(Ys,sheet_Ys):
+				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+				if h is None:
+					vector_sum += [distance_weight * complex_domain] * bins
+				else:
+					vector_sum += distance_weight * complex_domain * h[y]
+			dLHI[i] = abs(vector_sum)
+			# print "dLHI[i]",dLHI[i]
+		return dLHI
+
+	# SI over all trials and orientations
+	trials_mean_SI = []
+	trials_stdev_SI = []
+	trial_avg_mean_SI = []
+	trial_avg_stdev_SI = []
+	SItrials = 0 # index of trials
+
+	# the resting SI is the static LHI
+	print "resting LHI ..."
+	LHI = dLHI(sheet, positions, sheet_indexes, None, ids, ids_positions, sigma, bins)
+
+	# each segment has all cells spiketrains for one trial
+	for s in segs:
+		dist = eval(s.annotations['stimulus'])
+		# print dist
+		if dist['radius'] < 0.1:
+			continue
+		# if dist['trial'] > 0: 
+		# 	continue
+		if dist['orientation'] > 0.0: # only one orientation, for the moment
+			continue
+		# print dist
+
+		# s.load_full()
+
+		SItrials += 1
+
+		print "cell's spiketrains:", len(s.spiketrains) # number of cells
+		h = {}
+		for a in s.spiketrains: # spiketrains of one trial
+			# print "notes",
+			# print "a ",a # spiketrains are already in ms
+			# print numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0]
+			h[ a.annotations['source_id'] ] = numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0] # 10ms bin
+			# h[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
+
+		print "stimulation dLHI ...", SItrials
+		stim_dLHI = dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins)
+		# print stim_dLHI
+
+		SI = {}
+		# average resting_dLHI
+		for k in ids:
+			SI[k] = abs(stim_dLHI[k] - LHI[k]) / (stim_dLHI[k] + LHI[k]) # resting LHI has been initialised with ones
+		# print "SI", len(SI), SI
+
+		trials_mean_SI.append( numpy.mean(SI.values(), axis=0) )
+		trials_stdev_SI.append( numpy.std(SI.values(), axis=0) )
+
+	return trials_mean_SI, trials_stdev_SI
 
 
 
