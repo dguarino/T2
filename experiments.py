@@ -107,16 +107,18 @@ def create_experiments_orientation(model):
       #Lets kick the network up into activation
       # PoissonNetworkKick(model,duration=8*8*7,drive_period=200.0,sheet_list=["V1_Exc_L4","V1_Inh_L4"],stimulation_configuration={'component' : 'mozaik.sheets.population_selector.RCRandomPercentage','params' : {'percentage' : 100.0}},lambda_list=[400.0,400.0,400.0,400.0],weight_list=[0.001,0.001,0.001,0.001]),
       NoStimulation( model, duration=147*7 ),
+      
       # ORIENTATION TUNING (GRATINGS)
       # as in DanielsNormanPettigrew1977, VidyasagarUrbas1982
       MeasureOrientationTuningFullfield(
           model,
-          num_orientations=10, # rad: [0.0, 1.5707...]  (0, 90 deg)
+          num_orientations=1, # Horizontal-only. Num_orientations is converted to factors of rad (numpy.pi/num_orientations*i)
+          # num_orientations=10, # rad: [0.0, 1.5707...]  (0, 90 deg)
           spatial_frequency=0.5,
           temporal_frequency=2.0,
           grating_duration=1*147*7,
           contrasts=[80],
-          num_trials=6
+          num_trials=15
       )
   ]
 
@@ -130,15 +132,17 @@ def create_experiments_size(model):
       # as in ClelandLeeVidyasagar1983, BoninManteCarandini2005
       MeasureSizeTuning(
           model, 
-          num_sizes=2, # 10,
-          max_size=0.1, # 1.4, #5., # radius
+          num_sizes=1, # 10,
+          # max_size=0.1, # radius, Yves's test of response at RF-sized stimuli
+          # max_size=1.4, # radius 
+          max_size=2., # radius, large-field
           orientations=[0.0], 
           # orientations=[0.0, numpy.pi/8, numpy.pi/4, 3*numpy.pi/8, numpy.pi/2], 
           spatial_frequency=0.5,
           temporal_frequency=2.0, # optimal for LGN: 8. # optimal for V1: 2.
           grating_duration=1*147*7, # 1 sec
           contrasts=[80], 
-          num_trials=20, #6
+          num_trials=15, #6
           log_spacing=False, # True
           with_flat=False #use also flat luminance discs
       )

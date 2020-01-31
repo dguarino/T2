@@ -155,3 +155,4 @@
 echo "starting Orientation"
 echo
 mpirun -np 1 python run_orientation_closed.py nest 8 param/defaults_mea 'data_orientation_closed'
+mpirun -np 1 python run_orientation_feedforward.py nest 8 param/defaults_mea 'data_orientation_ffw'
