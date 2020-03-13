@@ -2785,10 +2785,10 @@ def LHI( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
 				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
 				vector_sum += distance_weight * complex_domain * ivms[y].magnitude
-			dLHI[i] = abs(vector_sum)
+			dLHI[i] = (abs(vector_sum) / len(Ys)) / (2 * numpy.pi * sigma**2) # norm terms
 			# print "dLHI",dLHI[i]
 		print "dLHI extremes",numpy.mean(dLHI.values()),numpy.std(dLHI.values()),min(dLHI.values()), max(dLHI.values())
-		return dLHI
+		return dLHI # for each neuron
 
 	# SI over all trials and orientations
 	trial_avg_mean_SI = []
@@ -2964,10 +2964,10 @@ def SynergyIndex_Vm( sheet, folder, stimulus, parameter, num_stim=2, addon="" ):
 				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
 				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
 				vector_sum += distance_weight * complex_domain * ivms[y].magnitude
-			dLHI[i] = abs(vector_sum)
+			dLHI[i] = (abs(vector_sum) / len(Ys)) / (2 * numpy.pi * sigma**2) # norm terms
 			# print "dLHI",dLHI[i]
 		print "dLHI extremes",numpy.mean(dLHI.values()),numpy.std(dLHI.values()),min(dLHI.values()), max(dLHI.values())
-		return dLHI
+		return dLHI # for each neuron
 
 	# SI over all trials and orientations
 	trial_avg_mean_SI = []
@@ -3272,9 +3272,9 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 					vector_sum += [distance_weight * complex_domain] * bins
 				else:
 					vector_sum += distance_weight * complex_domain * h[y]
-			dLHI[i] = abs(vector_sum)
+			dLHI[i] = (abs(vector_sum) / len(Ys)) / (2 * numpy.pi * sigma**2) # norm terms
 			# print "dLHI[i]",dLHI[i]
-		return dLHI
+		return dLHI # for each neuron
 
 	# SI over all trials and orientations
 	trials_mean_SI = []
@@ -3318,7 +3318,7 @@ def SynergyIndex_spikes( sheet, folder, stimulus, parameter, preferred=True, num
 		SI = {}
 		# average resting_dLHI
 		for k in ids:
-			SI[k] = abs(stim_dLHI[k] - LHI[k]) / (stim_dLHI[k] + LHI[k]) # resting LHI has been initialised with ones
+			SI[k] = stim_dLHI[k] / LHI[k] # resting LHI has been initialised with ones
 		# print "SI", len(SI), SI
 
 		trials_mean_SI.append( numpy.mean(SI.values(), axis=0) )
@@ -3423,41 +3423,65 @@ def SingleTrialSynergyIndex_spikes( sheet, folder, stimulus, parameter, preferre
 	# mapper = ml.cm.ScalarMappable(norm=norm, cmap=plt.cm.gray) # form black 0 to white 1
 	mapper._A = [] # hack to plot the colorbar http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
 
-	def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins):
-		dLHI = {}
+	# No locality: instead of a certain number of positions around the currently considered neuron, all recorded cells
+	def dHI(sheet, sheet_indexes, h, ids, ids_positions, bins):
+		dHI = {}
+		sum_h = 0.
 		for i, x in zip(ids, ids_positions):
 			# select all cells within 3*sigma radius
-			sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
-			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+			Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_indexes)
 			# integrate 
 			local_sum = 0.
 			vector_sum = numpy.zeros(bins)
-			for y,sy in zip(Ys,sheet_Ys):
-				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
-				distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
-				if h is None:
-					vector_sum += [distance_weight * complex_domain] * bins
-				else:
-					vector_sum += distance_weight * complex_domain * h[y]
-			dLHI[i] = abs(vector_sum)
-			# print "dLHI[i]",dLHI[i]
-		return dLHI # for each neuron
+			for y,sy in zip(Ys,ids_positions):
+				complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y)[0] )
+				# print complex_domain.real, h, y[0]
+				vector_sum += complex_domain.real * h[y[0]]
+				sum_h = sum_h + h[y[0]]
+			dHI[i] = (abs(vector_sum) / len(Ys)) / (2 * numpy.pi * sigma**2) # norm terms
+			if h: # normalised by each psth
+				dHI[i] /= sum_h/len(Ys)
+			# print "dHI[i]",dHI[i]
+		return dHI # for each neuron
+	# def dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins):
+	# 	dLHI = {}
+	# 	sum_h = 0.
+	# 	for i, x in zip(ids, ids_positions):
+	# 		# select all cells within 3*sigma radius
+	# 		sheet_Ys = select_ids_by_position(positions, sheet_indexes, radius=[0,3*sigma], origin=x.reshape(3,1))
+	# 		Ys = data_store.get_sheet_ids(sheet_name=sheet, indexes=sheet_Ys)
+	# 		# integrate 
+	# 		local_sum = 0.
+	# 		vector_sum = numpy.zeros(bins)
+	# 		for y,sy in zip(Ys,sheet_Ys):
+	# 			complex_domain = numpy.exp( 1j * 2 * pnv.get_value_by_id(y))
+	# 			distance_weight = numpy.exp( -numpy.linalg.norm( x - numpy.transpose(positions)[sy] )**2 / (2 * sigma**2) )
+	# 			if h is None:
+	# 				vector_sum += [distance_weight * complex_domain] * bins
+	# 			else:
+	# 				vector_sum += distance_weight * complex_domain * h[y]
+	# 				sum_h = sum_h + h[y]
+	# 		dLHI[i] = (abs(vector_sum) / len(Ys)) / (2 * numpy.pi * sigma**2) # norm terms
+	# 		# if h:
+	# 		# 	dLHI[i] /= sum_h/len(Ys)
+	# 		# print "dLHI[i]",dLHI[i]
+	# 	return dLHI # for each neuron
 
 	# SI over all trials and orientations
 	trials_pop_mean_SI = []
 	trials_pop_stdev_SI = []
 	SItrials = 0 # index of trials
 
-	# the resting SI is the static LHI
-	print "resting LHI ..."
-	LHI = dLHI(sheet, positions, sheet_indexes, None, ids, ids_positions, sigma, bins)
+	# # the resting SI is the static HI
+	# print "resting HI ..."
+	# HI = dHI(sheet, sheet_indexes, None, ids, ids_positions, bins)
 
 	# each segment has all cells spiketrains for one trial
 	for s in segs:
 		dist = eval(s.annotations['stimulus'])
-		# print dist
-		if dist['radius'] < 0.1:
-			continue
+		# # print dist
+		# if dist['radius'] < 0.1:
+		# 	continue
 		if dist['trial'] > 10: 
 			continue
 		# if dist['orientation'] > 0.0: # only one orientation, for the moment
@@ -3469,22 +3493,23 @@ def SingleTrialSynergyIndex_spikes( sheet, folder, stimulus, parameter, preferre
 		SItrials += 1
 
 		print "cell's spiketrains:", len(s.spiketrains) # number of cells
-		h = {}
+		psth = {}
 		for a in s.spiketrains: # spiketrains of one trial
 			# print "notes",
 			# print "a ",a # spiketrains are already in ms
 			# print numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0]
-			h[ a.annotations['source_id'] ] = numpy.histogram(a, bins=bins, range=(0.0,1029.0))[0] # 10ms bin
-			# h[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
+			psth[ a.annotations['source_id'] ] = numpy.histogram(a, bins=bins, range=(0.0, 1029.0))[0] # 10ms bin
+			# psth[ a.annotations['source_id'] ] = len(a) # number of spikes fired in this trial
 
-		print "stimulation dLHI ...", SItrials
-		stim_dLHI = dLHI(sheet, positions, sheet_indexes, h, ids, ids_positions, sigma, bins)
-		# print stim_dLHI
+		print "stimulation dHI ...", SItrials
+		stim_dHI = dHI(sheet, sheet_indexes, psth, ids, ids_positions, bins)
+		# print stim_dHI
 
 		SI = {}
-		# average resting_dLHI
+		# average resting_dHI
 		for k in ids:
-			SI[k] = abs(stim_dLHI[k] - LHI[k]) / (stim_dLHI[k] + LHI[k]) # resting LHI has been initialised with ones
+			# SI[k] = stim_dHI[k] / HI[k] 
+			SI[k] = stim_dHI[k] 
 		print "SI", len(SI) #, SI # SI 529 {57346: array([ 0.99585163, ...]), ...}
 		# print "SI.values()", SI.values()
 		# print "times:", len(numpy.mean(SI.values(), axis=0))
@@ -3502,7 +3527,7 @@ def SingleTrialSynergyIndex_spikes( sheet, folder, stimulus, parameter, preferre
 		plt.plot(pop_si, color="black", linewidth=1., alpha=0.5)
 	plt.plot(numpy.mean(trials_pop_mean_SI, axis=0), color="black", linewidth=3.)
 	# plt.yscale('log')
-	plt.ylim([0.,1.])
+	# plt.ylim([0.,1.])
 	plt.savefig( folder+"/spikes_trial_avg_pop_avg_SI_"+sheet+"_"+addon+".svg", dpi=300, transparent=True )
 	plt.close()
 	gc.collect()
@@ -5011,10 +5036,10 @@ full_list = [
 	# "ThalamoCorticalModel_data_size_feedforward_vsdi_____",
 
 	# # Synergy Index
-	# "ThalamoCorticalModel_data_orientation_ffw_____",
-	# "ThalamoCorticalModel_data_orientation_closed_____",
-	"ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
-	"ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
+	"ThalamoCorticalModel_data_orientation_ffw_____",
+	"ThalamoCorticalModel_data_orientation_closed_____",
+	# "ThalamoCorticalModel_data_size_closed_vsdi_100micron_____",
+	# "ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____", # 
 
 	# # # sizes of feedback radius
 	# "/media/do/Sauvegarde Système/ThalamoCorticalModel_data_size_closed_vsdi_____5radius",
@@ -5701,18 +5726,18 @@ else:
 			# 	preferred = True,
 			# 	addon = addon + "_surround_",
 			# )
-			Xcorr_SynergyIndex_spikes( 
-				sheet1=s, 
-				folder1=f,
-				# sheet2=s, 
-				folder2=f,
-				sheet2='V1_Inh_L4', 
-				# sheet2='V1_Exc_L4', 
-				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
-				stimulus='DriftingSinusoidalGratingDisk',
-				parameter="radius",
-				addon = addon,
-			)
+			# Xcorr_SynergyIndex_spikes( 
+			# 	sheet1=s, 
+			# 	folder1=f,
+			# 	# sheet2=s, 
+			# 	folder2=f,
+			# 	sheet2='V1_Inh_L4', 
+			# 	# sheet2='V1_Exc_L4', 
+			# 	# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+			# 	stimulus='DriftingSinusoidalGratingDisk',
+			# 	parameter="radius",
+			# 	addon = addon,
+			# )
 			# trial_averaged_raster( 
 			# 	sheet=s, 
 			# 	folder=f,
@@ -6816,18 +6841,18 @@ else:
 			# 	# dashed=False,
 			# 	# addon = "closed",
 			# )
-			# Xcorr_SynergyIndex_spikes( 
-			# 	sheet1=s, 
-			# 	folder1=f,
-			# 	# sheet2=s, 
-			# 	folder2=f,
-			# 	sheet2='V1_Inh_L4', 
-			# 	# sheet2='V1_Exc_L4', 
-			# 	# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
-			# 	stimulus='FullfieldDriftingSinusoidalGrating',
-			# 	parameter="orientation",
-			# 	addon = addon,
-			# )
+			Xcorr_SynergyIndex_spikes( 
+				sheet1=s, 
+				folder1=f,
+				# sheet2=s, 
+				folder2=f,
+				sheet2='V1_Inh_L4', 
+				# sheet2='V1_Exc_L4', 
+				# folder2="ThalamoCorticalModel_data_size_feedforward_vsdi_100micron_____",
+				stimulus='FullfieldDriftingSinusoidalGrating',
+				parameter="orientation",
+				addon = addon,
+			)
 
 			# variability( 
 			# 	sheet=s, 
