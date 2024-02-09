@@ -1,4 +1,12 @@
-Installation intructions
+Analysis instructions
+========================
+
+Installing the software stack, then building and running the model requires a certain amount of time.     
+For those interested in evaluating and further analysing the results of the model, we created a simpler virtual environment on mybinder.org where all the data are available and jupyter notebooks are used to perform the analyses and visualization of the major figures in the paper.
+
+**Coming ...**
+
+Installation instructions
 ========================
 
 Dependencies
