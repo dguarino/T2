@@ -160,16 +160,28 @@ And, finally, Mozaik::
     
 .. _ref-run:
 
-Running examples
+Running the model
 ----------------
+The model has been tested using several stimuli and conditions. A separate run file is used for each:
 
-Go to the examples directory in the mozaik cloned from github (see above) and launch the model VogelsAbbott2005::
+- `run_luminance_open.py`
+- `run_luminance_closed.py`
+- `run_contrast_open.py`
+- `run_contrast_closed.py`
+- `run_temporal_open.py`
+- `run_temporal_closed.py`
+- `run_spatial_open.py`
+- `run_spatial_closed.py`
+- `run_size_closed.py`
+- `run_size_feedforward.py`
+- `run_size_closed_overlapping.py`
+- `run_size_closed_nonoverlapping.py`
+- `run_orientation_open.py`
+- `run_orientation_feedforward.py`
+- `run_orientation_closed.py`
 
-  cd examples
-  cd VogelsAbbott2005
-  mpirun -np 2 python run.py nest 2 param/defaults 'test'
-  
-This will launch the example with the nest simulator, on 2 nodes with each node using 2 threads, using the parameter param/defaults. Last, 'test' is the name of this run.
+Each of these files builds the model in the described condition and provides the corresponding stimuli as described in the paper.    
+It can be run using the following type of command line:
 
-:copyright: Copyright 2011-2013 by the *mozaik* team, see AUTHORS.
-:license: `CECILL <http://www.cecill.info/>`_, see LICENSE for details.
+mpirun -np 2 python run_<stimulus and condition>.py nest 2 param/defaults '<stimulus and condition folder name>'
+
