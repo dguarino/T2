@@ -1,13 +1,15 @@
 Analysis instructions
 ========================
 
-Installing the software stack, then building and running the model requires a certain amount of time.     
-For those interested in evaluating and further analysing the results of the model, we created a simpler virtual environment on mybinder.org where all the data are available and jupyter notebooks are used to perform the analyses and visualization of the major figures in the paper.
+Installing the software stack, and then building and running the model requires a certain amount of time.     
+For those interested in evaluating and further analyzing the results of the model, we created a simpler virtual environment on mybinder.org where all the data are available and jupyter notebooks are used to perform the analyses and visualization of the major figures in the paper.
 
 **Coming ...**
 
 Installation instructions
 ========================
+
+NOTE: The instructions below comply with the version of mozaik at the time of the development of this model (2015-2018). There has been advancements in the mozaik framework that are not supported by the code in this repository.
 
 Dependencies
 ------------
