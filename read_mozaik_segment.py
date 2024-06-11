@@ -4,15 +4,10 @@ import neo
 import glob
 
 # loading a neo file
-folder = 	"ThalamoCorticalModel_int_bar_ver3_closed_____/" # example on my machine
-# folder = 	"/media/do/HANGAR/Deliverable/ThalamoCorticalModel_data_orientation_closed_____/" # example on my machine
-
-# ds = pickle.load( open(folder+"datastore.recordings.pickle", "rb") )
-# print ds
-# print ds.name, ds.description, ds.segments
+folder = "Deliverable/ThalamoCorticalModel_data_contrast_closed_____/" # example on my machine
 
 filenames = [ x for x in glob.glob(folder+"*.pickle") ]
-# print filenames
+print(filenames)
 
 for name in filenames:
 	print name
